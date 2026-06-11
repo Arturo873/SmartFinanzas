@@ -1,0 +1,66 @@
+{% extends 'AppWeb/base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Resultados Predictivos: Ratios de Liquidez + CAPM</h2>
+    
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">Pipeline Financiero - Ratios Calculados</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Razón Corriente
+                            <span class="badge bg-secondary rounded-pill">{{ ratios.razon_corriente }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Prueba Ácida
+                            <span class="badge bg-secondary rounded-pill">{{ ratios.prueba_acida }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Ratio de Caja
+                            <span class="badge bg-secondary rounded-pill">{{ ratios.ratio_caja }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Cobertura Operacional
+                            <span class="badge bg-secondary rounded-pill">{{ ratios.cobertura_operacional }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Capital de Trabajo
+                            <span class="badge bg-secondary rounded-pill">{{ ratios.capital_trabajo }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Endeudamiento C/P
+                            <span class="badge bg-secondary rounded-pill">{{ ratios.endeudamiento_corto_plazo }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Score Scikit-Learn</h5>
+                </div>
+                <div class="card-body text-center">
+                    <h1 class="display-1">
+                        {% if color == 'Verde' %}
+                        <span class="text-success">{{ score }}%</span>
+                        {% elif color == 'Amarillo' %}
+                        <span class="text-warning">{{ score }}%</span>
+                        {% else %}
+                        <span class="text-danger">{{ score }}%</span>
+                        {% endif %}
+                    </h1>
+                    <h4>Umbral: {{ riesgo }}</h4>
+                    <p class="text-muted mt-3">Beta Utilizado en el Modelo: <strong>{{ beta }}</strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

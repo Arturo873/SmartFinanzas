@@ -1,0 +1,60 @@
+{% extends "AppWeb/base.html" %}
+
+{% block title %}Inicio - SmartFinanzas{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 text-center mt-4">
+        <h1 class="display-4">Bienvenido a SmartFinanzas</h1>
+        <p class="lead text-muted">Plataforma Inteligente para la Predicción de Crisis Empresarial</p>
+        
+        <hr class="my-4">
+        
+        <div class="row mt-5">
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 shadow-sm border-primary">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary">1. Cargar Datos</h5>
+                        <p class="card-text">Sube tus archivos contables (.csv o .xlsx) masivamente y sin errores.</p>
+                        <a href="{% url 'carga_datos' %}" class="btn btn-outline-primary">Ir a Carga</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 shadow-sm border-info">
+                    <div class="card-body">
+                        <h5 class="card-title text-info">2. Configurar CAPM</h5>
+                        <p class="card-text">Define tu sector comercial y asocia el Beta para tu entorno macroeconómico.</p>
+                        <a href="{% url 'capm' %}" class="btn btn-outline-info">Ir a CAPM</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <!-- Tarjeta que contiene el botón con llamado POST para la HU5 -->
+                <div class="card h-100 shadow text-white bg-dark">
+                    <div class="card-body">
+                        <h5 class="card-title text-warning">3. Motor Predictivo</h5>
+                        <p class="card-text">Analiza liquidez y proyecta alertas (Semáforo de solvencia).</p>
+                        <form action="{% url 'prediccion' %}" method="POST">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-warning fw-bold w-100">EJECUTAR PREDICCIÓN</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mensajes del sistema (Ej. Alertas de Django) -->
+        {% if messages %}
+        <div class="mt-4 text-start">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

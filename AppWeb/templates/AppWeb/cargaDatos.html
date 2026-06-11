@@ -1,0 +1,59 @@
+{% extends "AppWeb/base.html" %}
+
+{% block title %}Carga de Archivos Contables - SmartFinanzas{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Carga Masiva de Información Contable</h4>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    Sube un archivo Excel (.xlsx) o CSV con el formato estandarizado para ingresar 
+                    el balance general o estado de resultados del período sin digitar manualmente.
+                </p>
+
+                <!-- Mostrar mensajes de error o éxito -->
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <form action="{% url 'carga_datos' %}" method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="tipo_documento" class="form-label">Tipo de Documento</label>
+                        <select class="form-select" id="tipo_documento" name="tipo_documento" required>
+                            <option value="" selected disabled>Seleccione...</option>
+                            <option value="balance">Balance General</option>
+                            <option value="resultados">Estado de Resultados</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="archivo_datos" class="form-label">Archivo de Datos (.csv, .xlsx)</label>
+                        <input class="form-control" type="file" id="archivo_datos" name="archivo_datos" accept=".csv, .xlsx" required>
+                        <div class="form-text">Asegúrese de usar la plantilla estandarizada.</div>
+                    </div>
+
+                    <div class="d-flex justify-content-end">
+                        <a href="{% url 'home' %}" class="btn btn-secondary me-2">Cancelar</a>
+                        <button type="submit" class="btn btn-success">Procesar Archivo</button>
+                    </div>
+                </form>
+
+            </div>
+            <div class="card-footer bg-light">
+                <small class="text-muted">¿No tienes la plantilla? <a href="#">Descargar Plantilla Estandarizada</a></small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
