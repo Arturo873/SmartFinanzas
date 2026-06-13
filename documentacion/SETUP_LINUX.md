@@ -54,6 +54,8 @@ python3 -m venv venv
 
 ```bash
 source venv/bin/activate
+#source mi_entorno/bin/activate
+#para desactivar solo poner: deactivate
 ```
 
 Verás que el prompt cambia a algo como: `(venv) usuario@maquina:~/SmartFinanzas$`
