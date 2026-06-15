@@ -62,9 +62,6 @@ source venv/Scripts/activate
 pip install django
 pip install pandas
 pip install pandas openpyxl
-
-o ejecutar pip install -r requirements.txt
-
 ```
 
 O si tienes un archivo `requirements.txt`:
