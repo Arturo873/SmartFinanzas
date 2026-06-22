@@ -80,7 +80,7 @@ def carga_datos(request: HttpRequest):
                 messages.success(request, f'¡Archivo "{archivo.name}" validado correctamente! {len(df)} registros cargados.')
 
         except Exception as e:
-            messages.error(request, f'Error al procesar el archivo: {str(e)}')
+            messages.error(request, f'Error al procesar el archivo: {e}')
 
         return render(request, 'AppWeb/cargaDatos.html')
 
@@ -125,20 +125,14 @@ def calculo_capm(request: HttpRequest):
 
     return render(request, 'AppWeb/capm.html', contexto)
 
-def extraer_valor(row, columna):
-    try:
-        return float(row[columna])
-    except Exception:
-        return 0.0
-
 def calcular_ratios_liquidez(row: dict):
-    activo_circulante = extraer_valor(row, 'Activo_Circulante')
-    pasivo_circulante = extraer_valor(row, 'Pasivo_Circulante')
-    inventario = extraer_valor(row, 'Inventarios')
-    caja_y_bancos = extraer_valor(row, 'Efectivo_Equivalentes')
-    flujo_caja_operativo = extraer_valor(row, 'Utilidad_Neta')
-    pasivo_total = extraer_valor(row, 'Pasivo_Total')
-    activo_total = extraer_valor(row, 'Activo_Total')
+    activo_circulante = row.get('Activo_Circulante', 0)
+    pasivo_circulante = row.get('Pasivo_Circulante',0)
+    inventario = row.get('Inventarios',0)
+    caja_y_bancos = row.get('Efectivo_Equivalentes',0)
+    flujo_caja_operativo = row.get('Utilidad_Neta',0)
+    pasivo_total = row.get('Pasivo_Total',0)
+    activo_total = row.get('Activo_Total',0)
 
     eps = 1e-6
     denom = pasivo_circulante if pasivo_circulante > 0 else eps
