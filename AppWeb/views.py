@@ -151,7 +151,7 @@ def calcular_ratios_liquidez(row: dict):
     return {k: round(v, 4) for k, v in ratios.items()}
 
 
-def ejecutar_prediccion(request):
+def ejecutar_prediccion(request: HttpRequest):
     if request.method == 'POST':
         try:
             datos_json = request.session.get('datos_cargados')
