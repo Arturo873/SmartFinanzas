@@ -1,3 +1,4 @@
+from django.http import HttpRequest
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from io import StringIO
@@ -11,14 +12,14 @@ COLUMNAS_PLANTILLA = [
 
 COLUMNAS_NUMERICAS = COLUMNAS_PLANTILLA[2:]
 
-def home(request):
+def home(request: HttpRequest):
     contexto = {
         'paso_1': bool(request.session.get('datos_cargados')),
         'paso_2': bool(request.session.get('beta_capm')),
     }
     return render(request, 'AppWeb/index.html', contexto)
 
-def carga_datos(request):
+def carga_datos(request: HttpRequest):
     if request.method == 'POST':
         if 'archivo_datos' not in request.FILES:
             messages.error(request, 'No se seleccionó ningún archivo.')
@@ -85,7 +86,7 @@ def carga_datos(request):
 
     return render(request, 'AppWeb/cargaDatos.html')
 
-def calculo_capm(request):
+def calculo_capm(request: HttpRequest):
     sectores_beta = {
         'Minería': 1.15,
         'Retail': 0.85,
@@ -130,7 +131,7 @@ def extraer_valor(row, columna):
     except Exception:
         return 0.0
 
-def calcular_ratios_liquidez(row):
+def calcular_ratios_liquidez(row: dict):
     activo_circulante = extraer_valor(row, 'Activo_Circulante')
     pasivo_circulante = extraer_valor(row, 'Pasivo_Circulante')
     inventario = extraer_valor(row, 'Inventarios')
