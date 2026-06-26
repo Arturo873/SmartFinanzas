@@ -3,6 +3,8 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from io import StringIO
 import pandas as pd
+import uuid
+import os
 
 COLUMNAS_PLANTILLA = [
     'Id_Empresa', 'Periodo', 'Activo_Circulante', 'Pasivo_Circulante',
@@ -11,6 +13,9 @@ COLUMNAS_PLANTILLA = [
 ]
 
 COLUMNAS_NUMERICAS = COLUMNAS_PLANTILLA[2:]
+
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
+os.makedirs(DATA_DIR, exist_ok=True)
 
 def home(request: HttpRequest):
     contexto = {
@@ -75,7 +80,10 @@ def carga_datos(request: HttpRequest):
                         messages.warning(request, msj)
                     df.drop(columns=['_diferencia'], inplace=True)
 
-                request.session['datos_cargados'] = df.to_json(orient='records')
+                archivo_id = str(uuid.uuid4())
+                ruta_csv = os.path.join(DATA_DIR, f'{archivo_id}.csv')
+                df.to_csv(ruta_csv, index=False)
+                request.session['datos_cargados'] = ruta_csv
                 request.session['empresas_disponibles'] = df['Id_Empresa'].unique().tolist()
                 messages.success(request, f'¡Archivo "{archivo.name}" validado correctamente! {len(df)} registros cargados.')
 
@@ -154,12 +162,16 @@ def calcular_ratios_liquidez(row: dict):
 def ejecutar_prediccion(request: HttpRequest):
     if request.method == 'POST':
         try:
-            datos_json = request.session.get('datos_cargados')
-            if not datos_json:
+            ruta_csv = request.session.get('datos_cargados')
+            if not ruta_csv:
                 messages.error(request, 'No hay datos cargados. Cargue un archivo primero.')
                 return redirect('carga_datos')
 
-            df = pd.read_json(datos_json, orient='records')
+            if not os.path.exists(ruta_csv):
+                messages.error(request, 'Los datos han expirado. Cargue un archivo nuevamente.')
+                return redirect('carga_datos')
+
+            df = pd.read_csv(ruta_csv)
 
             empresa_id = request.POST.get('empresa_id', df['Id_Empresa'].iloc[0])
             df_empresa = df[df['Id_Empresa'] == empresa_id]
@@ -196,6 +208,17 @@ def ejecutar_prediccion(request: HttpRequest):
             messages.error(request, f"Error en la predicción: {str(e)}")
             return redirect('home')
 
+    return redirect('home')
+
+
+def limpiar_datos(request: HttpRequest):
+    if request.method == 'POST':
+        ruta_csv = request.session.pop('datos_cargados', None)
+        if ruta_csv and os.path.exists(ruta_csv):
+            os.remove(ruta_csv)
+        request.session.pop('beta_capm', None)
+        request.session.pop('empresas_disponibles', None)
+        messages.success(request, 'Datos y configuración eliminados correctamente.')
     return redirect('home')
 
 

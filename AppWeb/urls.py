@@ -6,4 +6,5 @@ urlpatterns = [
     path('carga-datos/', views.carga_datos, name='carga_datos'),
     path('capm/', views.calculo_capm, name='capm'),
     path('prediccion/', views.ejecutar_prediccion, name='prediccion'),
+    path('limpiar/', views.limpiar_datos, name='limpiar_datos'),
 ]

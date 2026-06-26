@@ -50,8 +50,11 @@
                 </form>
 
             </div>
-            <div class="card-footer bg-light">
+            <div class="card-footer bg-light d-flex justify-content-between align-items-center">
                 <small class="text-muted">Columnas esperadas: Id_Empresa, Periodo, Activo_Circulante, Pasivo_Circulante, Efectivo_Equivalentes, Inventarios, Activo_Total, Pasivo_Total, Patrimonio_Neto, Utilidad_Neta</small>
+                {% if request.session.datos_cargados %}
+                <a href="{% url 'capm' %}" class="btn btn-primary btn-sm">Continuar → Configurar CAPM</a>
+                {% endif %}
             </div>
         </div>
     </div>

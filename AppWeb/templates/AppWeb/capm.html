@@ -72,6 +72,11 @@
                 </div>
                 {% endif %}
             </div>
+            {% if request.session.beta_capm %}
+            <div class="card-footer bg-light text-end">
+                <a href="{% url 'home' %}" class="btn btn-primary">Continuar → Ejecutar Predicción</a>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>

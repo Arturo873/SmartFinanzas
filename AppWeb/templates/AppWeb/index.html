@@ -130,6 +130,15 @@
             {% endfor %}
         </div>
         {% endif %}
+
+        {% if paso_1 %}
+        <div class="mt-4">
+            <form action="{% url 'limpiar_datos' %}" method="POST" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-danger">Limpiar Datos y Reiniciar</button>
+            </form>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

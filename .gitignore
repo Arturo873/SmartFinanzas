@@ -222,3 +222,7 @@ __marimo__/
 db.sqlite3
 
 .env
+
+#carpeta data donde se guardan los archivos cargados
+#carpeta data se crea si no exite
+data/
