@@ -3,3 +3,6 @@ pandas
 openpyxl
 joblib
 scikit-learn
+requests
+beautifulsoup4
+lxml

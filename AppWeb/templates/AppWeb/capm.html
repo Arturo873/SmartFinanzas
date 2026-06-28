@@ -51,23 +51,38 @@
                     <h5 class="text-primary mb-3">Resultados del Modelo CAPM</h5>
                     <div class="row">
                         <div class="col-md-6 mb-2">
-                            <strong>Sector:</strong> <span class="float-end">{{ sector_seleccionado }}</span>
+                            <strong>Sector:</strong>
+                            <span class="float-end">{{ sector_seleccionado }}</span>
                         </div>
                         <div class="col-md-6 mb-2">
-                            <strong>Beta Asignado:</strong> <span class="float-end badge bg-info text-dark fs-6">{{ beta }}</span>
+                            <strong>Beta Asignado:</strong>
+                            <span class="float-end badge bg-info text-dark fs-6">{{ beta }}</span>
+                            <br><small class="float-end">Fuente: {% if fuente_betas == "Valor por defecto" %}<span class="badge bg-warning text-dark">Valor por defecto</span>{% else %}<span class="text-muted">{{ fuente_betas }}</span>{% endif %}</small>
                         </div>
                         <div class="col-md-6 mb-2">
-                            <strong>Tasa Libre de Riesgo (Bono BCU):</strong> <span class="float-end">4.50%</span>
+                            <strong>Tasa Libre de Riesgo (BCU-10):</strong>
+                            <span class="float-end">{{ tasa_libre_riesgo|floatformat:2 }}%</span>
+                            <br><small class="float-end">Fuente: {% if fuente_rf == "Valor por defecto" %}<span class="badge bg-warning text-dark">Valor por defecto</span>{% else %}<span class="text-muted">{{ fuente_rf }}</span>{% endif %}</small>
                         </div>
                         <div class="col-md-6 mb-2">
-                            <strong>Prima de Mercado:</strong> <span class="float-end">6.00%</span>
+                            <strong>Prima de Riesgo de Mercado:</strong>
+                            <span class="float-end">{{ prima_riesgo_mercado|floatformat:2 }}%</span>
+                            <br><small class="float-end">Fuente: {% if fuente_erp == "Valor por defecto" %}<span class="badge bg-warning text-dark">Valor por defecto</span>{% else %}<span class="text-muted">{{ fuente_erp }}</span>{% endif %}</small>
                         </div>
                     </div>
-                    
-                    <div class="alert alert-success mt-3 mb-0 text-center">
+
+                    <div class="alert alert-info mt-3 text-center">
+                        <h5 class="mb-1">Fórmula CAPM</h5>
+                        <code class="fs-5">
+                            Ke = {{ tasa_libre_riesgo|floatformat:2 }}% + {{ beta }} × {{ prima_riesgo_mercado|floatformat:2 }}%
+                            = <strong>{{ costo_patrimonio }}%</strong>
+                        </code>
+                    </div>
+
+                    <div class="alert alert-success mt-0 mb-0 text-center">
                         <h4 class="mb-1">Costo de Patrimonio (Ke)</h4>
                         <h2 class="display-6 fw-bold mb-0 text-success">{{ costo_patrimonio }}%</h2>
-                        <small>Rentabilidad mínima exigida (Ke = Rf + β(Rm - Rf))</small>
+                        <small>Rentabilidad mínima exigida</small>
                     </div>
                 </div>
                 {% endif %}

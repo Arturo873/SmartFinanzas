@@ -6,6 +6,13 @@ import pandas as pd
 import uuid
 import os
 
+from .fetch_capm_data import (
+    get_tasa_libre_riesgo,
+    get_prima_riesgo_mercado,
+    get_sectores_beta,
+    DEFAULT_SECTORES_BETA,
+)
+
 COLUMNAS_PLANTILLA = [
     'Id_Empresa', 'Periodo', 'Activo_Circulante', 'Pasivo_Circulante',
     'Efectivo_Equivalentes', 'Inventarios', 'Activo_Total',
@@ -95,19 +102,23 @@ def carga_datos(request: HttpRequest):
     return render(request, 'AppWeb/cargaDatos.html')
 
 def calculo_capm(request: HttpRequest):
-    sectores_beta = {
-        'Minería': 1.15,
-        'Retail': 0.85,
-        'Energía': 0.90,
-        'Sector Bancario y Financiero': 1.05,
-        'Telecomunicaciones': 0.75,
-        'Agrícola y Forestal': 0.80,
-        'Tecnología': 1.20,
-        'Construcción e Inmobiliario': 1.10
-    }
+    try:
+        tasa_libre_riesgo, fuente_rf = get_tasa_libre_riesgo()
+        prima_riesgo_mercado, fuente_erp = get_prima_riesgo_mercado()
+        sectores_beta, fuente_betas = get_sectores_beta()
+    except Exception:
+        tasa_libre_riesgo, fuente_rf = 4.5, 'Valor por defecto'
+        prima_riesgo_mercado, fuente_erp = 6.0, 'Valor por defecto'
+        sectores_beta, fuente_betas = DEFAULT_SECTORES_BETA, 'Valor por defecto'
+        messages.warning(request, 'No se pudieron obtener datos actualizados desde internet. Se usaron los valores asignados por defecto.')
 
     contexto = {
-        'sectores': sectores_beta.keys()
+        'sectores': sectores_beta.keys(),
+        'fuente_rf': fuente_rf,
+        'fuente_erp': fuente_erp,
+        'fuente_betas': fuente_betas,
+        'tasa_libre_riesgo': tasa_libre_riesgo,
+        'prima_riesgo_mercado': prima_riesgo_mercado,
     }
 
     if request.method == 'POST':
@@ -115,9 +126,6 @@ def calculo_capm(request: HttpRequest):
 
         if sector_seleccionado in sectores_beta:
             beta_mercado = sectores_beta[sector_seleccionado]
-
-            tasa_libre_riesgo = 4.5
-            prima_riesgo_mercado = 6.0
 
             costo_patrimonio = tasa_libre_riesgo + (beta_mercado * prima_riesgo_mercado)
 
