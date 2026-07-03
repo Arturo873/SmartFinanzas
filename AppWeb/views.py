@@ -6,6 +6,7 @@ import pandas as pd
 import uuid
 import os
 
+from .viewsML import calcular_score_compuesto, obtener_metricas, analizar_contribucion_riesgo
 from .fetch_capm_data import (
     get_tasa_libre_riesgo,
     get_prima_riesgo_mercado,
@@ -192,13 +193,17 @@ def ejecutar_prediccion(request: HttpRequest):
 
             beta_sector = request.session.get('beta_capm', 0.85)
 
-            puntaje_riesgo = 75.4
+            puntaje_riesgo = calcular_score_compuesto(ratios_empresa)
             if puntaje_riesgo <= 35:
                 riesgo, color = 'Bajo', 'Verde'
             elif puntaje_riesgo <= 70:
                 riesgo, color = 'Moderado', 'Amarillo'
             else:
                 riesgo, color = 'Crítico', 'Rojo'
+
+            metricas_modelo = obtener_metricas(ruta_csv)
+
+            top_3_riesgo = analizar_contribucion_riesgo(ratios_empresa)
 
             messages.success(request, f'Análisis predictivo completado para {empresa_id}.')
 
@@ -208,8 +213,10 @@ def ejecutar_prediccion(request: HttpRequest):
                 'score': puntaje_riesgo,
                 'riesgo': riesgo,
                 'color': color,
-                'empresa_id': empresa_id
+                'empresa_id': empresa_id,
+                'top_3_riesgo': top_3_riesgo,
             }
+            contexto.update(metricas_modelo)
             return render(request, 'AppWeb/resultado_prediccion.html', contexto)
 
         except Exception as e:
