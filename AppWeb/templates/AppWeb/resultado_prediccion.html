@@ -2,13 +2,14 @@
 
 {% block content %}
 <div class="container mt-4">
-    <div class="text-center mb-2">
-        <h3 class="fw-bold">Indicador de Riesgo de Insolvencia</h3>
-        <p class="text-muted">Empresa: <strong>{{ empresa_id }}</strong></p>
-    </div>
 
     <div class="row justify-content-center mb-4">
         <div class="col-md-6 col-lg-4">
+            <div class="text-center mb-2">
+                <h3 class="fw-bold">Indicador de Riesgo de Insolvencia</h3>
+                <!--<p class="text-muted">Empresa: <strong>{{ empresa_id }}</strong></p>
+            -->
+            </div>
             <div class="card shadow-sm border-0 text-center">
                 <div class="card-body py-4">
                     <div class="d-flex justify-content-center mb-2">
@@ -34,13 +35,13 @@
                 </div>
             </div>
         </div>
-    </div>
-    <!-- Factores de riesgo 
-    <div class="row justify-content-center mb-4">
+
+
+
         <div class="col-md-10 col-lg-8">
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-dark text-white d-flex align-items-center gap-2">
-                    <span>🔍</span>
+                    <span></span>
                     <h5 class="mb-0">Factores que más afectan tu riesgo de insolvencia</h5>
                 </div>
                 <div class="card-body">
@@ -54,22 +55,27 @@
                         </div>
                         <div class="progress mb-2" style="height: 8px;">
                             <div class="progress-bar {% if factor.impacto >= 10 %}bg-danger{% elif factor.impacto >= 5 %}bg-warning{% else %}bg-success{% endif %}"
-                                 role="progressbar"
-                                 data-width="{% widthratio factor.puntaje 25 100 %}"
-                                 aria-valuenow="{{ factor.puntaje }}" aria-valuemin="0" aria-valuemax="25">
+                                role="progressbar"
+                                data-width="{% widthratio factor.puntaje 25 100 %}"
+                                aria-valuenow="{{ factor.puntaje }}" aria-valuemin="0" aria-valuemax="25">
                             </div>
                         </div>
                         <p class="mb-1 small text-muted">{{ factor.explicacion }}</p>
-                        <p class="mb-0 small fst-italic">
-                            <span class="text-secondary">💡</span> {{ factor.consejo }}
-                        </p>
+                        <!--
+                        <p class="mb-0 small fw-semibold">
+                            <span class="text-secondary">Recomendacion:</span> {{ factor.consejo }}
+                        </p>-->
                     </div>
                     {% endfor %}
                 </div>
             </div>
         </div>
     </div>
-    -->
+   
+    
+
+
+
     <div class="row g-3 mb-4">
         <div class="col-md-6">
             <div class="card shadow-sm h-100">
