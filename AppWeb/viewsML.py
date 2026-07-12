@@ -180,6 +180,35 @@ def analizar_contribucion_riesgo(ratios: dict) -> list:
     return sorted(resultados, key=lambda r: r['impacto'], reverse=True)[:3]
 
 
+RECOMENDACIONES_POR_ALERTA = {
+    'Verde': {
+        'titulo': 'Riesgo bajo: mantén el control',
+        'mensaje': (
+            'Tu situación financiera es sólida. Mantén el monitoreo periódico de tus ratios de liquidez '
+            'y endeudamiento para conservar este nivel de riesgo.'
+        ),
+    },
+    'Amarillo': {
+        'titulo': 'Riesgo moderado: actúa de forma preventiva',
+        'mensaje': (
+            'Existen señales de alerta en algunos indicadores. Revisa los factores destacados abajo y aplica '
+            'las recomendaciones asociadas antes de que el riesgo escale a un nivel crítico.'
+        ),
+    },
+    'Rojo': {
+        'titulo': 'Riesgo crítico: se requiere acción inmediata',
+        'mensaje': (
+            'Tu empresa presenta un riesgo alto de insolvencia. Prioriza de inmediato las recomendaciones '
+            'de los factores con mayor impacto y considera asesoría financiera especializada.'
+        ),
+    },
+}
+
+
+def obtener_recomendacion_general(color: str) -> dict:
+    return RECOMENDACIONES_POR_ALERTA.get(color, RECOMENDACIONES_POR_ALERTA['Amarillo'])
+
+
 def obtener_metricas(ruta_csv: str) -> dict:
     df = pd.read_csv(ruta_csv)
     n = len(df)

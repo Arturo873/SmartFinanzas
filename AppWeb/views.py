@@ -6,13 +6,19 @@ import pandas as pd
 import uuid
 import os
 
-from .viewsML import calcular_score_compuesto, obtener_metricas, analizar_contribucion_riesgo
+from .viewsML import (
+    calcular_score_compuesto,
+    obtener_metricas,
+    analizar_contribucion_riesgo,
+    obtener_recomendacion_general,
+)
 from .fetch_capm_data import (
     get_tasa_libre_riesgo,
     get_prima_riesgo_mercado,
     get_sectores_beta,
     DEFAULT_SECTORES_BETA,
 )
+from .models import Empresa, HistorialPrediccion
 
 COLUMNAS_PLANTILLA = [
     'Id_Empresa', 'Periodo', 'Activo_Circulante', 'Pasivo_Circulante',
@@ -167,6 +173,20 @@ def calcular_ratios_liquidez(row: dict):
     return {k: round(v, 4) for k, v in ratios.items()}
 
 
+def calcular_tendencia_periodos(df: pd.DataFrame) -> list:
+    scores_por_fila = []
+    for _, row in df.iterrows():
+        ratios = calcular_ratios_liquidez(row.to_dict())
+        scores_por_fila.append(calcular_score_compuesto(ratios))
+
+    df_scores = df.assign(_score=scores_por_fila)
+    promedio = df_scores.groupby('Periodo')['_score'].mean().round(1)
+    return [
+        {'periodo': periodo, 'score_promedio': valor}
+        for periodo, valor in sorted(promedio.items())
+    ]
+
+
 def ejecutar_prediccion(request: HttpRequest):
     if request.method == 'POST':
         try:
@@ -203,6 +223,24 @@ def ejecutar_prediccion(request: HttpRequest):
             metricas_modelo = obtener_metricas(ruta_csv)
 
             top_3_riesgo = analizar_contribucion_riesgo(ratios_empresa)
+            recomendacion_general = obtener_recomendacion_general(color)
+
+            empresa, _ = Empresa.objects.get_or_create(
+                rut=str(empresa_id), defaults={'nombre': str(empresa_id)}
+            )
+            HistorialPrediccion.objects.create(
+                empresa=empresa,
+                score=puntaje_riesgo,
+                riesgo=color,
+                razon_corriente=ratios_empresa.get('razon_corriente'),
+                prueba_acuda=ratios_empresa.get('prueba_acida'),
+            )
+            historial_empresa = [
+                {'fecha': h.fecha_prediccion.strftime('%d-%m-%Y %H:%M'), 'score': h.score}
+                for h in HistorialPrediccion.objects.filter(empresa=empresa).order_by('fecha_prediccion')
+            ]
+
+            tendencia_periodos = calcular_tendencia_periodos(df)
 
             messages.success(request, f'Análisis predictivo completado para {empresa_id}.')
 
@@ -214,6 +252,9 @@ def ejecutar_prediccion(request: HttpRequest):
                 'color': color,
                 'empresa_id': empresa_id,
                 'top_3_riesgo': top_3_riesgo,
+                'recomendacion_general': recomendacion_general,
+                'historial_empresa': historial_empresa,
+                'tendencia_periodos': tendencia_periodos,
                 'modelo_info': {
                     'dataset': 'Conjunto de validación (20% de los datos)',
                     'split': 'test_size=0.2, random_state=42',
