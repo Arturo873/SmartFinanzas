@@ -161,7 +161,6 @@ def calcular_ratios_liquidez(row: dict):
         'cobertura_operacional': flujo_caja_operativo / denom,
         'capital_trabajo': activo_circulante - pasivo_circulante,
         'endeudamiento_corto_plazo': pasivo_circulante / (pasivo_total if pasivo_total > 0 else eps),
-        'liquidez_inmediata': caja_y_bancos / denom,
         'solvencia_general': activo_total / (pasivo_total if pasivo_total > 0 else eps)
     }
 
@@ -215,6 +214,11 @@ def ejecutar_prediccion(request: HttpRequest):
                 'color': color,
                 'empresa_id': empresa_id,
                 'top_3_riesgo': top_3_riesgo,
+                'modelo_info': {
+                    'dataset': 'Conjunto de validación (20% de los datos)',
+                    'split': 'test_size=0.2, random_state=42',
+                    'version': 'v1.2',
+                },
             }
             contexto.update(metricas_modelo)
             return render(request, 'AppWeb/resultado_prediccion.html', contexto)

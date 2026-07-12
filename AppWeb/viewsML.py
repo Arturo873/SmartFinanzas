@@ -30,7 +30,6 @@ def calcular_ratios_liquidez(row: dict):
         'cobertura_operacional': flujo_caja_operativo / denom,
         'capital_trabajo': activo_circulante - pasivo_circulante,
         'endeudamiento_corto_plazo': pasivo_circulante / (pasivo_total if pasivo_total > 0 else eps),
-        'liquidez_inmediata': caja_y_bancos / denom,
         'solvencia_general': activo_total / (pasivo_total if pasivo_total > 0 else eps),
     }
 
@@ -83,6 +82,7 @@ ANALISIS_REGISTRO = [
         'label': 'Razón Corriente',
         'score_fn': _score_razon_corriente,
         'ideal': 3,
+        'max_puntaje': 25,
         'format_val': lambda v: f'{v:.2f}x',
         'explicacion': lambda v: (
             f'Tus activos circulantes equivalen a {v:.2f} veces tus deudas a corto plazo. '
@@ -98,6 +98,7 @@ ANALISIS_REGISTRO = [
         'label': 'Prueba Ácida',
         'score_fn': _score_prueba_acida,
         'ideal': 4,
+        'max_puntaje': 20,
         'format_val': lambda v: f'{v:.2f}x',
         'explicacion': lambda v: (
             f'Sin considerar inventarios, tus activos líquidos cubren {v:.2f} veces tus deudas a corto plazo. '
@@ -113,6 +114,7 @@ ANALISIS_REGISTRO = [
         'label': 'Endeudamiento C/P',
         'score_fn': _score_endeudamiento,
         'ideal': 4,
+        'max_puntaje': 25,
         'format_val': lambda v: f'{v:.2f}',
         'explicacion': lambda v: (
             f'El {v:.1%} de tu pasivo total vence en el corto plazo. '
@@ -128,6 +130,7 @@ ANALISIS_REGISTRO = [
         'label': 'Solvencia General',
         'score_fn': _score_solvencia,
         'ideal': 3,
+        'max_puntaje': 20,
         'format_val': lambda v: f'{v:.2f}x',
         'explicacion': lambda v: (
             f'Tus activos totales respaldan {v:.2f} veces tus deudas totales. '
@@ -143,6 +146,7 @@ ANALISIS_REGISTRO = [
         'label': 'Cobertura Operacional',
         'score_fn': _score_cobertura,
         'ideal': 1,
+        'max_puntaje': 10,
         'format_val': lambda v: f'{v:.2f}x',
         'explicacion': lambda v: (
             f'Tu utilidad neta representa {v:.2f} veces tus deudas a corto plazo. '
@@ -168,6 +172,7 @@ def analizar_contribucion_riesgo(ratios: dict) -> list:
             'valor': regla['format_val'](v),
             'valor_raw': round(v, 4),
             'puntaje': puntaje,
+            'max_puntaje': regla.get('max_puntaje', 25),
             'impacto': impacto,
             'explicacion': regla['explicacion'](v),
             'consejo': regla['consejo'],

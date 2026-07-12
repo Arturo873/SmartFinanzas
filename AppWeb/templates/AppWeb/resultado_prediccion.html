@@ -1,4 +1,5 @@
 {% extends 'AppWeb/base.html' %}
+{% load formatters %}
 
 {% block content %}
 <div class="container mt-4">
@@ -31,7 +32,12 @@
                             </div>
                         </div>
                     </div>
-                    <p class="text-muted mt-2 mb-0">Beta CAPM: <strong>{{ beta }}</strong></p>
+                    <p class="text-muted mt-2 mb-0">
+                        Beta CAPM: <strong>{{ beta }}</strong>
+                        <span data-bs-toggle="tooltip"
+                              title="Mide la sensibilidad de la empresa frente al riesgo de mercado; se usa como factor de ajuste en el modelo de riesgo."
+                              style="cursor:help;">&#9432;</span>
+                    </p>
                 </div>
             </div>
         </div>
@@ -50,7 +56,7 @@
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <strong class="fs-6">{{ forloop.counter }}. {{ factor.label }}</strong>
                             <span class="badge {% if factor.impacto >= 10 %}bg-danger{% elif factor.impacto >= 5 %}bg-warning text-dark{% else %}bg-success{% endif %} fs-7">
-                                {{ factor.valor }} · {{ factor.puntaje }} pts
+                                {{ factor.puntaje }}/{{ factor.max_puntaje }} pts
                             </span>
                         </div>
                         <div class="progress mb-2" style="height: 8px;">
@@ -80,7 +86,10 @@
         <div class="col-md-6">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-dark text-white">
-                    <h5 class="mb-0">Tabla Resumen — Indicadores Calculados</h5>
+                    <h5 class="mb-0">
+                        Tabla Resumen — Indicadores Calculados
+                       
+                    </h5>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -93,36 +102,67 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td class="ps-3">Razón Corriente</td>
-                                    <td class="text-end pe-3 fw-semibold">{{ ratios.razon_corriente }}</td>
+                                    <td class="ps-3">
+                                        Razón Corriente
+                                        <span data-bs-toggle="tooltip"
+                                              title="El activo corriente cubre {{ ratios.razon_corriente|format_ratio }} veces el pasivo corriente."
+                                              style="cursor:help;">&#9432;</span>
+                                    </td>
+                                    <td class="text-end pe-3 fw-semibold">{{ ratios.razon_corriente|format_ratio }}</td>
                                 </tr>
                                 <tr>
-                                    <td class="ps-3">Prueba Ácida</td>
-                                    <td class="text-end pe-3 fw-semibold">{{ ratios.prueba_acida }}</td>
+                                    <td class="ps-3">
+                                        Prueba Ácida
+                                        <span data-bs-toggle="tooltip"
+                                              title="Los activos líquidos (sin inventario) cubren {{ ratios.prueba_acida|format_ratio }} veces el pasivo corriente."
+                                              style="cursor:help;">&#9432;</span>
+                                    </td>
+                                    <td class="text-end pe-3 fw-semibold">{{ ratios.prueba_acida|format_ratio }}</td>
                                 </tr>
                                 <tr>
-                                    <td class="ps-3">Ratio de Caja</td>
-                                    <td class="text-end pe-3 fw-semibold">{{ ratios.ratio_caja }}</td>
+                                    <td class="ps-3">
+                                        Ratio de Caja
+                                        <span data-bs-toggle="tooltip"
+                                              title="El efectivo disponible cubre {{ ratios.ratio_caja|format_ratio }} veces el pasivo corriente."
+                                              style="cursor:help;">&#9432;</span>
+                                    </td>
+                                    <td class="text-end pe-3 fw-semibold">{{ ratios.ratio_caja|format_ratio }}</td>
                                 </tr>
                                 <tr>
-                                    <td class="ps-3">Cobertura Operacional</td>
-                                    <td class="text-end pe-3 fw-semibold">{{ ratios.cobertura_operacional }}</td>
+                                    <td class="ps-3">
+                                        Cobertura Operacional
+                                        <span data-bs-toggle="tooltip"
+                                              title="La utilidad neta cubre {{ ratios.cobertura_operacional|format_ratio }} veces el pasivo corriente."
+                                              style="cursor:help;">&#9432;</span>
+                                    </td>
+                                    <td class="text-end pe-3 fw-semibold">{{ ratios.cobertura_operacional|format_ratio }}</td>
                                 </tr>
                                 <tr>
-                                    <td class="ps-3">Capital de Trabajo</td>
-                                    <td class="text-end pe-3 fw-semibold">{{ ratios.capital_trabajo }}</td>
+                                    <td class="ps-3">
+                                        Capital de Trabajo
+                                        <span data-bs-toggle="tooltip"
+                                              title="Monto disponible para operar tras cubrir las deudas de corto plazo."
+                                              style="cursor:help;">&#9432;</span>
+                                    </td>
+                                    <td class="text-end pe-3 fw-semibold">{{ ratios.capital_trabajo|format_currency }}</td>
                                 </tr>
                                 <tr>
-                                    <td class="ps-3">Endeudamiento C/P</td>
-                                    <td class="text-end pe-3 fw-semibold">{{ ratios.endeudamiento_corto_plazo }}</td>
+                                    <td class="ps-3">
+                                        Endeudamiento C/P
+                                        <span data-bs-toggle="tooltip"
+                                              title="Porcentaje de la deuda total que vence en el corto plazo."
+                                              style="cursor:help;">&#9432;</span>
+                                    </td>
+                                    <td class="text-end pe-3 fw-semibold">{{ ratios.endeudamiento_corto_plazo|format_pct }}</td>
                                 </tr>
                                 <tr>
-                                    <td class="ps-3">Liquidez Inmediata</td>
-                                    <td class="text-end pe-3 fw-semibold">{{ ratios.liquidez_inmediata }}</td>
-                                </tr>
-                                <tr>
-                                    <td class="ps-3">Solvencia General</td>
-                                    <td class="text-end pe-3 fw-semibold">{{ ratios.solvencia_general }}</td>
+                                    <td class="ps-3">
+                                        Solvencia General
+                                        <span data-bs-toggle="tooltip"
+                                              title="El activo total cubre {{ratios.solvencia_general |format_ratio}} veces el pasivo total."
+                                              style="cursor:help;">&#9432;</span>
+                                    </td>
+                                    <td class="text-end pe-3 fw-semibold">{{ ratios.solvencia_general|format_ratio }}</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -133,10 +173,20 @@
 
         <div class="col-md-6">
             <div class="card shadow-sm h-100">
+                <!--
                 <div class="card-header bg-dark text-white">
-                    <h5 class="mb-0">Métricas del Modelo Predictivo</h5>
-                </div>
+                    <h5 class="mb-0">
+                        Métricas del Modelo Predictivo
+                        <span data-bs-toggle="tooltip"
+                              title="Métricas calculadas sobre el conjunto de validación (20% de datos no vistos durante el entrenamiento del modelo). Evalúan qué tan bien generaliza el modelo Random Forest entrenado con tus datos."
+                              style="cursor:help;">&#9432;</span>
+                    </h5>
+                </div>-->
                 <div class="card-body p-0">
+                    <!--
+                    <p class="small text-muted px-3 pt-2 mb-1">
+                        {{ modelo_info.dataset }} — Modelo {{ modelo_info.version }}
+                    </p>-->
                     <div class="table-responsive">
                         <table class="table table-striped table-hover mb-0">
                             <thead class="table-dark">
@@ -147,19 +197,34 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td class="ps-3">Accuracy</td>
+                                    <td class="ps-3">
+                                        Accuracy
+                                        <span data-bs-toggle="tooltip"
+                                              title="Porcentaje de predicciones correctas del modelo sobre el total de casos evaluados "
+                                              style="cursor:help;">&#9432;</span>
+                                    </td>
                                     <td class="text-end pe-3 fw-semibold">
                                         {% if accuracy is not None %}{{ accuracy }}%{% else %}<span class="text-muted">—</span>{% endif %}
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td class="ps-3">Recall</td>
+                                    <td class="ps-3">
+                                        Recall
+                                        <span data-bs-toggle="tooltip"
+                                              title="Porcentaje de predicciones correctas REALES del modelo sobre el total de casos evaluados "
+                                              style="cursor:help;">&#9432;</span>
+                                    </td>
                                     <td class="text-end pe-3 fw-semibold">
                                         {% if recall is not None %}{{ recall }}%{% else %}<span class="text-muted">—</span>{% endif %}
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td class="ps-3">F1-Score</td>
+                                    <td class="ps-3">
+                                        F1-Score
+                                        <span data-bs-toggle="tooltip"
+                                              title="Promedio de rendimiento del modelo"
+                                              style="cursor:help;">&#9432;</span>
+                                    </td>
                                     <td class="text-end pe-3 fw-semibold">
                                         {% if f1_score is not None %}{{ f1_score }}%{% else %}<span class="text-muted">—</span>{% endif %}
                                     </td>
@@ -190,4 +255,11 @@
         </form>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (el) { return new bootstrap.Tooltip(el); });
+});
+</script>
 {% endblock %}

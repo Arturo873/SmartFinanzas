@@ -40,7 +40,7 @@
                     <div class="mb-3">
                         <label for="archivo_datos" class="form-label">Archivo de Datos (.csv, .xlsx)</label>
                         <input class="form-control" type="file" id="archivo_datos" name="archivo_datos" accept=".csv, .xlsx" required>
-                        <div class="form-text">Asegúrese de usar la plantilla estandarizada.</div>
+                        
                     </div>
 
                     <div class="d-flex justify-content-end">
@@ -50,8 +50,8 @@
                 </form>
 
             </div>
-            <div class="card-footer bg-light d-flex justify-content-between align-items-center">
-                <small class="text-muted">Columnas esperadas: Id_Empresa, Periodo, Activo_Circulante, Pasivo_Circulante, Efectivo_Equivalentes, Inventarios, Activo_Total, Pasivo_Total, Patrimonio_Neto, Utilidad_Neta</small>
+            <div class="card-footer bg-light d-flex justify-content-end align-items-center">
+                
                 {% if request.session.datos_cargados %}
                 <a href="{% url 'capm' %}" class="btn btn-primary btn-sm">Continuar → Configurar CAPM</a>
                 {% endif %}
