@@ -1,7 +1,9 @@
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render, redirect
+from django.template.loader import render_to_string
 from django.contrib import messages
-from io import StringIO
+from io import StringIO, BytesIO
+from xhtml2pdf import pisa
 import pandas as pd
 import uuid
 import os
@@ -262,6 +264,7 @@ def ejecutar_prediccion(request: HttpRequest):
                 },
             }
             contexto.update(metricas_modelo)
+            request.session['ultimo_resultado'] = contexto
             return render(request, 'AppWeb/resultado_prediccion.html', contexto)
 
         except Exception as e:
@@ -269,6 +272,23 @@ def ejecutar_prediccion(request: HttpRequest):
             return redirect('home')
 
     return redirect('home')
+
+
+def exportar_pdf(request: HttpRequest):
+    contexto = request.session.get('ultimo_resultado')
+    if not contexto:
+        messages.error(request, 'No hay una predicción reciente para exportar. Ejecuta una predicción primero.')
+        return redirect('home')
+
+    html = render_to_string('AppWeb/resultado_prediccion_pdf.html', contexto)
+
+    buffer = BytesIO()
+    pisa.CreatePDF(src=html, dest=buffer)
+
+    response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+    nombre_archivo = f"informe_riesgo_{contexto.get('empresa_id', 'empresa')}.pdf"
+    response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
+    return response
 
 
 def limpiar_datos(request: HttpRequest):

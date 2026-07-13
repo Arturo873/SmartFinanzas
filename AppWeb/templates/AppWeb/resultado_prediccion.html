@@ -320,10 +320,13 @@
 
     <div class="d-flex justify-content-between mt-3 mb-4">
         <a href="{% url 'home' %}" class="btn btn-secondary">← Volver al Inicio</a>
-        <form action="{% url 'limpiar_datos' %}" method="POST" class="d-inline">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-danger">Limpiar Datos y Reiniciar</button>
-        </form>
+        <div class="d-flex gap-2">
+            <a href="{% url 'exportar_pdf' %}" class="btn btn-outline-dark">📄 Exportar PDF</a>
+            <form action="{% url 'limpiar_datos' %}" method="POST" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">Limpiar Datos y Reiniciar</button>
+            </form>
+        </div>
     </div>
 </div>
 

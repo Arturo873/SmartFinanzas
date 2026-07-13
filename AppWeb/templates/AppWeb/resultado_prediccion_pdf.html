@@ -1,0 +1,96 @@
+{% load formatters %}
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+    @page { size: A4; margin: 2cm; }
+    body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #212529; }
+    h1 { font-size: 18px; margin-bottom: 0; }
+    h2 { font-size: 14px; background-color: #212529; color: #ffffff; padding: 6px 8px; margin-top: 20px; }
+    .subtitulo { color: #6c757d; margin-top: 2px; margin-bottom: 20px; }
+    .score-box { text-align: center; padding: 14px; border: 2px solid
+        {% if color == 'Verde' %}#198754{% elif color == 'Amarillo' %}#ffc107{% else %}#dc3545{% endif %}; }
+    .score-numero { font-size: 36px; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+    th, td { border: 1px solid #dee2e6; padding: 5px 8px; text-align: left; }
+    th { background-color: #212529; color: #ffffff; }
+    td.num { text-align: right; }
+    .factor { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #dee2e6; }
+    .factor strong { font-size: 12px; }
+    .alerta { padding: 10px; margin-top: 8px;
+        background-color: {% if color == 'Verde' %}#d1e7dd{% elif color == 'Amarillo' %}#fff3cd{% else %}#f8d7da{% endif %}; }
+</style>
+</head>
+<body>
+    <h1>SmartFinanzas — Informe de Riesgo de Insolvencia</h1>
+    <p class="subtitulo">Empresa: {{ empresa_id }}</p>
+
+    <table>
+        <tr>
+            <td style="width:50%">
+                <div class="score-box">
+                    <div class="score-numero">{{ score|floatformat:0 }} / 100</div>
+                    <div>Nivel de riesgo: <strong>{{ riesgo }}</strong></div>
+                    <div>Beta CAPM: {{ beta }}</div>
+                </div>
+            </td>
+            <td style="width:50%; border:none; vertical-align:top;">
+                <div class="alerta">
+                    <strong>{{ recomendacion_general.titulo }}</strong><br/>
+                    {{ recomendacion_general.mensaje }}
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <h2>Factores que más afectan tu riesgo de insolvencia</h2>
+    {% for factor in top_3_riesgo %}
+    <div class="factor">
+        <strong>{{ forloop.counter }}. {{ factor.label }}</strong> — {{ factor.puntaje }}/{{ factor.max_puntaje }} pts<br/>
+        {{ factor.explicacion }}<br/>
+        <em>Recomendación: {{ factor.consejo }}</em>
+    </div>
+    {% endfor %}
+
+    <h2>Tabla Resumen — Indicadores Calculados</h2>
+    <table>
+        <tr><th>Indicador</th><th>Valor</th></tr>
+        <tr><td>Razón Corriente</td><td class="num">{{ ratios.razon_corriente|format_ratio }}</td></tr>
+        <tr><td>Prueba Ácida</td><td class="num">{{ ratios.prueba_acida|format_ratio }}</td></tr>
+        <tr><td>Ratio de Caja</td><td class="num">{{ ratios.ratio_caja|format_ratio }}</td></tr>
+        <tr><td>Cobertura Operacional</td><td class="num">{{ ratios.cobertura_operacional|format_ratio }}</td></tr>
+        <tr><td>Capital de Trabajo</td><td class="num">{{ ratios.capital_trabajo|format_currency }}</td></tr>
+        <tr><td>Endeudamiento C/P</td><td class="num">{{ ratios.endeudamiento_corto_plazo|format_pct }}</td></tr>
+        <tr><td>Solvencia General</td><td class="num">{{ ratios.solvencia_general|format_ratio }}</td></tr>
+    </table>
+
+    {% if historial_empresa|length > 1 %}
+    <h2>Evolución del Score — {{ empresa_id }}</h2>
+    <table>
+        <tr><th>Fecha de ejecución</th><th>Score</th></tr>
+        {% for h in historial_empresa %}
+        <tr><td>{{ h.fecha }}</td><td class="num">{{ h.score }}</td></tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+
+    {% if tendencia_periodos|length > 1 %}
+    <h2>Tendencia de Riesgo Promedio del Portafolio por Período</h2>
+    <table>
+        <tr><th>Período</th><th>Score promedio</th></tr>
+        {% for t in tendencia_periodos %}
+        <tr><td>{{ t.periodo }}</td><td class="num">{{ t.score_promedio }}</td></tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+
+    <h2>Métricas del Modelo Predictivo</h2>
+    <table>
+        <tr><th>Métrica</th><th>Valor</th></tr>
+        <tr><td>Accuracy</td><td class="num">{% if accuracy is not None %}{{ accuracy }}%{% else %}—{% endif %}</td></tr>
+        <tr><td>Recall</td><td class="num">{% if recall is not None %}{{ recall }}%{% else %}—{% endif %}</td></tr>
+        <tr><td>F1-Score</td><td class="num">{% if f1_score is not None %}{{ f1_score }}%{% else %}—{% endif %}</td></tr>
+    </table>
+</body>
+</html>

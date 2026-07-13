@@ -226,3 +226,4 @@ db.sqlite3
 #carpeta data donde se guardan los archivos cargados
 #carpeta data se crea si no exite
 data/
+.claude/
