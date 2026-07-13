@@ -19,17 +19,35 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav ms-auto align-items-lg-center">
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'home' %}">Inicio</a>
                     </li>
+                    {% if user.perfil.rol == 'Contador' %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'carga_datos' %}">Cargar Datos</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'capm' %}">Cálculo CAPM</a>
                     </li>
-                   
+                    {% endif %}
+                    {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <span class="nav-link text-white-50">
+                            {{ user.username }} <span class="badge bg-secondary">{{ user.perfil.rol }}</span>
+                        </span>
+                    </li>
+                    <li class="nav-item">
+                        <form action="{% url 'logout' %}" method="POST" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-light btn-sm">Cerrar sesión</button>
+                        </form>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'login' %}">Iniciar sesión</a>
+                    </li>
+                    {% endif %}
                 </ul>
             </div>
         </div>

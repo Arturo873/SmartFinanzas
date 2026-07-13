@@ -2,6 +2,10 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render, redirect
 from django.template.loader import render_to_string
 from django.contrib import messages
+from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.models import User
 from io import StringIO, BytesIO
 from xhtml2pdf import pisa
 import pandas as pd
@@ -20,7 +24,8 @@ from .fetch_capm_data import (
     get_sectores_beta,
     DEFAULT_SECTORES_BETA,
 )
-from .models import Empresa, HistorialPrediccion
+from .models import Empresa, HistorialPrediccion, PerfilUsuario, EstadoCarga
+from .decorators import rol_requerido
 
 COLUMNAS_PLANTILLA = [
     'Id_Empresa', 'Periodo', 'Activo_Circulante', 'Pasivo_Circulante',
@@ -33,25 +38,72 @@ COLUMNAS_NUMERICAS = COLUMNAS_PLANTILLA[2:]
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
 os.makedirs(DATA_DIR, exist_ok=True)
 
+def login_view(request: HttpRequest):
+    if request.user.is_authenticated:
+        return redirect('home')
+
+    form = AuthenticationForm(request, data=request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        login(request, form.get_user())
+        messages.success(request, f'Bienvenido, {request.user.username}.')
+        return redirect('home')
+
+    return render(request, 'AppWeb/login.html', {'form': form})
+
+
+def logout_view(request: HttpRequest):
+    logout(request)
+    messages.success(request, 'Sesión cerrada correctamente.')
+    return redirect('login')
+
+
+def registro_view(request: HttpRequest):
+    if request.user.is_authenticated:
+        return redirect('home')
+
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '')
+        rol = request.POST.get('rol')
+
+        if not username or not password or rol not in dict(PerfilUsuario.ROLES):
+            messages.error(request, 'Completa usuario, contraseña y selecciona un rol válido.')
+        elif User.objects.filter(username=username).exists():
+            messages.error(request, 'Ese nombre de usuario ya existe.')
+        else:
+            user = User.objects.create_user(username=username, password=password)
+            PerfilUsuario.objects.create(user=user, rol=rol)
+            login(request, user)
+            messages.success(request, f'Cuenta creada como {rol}. ¡Bienvenido!')
+            return redirect('home')
+
+    return render(request, 'AppWeb/registro.html', {'roles': PerfilUsuario.ROLES})
+
+
+@login_required(login_url='login')
 def home(request: HttpRequest):
+    perfil = getattr(request.user, 'perfil', None)
+    estado = EstadoCarga.actual()
     contexto = {
-        'paso_1': bool(request.session.get('datos_cargados')),
-        'paso_2': bool(request.session.get('beta_capm')),
+        'paso_1': bool(estado.ruta_csv and os.path.exists(estado.ruta_csv)),
+        'paso_2': bool(estado.beta_capm is not None),
+        'rol': perfil.rol if perfil else None,
     }
     return render(request, 'AppWeb/index.html', contexto)
 
+@rol_requerido(PerfilUsuario.ROL_CONTADOR)
 def carga_datos(request: HttpRequest):
     if request.method == 'POST':
         if 'archivo_datos' not in request.FILES:
             messages.error(request, 'No se seleccionó ningún archivo.')
-            return render(request, 'AppWeb/cargaDatos.html')
+            return render(request, 'AppWeb/cargaDatos.html', {'datos_cargados': bool(EstadoCarga.actual().ruta_csv)})
 
         archivo = request.FILES['archivo_datos']
         tipo_documento = request.POST.get('tipo_documento')
 
         if not (archivo.name.endswith('.csv') or archivo.name.endswith('.xlsx')):
             messages.error(request, 'Formato no soportado. Por favor suba un archivo .csv o .xlsx')
-            return render(request, 'AppWeb/cargaDatos.html')
+            return render(request, 'AppWeb/cargaDatos.html', {'datos_cargados': bool(EstadoCarga.actual().ruta_csv)})
 
         try:
             if archivo.name.endswith('.csv'):
@@ -99,17 +151,19 @@ def carga_datos(request: HttpRequest):
                 archivo_id = str(uuid.uuid4())
                 ruta_csv = os.path.join(DATA_DIR, f'{archivo_id}.csv')
                 df.to_csv(ruta_csv, index=False)
-                request.session['datos_cargados'] = ruta_csv
-                request.session['empresas_disponibles'] = df['Id_Empresa'].unique().tolist()
+                estado = EstadoCarga.actual()
+                estado.ruta_csv = ruta_csv
+                estado.save()
                 messages.success(request, f'¡Archivo "{archivo.name}" validado correctamente! {len(df)} registros cargados.')
 
         except Exception as e:
             messages.error(request, f'Error al procesar el archivo: {e}')
 
-        return render(request, 'AppWeb/cargaDatos.html')
+        return render(request, 'AppWeb/cargaDatos.html', {'datos_cargados': bool(EstadoCarga.actual().ruta_csv)})
 
-    return render(request, 'AppWeb/cargaDatos.html')
+    return render(request, 'AppWeb/cargaDatos.html', {'datos_cargados': bool(EstadoCarga.actual().ruta_csv)})
 
+@rol_requerido(PerfilUsuario.ROL_CONTADOR)
 def calculo_capm(request: HttpRequest):
     try:
         tasa_libre_riesgo, fuente_rf = get_tasa_libre_riesgo()
@@ -128,6 +182,7 @@ def calculo_capm(request: HttpRequest):
         'fuente_betas': fuente_betas,
         'tasa_libre_riesgo': tasa_libre_riesgo,
         'prima_riesgo_mercado': prima_riesgo_mercado,
+        'beta_configurado': EstadoCarga.actual().beta_capm,
     }
 
     if request.method == 'POST':
@@ -138,7 +193,9 @@ def calculo_capm(request: HttpRequest):
 
             costo_patrimonio = tasa_libre_riesgo + (beta_mercado * prima_riesgo_mercado)
 
-            request.session['beta_capm'] = beta_mercado
+            estado = EstadoCarga.actual()
+            estado.beta_capm = beta_mercado
+            estado.save()
 
             contexto['sector_seleccionado'] = sector_seleccionado
             contexto['beta'] = beta_mercado
@@ -189,17 +246,19 @@ def calcular_tendencia_periodos(df: pd.DataFrame) -> list:
     ]
 
 
+@rol_requerido(PerfilUsuario.ROL_DUENO)
 def ejecutar_prediccion(request: HttpRequest):
     if request.method == 'POST':
         try:
-            ruta_csv = request.session.get('datos_cargados')
+            estado = EstadoCarga.actual()
+            ruta_csv = estado.ruta_csv
             if not ruta_csv:
-                messages.error(request, 'No hay datos cargados. Cargue un archivo primero.')
-                return redirect('carga_datos')
+                messages.error(request, 'No hay datos cargados. Pide al Contador que cargue un archivo primero.')
+                return redirect('home')
 
             if not os.path.exists(ruta_csv):
-                messages.error(request, 'Los datos han expirado. Cargue un archivo nuevamente.')
-                return redirect('carga_datos')
+                messages.error(request, 'Los datos han expirado. Pide al Contador que cargue el archivo nuevamente.')
+                return redirect('home')
 
             df = pd.read_csv(ruta_csv)
 
@@ -212,7 +271,7 @@ def ejecutar_prediccion(request: HttpRequest):
             row = df_empresa.iloc[0]
             ratios_empresa = calcular_ratios_liquidez(row)
 
-            beta_sector = request.session.get('beta_capm', 0.85)
+            beta_sector = estado.beta_capm if estado.beta_capm is not None else 0.85
 
             puntaje_riesgo = calcular_score_compuesto(ratios_empresa)
             if puntaje_riesgo <= 35:
@@ -274,6 +333,7 @@ def ejecutar_prediccion(request: HttpRequest):
     return redirect('home')
 
 
+@rol_requerido(PerfilUsuario.ROL_DUENO)
 def exportar_pdf(request: HttpRequest):
     contexto = request.session.get('ultimo_resultado')
     if not contexto:
@@ -291,13 +351,16 @@ def exportar_pdf(request: HttpRequest):
     return response
 
 
+@login_required(login_url='login')
 def limpiar_datos(request: HttpRequest):
     if request.method == 'POST':
-        ruta_csv = request.session.pop('datos_cargados', None)
-        if ruta_csv and os.path.exists(ruta_csv):
-            os.remove(ruta_csv)
-        request.session.pop('beta_capm', None)
-        request.session.pop('empresas_disponibles', None)
+        estado = EstadoCarga.actual()
+        if estado.ruta_csv and os.path.exists(estado.ruta_csv):
+            os.remove(estado.ruta_csv)
+        estado.ruta_csv = None
+        estado.beta_capm = None
+        estado.save()
+        request.session.pop('ultimo_resultado', None)
         messages.success(request, 'Datos y configuración eliminados correctamente.')
     return redirect('home')
 

@@ -52,7 +52,7 @@
             </div>
             <div class="card-footer bg-light d-flex justify-content-end align-items-center">
                 
-                {% if request.session.datos_cargados %}
+                {% if datos_cargados %}
                 <a href="{% url 'capm' %}" class="btn btn-primary btn-sm">Continuar → Configurar CAPM</a>
                 {% endif %}
             </div>

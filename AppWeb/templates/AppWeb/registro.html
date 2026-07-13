@@ -1,0 +1,51 @@
+{% extends "AppWeb/base.html" %}
+
+{% block title %}Crear cuenta - SmartFinanzas{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card shadow-sm mt-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">Crear cuenta</h5>
+            </div>
+            <div class="card-body">
+                {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+                {% endif %}
+
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Usuario</label>
+                        <input type="text" name="username" class="form-control" required autofocus>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Contraseña</label>
+                        <input type="password" name="password" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Rol</label>
+                        <select name="rol" class="form-select" required>
+                            <option value="" selected disabled>Selecciona tu rol</option>
+                            {% for valor, etiqueta in roles %}
+                            <option value="{{ valor }}">{{ etiqueta }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">
+                            <strong>Contador:</strong> carga los datos financieros y configura el CAPM.<br>
+                            <strong>Dueño:</strong> ejecuta la predicción y revisa el score, recomendaciones y el informe PDF.
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Crear cuenta</button>
+                </form>
+                <p class="text-center mt-3 mb-0">
+                    ¿Ya tienes cuenta? <a href="{% url 'login' %}">Inicia sesión</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

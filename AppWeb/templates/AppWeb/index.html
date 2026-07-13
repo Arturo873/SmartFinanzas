@@ -63,6 +63,7 @@
         <hr class="my-4">
 
         <div class="row mt-5">
+            {% if rol == 'Contador' %}
             <!-- Paso 1: Cargar Datos - siempre activo -->
             <div class="col-md-4 mb-4">
                 <div class="card h-100 shadow-sm border-primary modulo-activo">
@@ -94,7 +95,9 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
 
+            {% if rol == 'Dueño' %}
             <!-- Paso 3: Motor Predictivo -->
             <div class="col-md-4 mb-4">
                 <div class="card h-100 shadow-sm border-warning {% if not paso_1 or not paso_2 %}modulo-bloqueado{% else %}modulo-activo{% endif %}">
@@ -117,7 +120,14 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
         </div>
+
+        {% if rol == 'Dueño' and not paso_1 %}
+        <div class="alert alert-info">
+            El Contador aún no ha cargado los datos financieros ni configurado el CAPM. Contáctalo antes de ejecutar la predicción.
+        </div>
+        {% endif %}
 
         <!-- Mensajes del sistema -->
         {% if messages %}
