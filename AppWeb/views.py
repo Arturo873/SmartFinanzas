@@ -35,6 +35,9 @@ COLUMNAS_PLANTILLA = [
 
 COLUMNAS_NUMERICAS = COLUMNAS_PLANTILLA[2:]
 
+TOLERANCIA_DESCUADRE_PORCENTAJE = 0.01  # 1% del Activo Total
+TOLERANCIA_DESCUADRE_MINIMA = 1.0  # monto mínimo absoluto, evita falsos positivos con Activo_Total = 0
+
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
 os.makedirs(DATA_DIR, exist_ok=True)
 
@@ -132,22 +135,23 @@ def carga_datos(request: HttpRequest):
                                 errores.append(f"La columna '{col}' contiene valores no numéricos.")
                                 break
 
+                    if not errores:
+                        tolerancia = (df['Activo_Total'].abs() * TOLERANCIA_DESCUADRE_PORCENTAJE).clip(lower=TOLERANCIA_DESCUADRE_MINIMA)
+                        diferencia = (df['Activo_Total'] - (df['Pasivo_Total'] + df['Patrimonio_Neto'])).abs()
+                        descuadradas = df[diferencia > tolerancia]
+                        if not descuadradas.empty:
+                            empresas = descuadradas['Id_Empresa'].unique()
+                            errores.append(
+                                f"Descuadre contable: {len(descuadradas)} fila(s) no cumplen la ecuación "
+                                f"Activo = Pasivo + Patrimonio (tolerancia {TOLERANCIA_DESCUADRE_PORCENTAJE:.0%} del Activo Total). "
+                                f"Empresas: {', '.join(map(str, empresas[:5]))}" + ('...' if len(empresas) > 5 else '')
+                            )
+
             if errores:
                 for e in errores:
                     messages.error(request, e)
                 messages.warning(request, 'El archivo no fue guardado. Corrija los errores y vuelva a intentar.')
             else:
-                if tipo_documento == 'balance':
-                    df['_diferencia'] = abs(df['Activo_Total'] - (df['Pasivo_Total'] + df['Patrimonio_Neto']))
-                    descuadradas = df[df['_diferencia'] > 0.01]
-                    if not descuadradas.empty:
-                        empresas = descuadradas['Id_Empresa'].unique()
-                        msj = f"Advertencia: {len(descuadradas)} fila(s) no cumplen la ecuación Activo = Pasivo + Patrimonio. Empresas: {', '.join(map(str, empresas[:5]))}"
-                        if len(empresas) > 5:
-                            msj += '...'
-                        messages.warning(request, msj)
-                    df.drop(columns=['_diferencia'], inplace=True)
-
                 archivo_id = str(uuid.uuid4())
                 ruta_csv = os.path.join(DATA_DIR, f'{archivo_id}.csv')
                 df.to_csv(ruta_csv, index=False)
@@ -351,7 +355,7 @@ def exportar_pdf(request: HttpRequest):
     return response
 
 
-@login_required(login_url='login')
+@rol_requerido(PerfilUsuario.ROL_CONTADOR)
 def limpiar_datos(request: HttpRequest):
     if request.method == 'POST':
         estado = EstadoCarga.actual()
