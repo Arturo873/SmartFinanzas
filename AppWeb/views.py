@@ -17,6 +17,7 @@ from .viewsML import (
     obtener_metricas,
     analizar_contribucion_riesgo,
     obtener_recomendacion_general,
+    ruta_cache_modelo,
 )
 from .fetch_capm_data import (
     get_tasa_libre_riesgo,
@@ -360,6 +361,9 @@ def limpiar_datos(request: HttpRequest):
     if request.method == 'POST':
         estado = EstadoCarga.actual()
         if estado.ruta_csv and os.path.exists(estado.ruta_csv):
+            ruta_cache = ruta_cache_modelo(estado.ruta_csv)
+            if os.path.exists(ruta_cache):
+                os.remove(ruta_cache)
             os.remove(estado.ruta_csv)
         estado.ruta_csv = None
         estado.beta_capm = None

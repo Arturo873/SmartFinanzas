@@ -1,8 +1,14 @@
+import hashlib
+import os
 import pandas as pd
 import numpy as np
+import joblib
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, recall_score, f1_score
+
+MODELOS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'modelos')
+os.makedirs(MODELOS_DIR, exist_ok=True)
 
 FEATURES = [
     'Activo_Circulante', 'Pasivo_Circulante', 'Efectivo_Equivalentes',
@@ -209,7 +215,17 @@ def obtener_recomendacion_general(color: str) -> dict:
     return RECOMENDACIONES_POR_ALERTA.get(color, RECOMENDACIONES_POR_ALERTA['Amarillo'])
 
 
-def obtener_metricas(ruta_csv: str) -> dict:
+def ruta_cache_modelo(ruta_csv: str) -> str:
+    """Cada archivo cargado (identificado por ruta + fecha de modificación) tiene su
+    propio modelo serializado, para no reentrenar en cada click de Ejecutar Predicción."""
+    firma = f'{os.path.abspath(ruta_csv)}:{os.path.getmtime(ruta_csv)}'
+    nombre = hashlib.md5(firma.encode()).hexdigest()
+    return os.path.join(MODELOS_DIR, f'{nombre}.joblib')
+
+
+def entrenar_modelo(ruta_csv: str) -> dict:
+    """Entrena el clasificador y calcula sus métricas. Es la única función que
+    reentrena desde cero; su resultado se serializa en disco vía joblib."""
     df = pd.read_csv(ruta_csv)
     n = len(df)
 
@@ -257,3 +273,16 @@ def obtener_metricas(ruta_csv: str) -> dict:
         'total_empresas': n,
         'umbral_clasificacion': 50,
     }
+
+
+def obtener_metricas(ruta_csv: str) -> dict:
+    """Carga las métricas del modelo ya entrenado para este archivo si existen en
+    caché; si no, entrena una vez y serializa el resultado con joblib."""
+    ruta_cache = ruta_cache_modelo(ruta_csv)
+
+    if os.path.exists(ruta_cache):
+        return joblib.load(ruta_cache)
+
+    metricas = entrenar_modelo(ruta_csv)
+    joblib.dump(metricas, ruta_cache)
+    return metricas
