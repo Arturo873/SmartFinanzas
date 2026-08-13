@@ -16,6 +16,75 @@ FEATURES = [
     'Patrimonio_Neto', 'Utilidad_Neta'
 ]
 
+# Modelo entrenado con quiebras reales (Taiwan Economic Journal), generado por
+# DatasetEntrenamientoML/entrenar_modelo_oficial.py. Es el que predice el
+# riesgo real en producción (RNF-08); calcular_score_compuesto más abajo
+# solo se usa para el panel de explicabilidad (RF-03), no para el score final.
+MODELO_OFICIAL_DIR = os.path.join(os.path.dirname(__file__), 'modelo_oficial')
+_modelo_oficial_cache = {}
+
+
+def _cargar_modelo_oficial():
+    if not _modelo_oficial_cache:
+        _modelo_oficial_cache['clf'] = joblib.load(os.path.join(MODELO_OFICIAL_DIR, 'modelo_riesgo.joblib'))
+        _modelo_oficial_cache['escalador'] = joblib.load(os.path.join(MODELO_OFICIAL_DIR, 'escalador_ratios.joblib'))
+        _modelo_oficial_cache['metricas'] = joblib.load(os.path.join(MODELO_OFICIAL_DIR, 'metricas.joblib'))
+    return _modelo_oficial_cache['clf'], _modelo_oficial_cache['escalador'], _modelo_oficial_cache['metricas']
+
+
+# Calibracion heuristica de escala: 3 de las 7 columnas del dataset de Taiwan
+# (cobertura_operacional, rentabilidad_activos, capital_trabajo_sobre_activos)
+# vienen pre-normalizadas 0-1 por los autores originales del dataset con una
+# formula desconocida (no es min-max sobre valores tipicos: la mediana de
+# 'rentabilidad_activos' es 0.81 con std de solo 0.04, y hasta las empresas
+# que SI quebraron tienen mediana 0.77 -- la escala completa 0-1 casi no se usa,
+# todo vive comprimido cerca de 1). Los ratios crudos que calcula Django
+# (ej. utilidad_neta/activo_total de una empresa real con perdidas, que puede
+# dar negativo) caen muy por fuera de ese rango angosto si se pasan tal cual,
+# y el arbol los enruta a hojas poco pobladas que no reflejan quiebra real.
+#
+# Como no existe forma de invertir exactamente la normalizacion original de
+# Taiwan (no publicaron la formula), se aproxima con una interpolacion lineal
+# por tramos usando 3 anclas por ratio: un valor crudo "sano", uno "en
+# problemas leves" y uno "en problemas severos", mapeados a la mediana de
+# empresas sanas, la mediana de empresas quebradas, y el percentil 25 de
+# empresas quebradas del propio dataset de Taiwan (calculado sobre
+# DatasetEntrenamientoML/data.csv). Es una aproximacion heuristica, no una
+# reconstruccion exacta -- documentado como limitacion conocida.
+CALIBRACION_ESCALA_TAIWAN = {
+    # ratio: ((raw_severo, raw_leve, raw_sano), (taiwan_p25_quebrada, taiwan_mediana_quebrada, taiwan_mediana_sana))
+    'rentabilidad_activos': ((-0.20, -0.05, 0.08), (0.7192, 0.7663, 0.8101)),
+    'capital_trabajo_sobre_activos': ((-0.30, -0.05, 0.10), (0.7099, 0.7529, 0.8162)),
+    'cobertura_operacional': ((-0.30, -0.05, 0.15), (0.3353, 0.3403, 0.3490)),
+}
+
+
+def _calibrar_a_escala_taiwan(ratios: dict) -> dict:
+    """Devuelve una copia de ratios con los 3 valores de escala-Taiwan
+    reemplazados por su calibración heurística (ver CALIBRACION_ESCALA_TAIWAN).
+    Los ratios sin calibración conocida (razon_corriente, prueba_acida,
+    endeudamiento_corto_plazo, solvencia_general) ya son escala cruda real
+    en ambos lados, así que no se tocan."""
+    calibrados = dict(ratios)
+    for clave, (raw_puntos, taiwan_puntos) in CALIBRACION_ESCALA_TAIWAN.items():
+        if clave in calibrados:
+            calibrados[clave] = float(np.interp(calibrados[clave], raw_puntos, taiwan_puntos))
+    return calibrados
+
+
+def obtener_metricas_modelo_oficial() -> dict:
+    """Métricas reales (accuracy/recall/f1) del modelo entrenado con quiebras
+    históricas reales, fijas para todas las predicciones (a diferencia de
+    obtener_metricas(), que reentrena por archivo con etiquetas sintéticas)."""
+    _, _, metricas = _cargar_modelo_oficial()
+    return {
+        'accuracy': metricas.get('accuracy'),
+        'recall': metricas.get('recall'),
+        'f1_score': metricas.get('f1_score'),
+        'total_empresas': metricas.get('total_empresas_entrenamiento'),
+        'umbral_clasificacion': metricas.get('umbral_clasificacion', 50),
+    }
+
 
 def calcular_ratios_liquidez(row: dict):
     activo_circulante = row.get('Activo_Circulante', 0)
@@ -80,6 +149,58 @@ def calcular_score_compuesto(ratios: dict) -> float:
         + _score_cobertura(ratios.get('cobertura_operacional', 0))
     )
     return min(max(round(score, 1), 0), 100)
+
+
+# Sensibilidad del ajuste CAPM sobre la probabilidad de quiebra: con 0.5,
+# un sector con beta 1.20 (ej. Tecnología) sube el score hasta un 10%
+# relativo, y un beta 0.75 (ej. Telecomunicaciones) lo baja hasta un 12.5%
+# relativo. Los betas del sistema (DEFAULT_SECTORES_BETA en fetch_capm_data.py)
+# van de 0.75 a 1.20, así que este valor mantiene el ajuste como un overlay
+# moderado, no un factor que domine sobre el resultado del modelo.
+SENSIBILIDAD_CAPM = 0.5
+
+
+def ajustar_riesgo_por_capm(probabilidad_base: float, beta_sector: float,
+                             sensibilidad: float = SENSIBILIDAD_CAPM) -> float:
+    """Pondera la probabilidad de quiebra que entrega el modelo de ML (entrenado
+    solo con ratios financieros reales) según el riesgo sistémico del sector,
+    sin inventar una columna 'Beta' en el entrenamiento (el dataset de quiebras
+    reales no trae información de industria/sector que respalde eso).
+
+    Beta = 1.0 (riesgo de mercado promedio) no cambia la probabilidad.
+    Beta > 1.0 (sector más volátil) la sube; Beta < 1.0 la baja. El resultado
+    se recorta a [0, 1] para seguir siendo una probabilidad válida.
+    """
+    factor = 1 + (beta_sector - 1) * sensibilidad
+    return min(max(probabilidad_base * factor, 0.0), 1.0)
+
+
+def predecir_riesgo(ratios: dict, beta_sector: float = 1.0):
+    """Predicción real de riesgo de insolvencia: usa el modelo entrenado con
+    quiebras históricas reales (modelo_oficial) sobre los ratios financieros,
+    y pondera el resultado con el Beta del sector vía ajustar_riesgo_por_capm.
+
+    Devuelve (puntaje_riesgo 0-100, etiqueta 'Bajo'/'Moderado'/'Crítico', color).
+    """
+    clf, escalador, metricas = _cargar_modelo_oficial()
+    orden = metricas['features_orden']
+
+    ratios_calibrados = _calibrar_a_escala_taiwan(ratios)
+    vector = np.array([[ratios_calibrados.get(clave, 0) for clave in orden]])
+    vector_escalado = escalador.transform(vector)
+    probabilidad_base = clf.predict_proba(vector_escalado)[0, 1]
+
+    probabilidad_ajustada = ajustar_riesgo_por_capm(probabilidad_base, beta_sector)
+    puntaje_riesgo = round(probabilidad_ajustada * 100, 1)
+
+    if puntaje_riesgo <= 35:
+        riesgo, color = 'Bajo', 'Verde'
+    elif puntaje_riesgo <= 70:
+        riesgo, color = 'Moderado', 'Amarillo'
+    else:
+        riesgo, color = 'Crítico', 'Rojo'
+
+    return puntaje_riesgo, riesgo, color
 
 
 ANALISIS_REGISTRO = [

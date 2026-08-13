@@ -14,7 +14,8 @@ import os
 
 from .viewsML import (
     calcular_score_compuesto,
-    obtener_metricas,
+    obtener_metricas_modelo_oficial,
+    predecir_riesgo,
     analizar_contribucion_riesgo,
     obtener_recomendacion_general,
     ruta_cache_modelo,
@@ -223,6 +224,7 @@ def calcular_ratios_liquidez(row: dict):
 
     eps = 1e-6
     denom = pasivo_circulante if pasivo_circulante > 0 else eps
+    denom_activo = activo_total if activo_total > 0 else eps
 
     ratios = {
         'razon_corriente': activo_circulante / denom,
@@ -231,7 +233,11 @@ def calcular_ratios_liquidez(row: dict):
         'cobertura_operacional': flujo_caja_operativo / denom,
         'capital_trabajo': activo_circulante - pasivo_circulante,
         'endeudamiento_corto_plazo': pasivo_circulante / (pasivo_total if pasivo_total > 0 else eps),
-        'solvencia_general': activo_total / (pasivo_total if pasivo_total > 0 else eps)
+        'solvencia_general': activo_total / (pasivo_total if pasivo_total > 0 else eps),
+        # Alimentan al modelo real (modelo_oficial); ver
+        # DatasetEntrenamientoML/entrenar_modelo_oficial.py -> RATIOS_MODELO.
+        'rentabilidad_activos': flujo_caja_operativo / denom_activo,
+        'capital_trabajo_sobre_activos': (activo_circulante - pasivo_circulante) / denom_activo,
     }
 
     return {k: round(v, 4) for k, v in ratios.items()}
@@ -278,15 +284,9 @@ def ejecutar_prediccion(request: HttpRequest):
 
             beta_sector = estado.beta_capm if estado.beta_capm is not None else 0.85
 
-            puntaje_riesgo = calcular_score_compuesto(ratios_empresa)
-            if puntaje_riesgo <= 35:
-                riesgo, color = 'Bajo', 'Verde'
-            elif puntaje_riesgo <= 70:
-                riesgo, color = 'Moderado', 'Amarillo'
-            else:
-                riesgo, color = 'Crítico', 'Rojo'
+            puntaje_riesgo, riesgo, color = predecir_riesgo(ratios_empresa, beta_sector)
 
-            metricas_modelo = obtener_metricas(ruta_csv)
+            metricas_modelo = obtener_metricas_modelo_oficial()
 
             top_3_riesgo = analizar_contribucion_riesgo(ratios_empresa)
             recomendacion_general = obtener_recomendacion_general(color)
