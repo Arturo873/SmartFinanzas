@@ -1,20 +1,10 @@
 import hashlib
 import os
-import pandas as pd
 import numpy as np
 import joblib
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, recall_score, f1_score
 
 MODELOS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'modelos')
 os.makedirs(MODELOS_DIR, exist_ok=True)
-
-FEATURES = [
-    'Activo_Circulante', 'Pasivo_Circulante', 'Efectivo_Equivalentes',
-    'Inventarios', 'Activo_Total', 'Pasivo_Total',
-    'Patrimonio_Neto', 'Utilidad_Neta'
-]
 
 # Modelo entrenado con quiebras reales (Taiwan Economic Journal), generado por
 # DatasetEntrenamientoML/entrenar_modelo_oficial.py. Es el que predice el
@@ -83,29 +73,6 @@ def obtener_metricas_modelo_oficial() -> dict:
         'f1_score': metricas.get('f1_score'),
         'total_empresas': metricas.get('total_empresas_entrenamiento'),
         'umbral_clasificacion': metricas.get('umbral_clasificacion', 50),
-    }
-
-
-def calcular_ratios_liquidez(row: dict):
-    activo_circulante = row.get('Activo_Circulante', 0)
-    pasivo_circulante = row.get('Pasivo_Circulante', 0)
-    inventario = row.get('Inventarios', 0)
-    caja_y_bancos = row.get('Efectivo_Equivalentes', 0)
-    flujo_caja_operativo = row.get('Utilidad_Neta', 0)
-    pasivo_total = row.get('Pasivo_Total', 0)
-    activo_total = row.get('Activo_Total', 0)
-
-    eps = 1e-6
-    denom = pasivo_circulante if pasivo_circulante > 0 else eps
-
-    return {
-        'razon_corriente': activo_circulante / denom,
-        'prueba_acida': (activo_circulante - inventario) / denom,
-        'ratio_caja': caja_y_bancos / denom,
-        'cobertura_operacional': flujo_caja_operativo / denom,
-        'capital_trabajo': activo_circulante - pasivo_circulante,
-        'endeudamiento_corto_plazo': pasivo_circulante / (pasivo_total if pasivo_total > 0 else eps),
-        'solvencia_general': activo_total / (pasivo_total if pasivo_total > 0 else eps),
     }
 
 
@@ -342,68 +309,3 @@ def ruta_cache_modelo(ruta_csv: str) -> str:
     firma = f'{os.path.abspath(ruta_csv)}:{os.path.getmtime(ruta_csv)}'
     nombre = hashlib.md5(firma.encode()).hexdigest()
     return os.path.join(MODELOS_DIR, f'{nombre}.joblib')
-
-
-def entrenar_modelo(ruta_csv: str) -> dict:
-    """Entrena el clasificador y calcula sus métricas. Es la única función que
-    reentrena desde cero; su resultado se serializa en disco vía joblib."""
-    df = pd.read_csv(ruta_csv)
-    n = len(df)
-
-    if n < 4:
-        return {
-            'accuracy': None,
-            'recall': None,
-            'f1_score': None,
-            'total_empresas': n,
-            'umbral_clasificacion': 50,
-        }
-
-    scores = []
-    for _, row in df.iterrows():
-        ratios = calcular_ratios_liquidez(row.to_dict())
-        scores.append(calcular_score_compuesto(ratios))
-
-    y = (np.array(scores) >= 50).astype(int)
-
-    X = df[FEATURES].values
-
-    try:
-        split_kwargs = dict(test_size=0.2, random_state=42)
-        unique, counts = np.unique(y, return_counts=True)
-        if len(unique) > 1 and min(counts) > 1:
-            split_kwargs['stratify'] = y
-
-        X_train, X_test, y_train, y_test = train_test_split(X, y, **split_kwargs)
-
-        clf = RandomForestClassifier(n_estimators=100, random_state=42)
-        clf.fit(X_train, y_train)
-
-        y_pred = clf.predict(X_test)
-
-        accuracy = round(accuracy_score(y_test, y_pred) * 100, 1)
-        recall = round(recall_score(y_test, y_pred, zero_division=0) * 100, 1)
-        f1 = round(f1_score(y_test, y_pred, zero_division=0) * 100, 1)
-    except Exception:
-        accuracy = recall = f1 = None
-
-    return {
-        'accuracy': accuracy,
-        'recall': recall,
-        'f1_score': f1,
-        'total_empresas': n,
-        'umbral_clasificacion': 50,
-    }
-
-
-def obtener_metricas(ruta_csv: str) -> dict:
-    """Carga las métricas del modelo ya entrenado para este archivo si existen en
-    caché; si no, entrena una vez y serializa el resultado con joblib."""
-    ruta_cache = ruta_cache_modelo(ruta_csv)
-
-    if os.path.exists(ruta_cache):
-        return joblib.load(ruta_cache)
-
-    metricas = entrenar_modelo(ruta_csv)
-    joblib.dump(metricas, ruta_cache)
-    return metricas
