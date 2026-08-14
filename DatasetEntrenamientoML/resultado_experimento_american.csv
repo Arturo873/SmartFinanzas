@@ -1,0 +1,7 @@
+experimento,filas_train,quiebras_train,accuracy,precision,recall,f1_test,f1_cv_train,umbral
+baseline: solo Taiwan,5455,176,95.2,36.2,65.9,46.8,41.8,0.68
+Taiwan train + American combinados,84137,5396,94.8,33.7,63.6,44.1,22.1,0.61
+Taiwan+American + undersampling 1:1,10792,5396,85.1,15.9,84.1,26.7,69.9,0.36
+Taiwan+American + SMOTE 1:1,157482,78741,90.7,22.5,77.3,34.9,72.2,0.38
+Taiwan+American + SMOTEENN,127732,72065,90.6,22.4,77.3,34.7,78.8,0.4
+solo American (train/test propios),62945,4176,80.0,14.6,41.5,21.6,21.7,0.59
