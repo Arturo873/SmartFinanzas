@@ -1,0 +1,322 @@
+{% extends "erp/mantenedores/paginaBase.html" %}
+{% load static %}
+
+{% block titulo %}
+<h2 class="fw-bold text-center mb-4">Gestión de Usuarios</h2>
+{% endblock titulo %}
+
+{% block contenido %}
+
+<div class="container-fluid px-4">
+
+  {% if messages %}
+  <div class="mb-3">
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} mb-2" role="alert">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="card shadow-lg p-3 p-md-4" style="overflow:hidden;">
+
+
+    <!-- 🔥 BOTÓN AGREGAR SOLO PARA ADMIN -->
+    <div class="row g-2 align-items-center mb-3">
+
+      {% if usuarios_crear %}
+      <div class="col-12 col-md-3">
+        <a href="{% url 'accounts_nstock:usuario_agregar' %}" class="btn btn-warning w-100 fw-bold">
+          + Agregar Usuario
+        </a>
+      </div>
+      {% endif %}
+
+      <div class="col-6 col-md-2">
+        <select id="filtroRol" class="form-select">
+          <option value="">Rol: todos</option>
+          <option value="Administrador del Sistema">Administrador del Sistema</option>
+          <option value="Operador de Compras">Operador de Compras</option>
+          <option value="Operador de Inventario">Operador de Inventario</option>
+          <option value="Operador de Producción">Operador de Producción</option>
+          <option value="Operador de Ventas">Operador de Ventas</option>
+          <option value="Analista Financiero">Analista Financiero</option>
+          <option value="Auditor">Auditor</option>
+          <option value="Usuario General">Usuario General</option>
+        </select>
+      </div>
+
+      <div class="col-6 col-md-2">
+        <select id="filtroEstado" class="form-select">
+          <option value="">Estado: todos</option>
+          <option value="ACTIVO">Activo</option>
+          <option value="INACTIVO">Inactivo</option>
+          <option value="BLOQUEADO">Bloqueado</option>
+        </select>
+      </div>
+
+      <div class="col-12 col-md-3">
+        <input type="text" id="buscador" class="form-control"
+               placeholder="🔎 Buscar por usuario / nombre / correo">
+      </div>
+
+      <div class="col-6 col-md-1">
+        <select id="pageSize" class="form-select">
+          <option value="5">5</option>
+          <option value="15" selected>15</option>
+          <option value="20">20</option>
+        </select>
+      </div>
+
+      <div class="col-6 col-md-1 ms-md-auto">
+        <button id="excelExport" class="btn btn-success w-100 fw-bold">Excel</button>
+      </div>
+    </div>
+
+
+
+
+    <!-- TABLA -->
+    <div class="table-responsive">
+      <table id="tablaUsuarios" class="table table-hover align-middle mb-0">
+        <thead class="text-white" style="background-color:#B22222;">
+          <tr class="text-nowrap">
+            <th style="width:60px;">#</th>
+            <th>Usuario</th>
+            <th>Nombre</th>
+            <th>Teléfono</th>
+            <th>Correo</th>
+            <th>Rol</th>
+            <th>Estado</th>
+            <th>MFA</th>
+            <th>Último Acceso</th>
+            <th>Sesiones</th>
+            <th class="text-end" style="width:140px;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in usuarios %}
+          <tr
+            data-rol="{{ u.get_rol_display }}"
+            data-estado="{{ u.estado }}"
+            data-search="{{ u.username }} {{ u.first_name }} {{ u.last_name }} {{ u.email }} {{ u.get_rol_display }} {{ u.estado }}">
+
+            <td class="text-muted"></td>
+
+            <td class="text-nowrap">{{ u.username }}</td>
+
+            <td>{{ u.first_name }} {{ u.last_name }}</td>
+
+            <td class="text-nowrap">
+              {{ u.telefono|default:"—" }}
+            </td>
+
+            <td class="text-nowrap">{{ u.email }}</td>
+
+            <td class="text-nowrap">
+              <span class="badge bg-dark">{{ u.get_rol_display }}</span>
+            </td>
+
+            <td class="text-nowrap">
+              {% if u.estado == "ACTIVO" %}
+                <span class="badge bg-success">Activo</span>
+              {% elif u.estado == "BLOQUEADO" %}
+                <span class="badge bg-warning">Bloqueado</span>
+              {% else %}
+                <span class="badge bg-secondary">Inactivo</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if u.mfa_habilitado %}
+                <span class="badge bg-success">Sí</span>
+              {% else %}
+                <span class="badge bg-secondary">No</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if u.ultimo_acceso %}
+                {{ u.ultimo_acceso|date:"Y-m-d H:i" }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+
+            <td class="text-center">
+              {{ u.sesiones_activas }}
+            </td>
+
+            <td class="text-end text-nowrap">
+
+              {% if usuarios_editar %}
+              <a href="{% url 'accounts_nstock:usuario_editar' u.id %}"
+                class="btn btn-warning btn-sm me-1">
+                Editar
+              </a>
+              {% endif %}
+
+              {% if usuarios_eliminar %}
+              <button type="button"
+                      class="btn btn-warning btn-sm"
+                      data-bs-toggle="modal"
+                      data-bs-target="#confirmEliminarModal"
+                      data-url="{% url 'accounts_nstock:usuario_eliminar' u.id %}"
+                      data-username="{{ u.username }}">
+                Eliminar
+              </button>
+              {% endif %}
+
+            </td>
+
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+
+
+
+    <!-- PAGINACIÓN -->
+    <div class="d-flex justify-content-between align-items-center pt-3">
+      <div class="small text-muted" id="pagerInfo"></div>
+      <div class="btn-group">
+        <button id="prevPage" class="btn btn-outline-secondary btn-sm">Anterior</button>
+        <button id="nextPage" class="btn btn-outline-secondary btn-sm">Siguiente</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+<!-- MODAL ELIMINAR -->
+<div class="modal fade" id="confirmEliminarModal" tabindex="-1" aria-labelledby="confirmEliminarLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="formEliminar" method="post">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title" id="confirmEliminarLabel">Confirmar eliminación</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-1">¿Seguro que deseas eliminar al usuario <strong id="eliminarUser"></strong>?</p>
+          <p class="text-warning mb-0"><strong>Esta acción es irreversible.</strong></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-warning">Sí, eliminar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+<!-- JS FUNCIONAL (NO SE MODIFICA) -->
+<script>
+// ... se mantiene todo igual ...
+document.addEventListener("DOMContentLoaded", () => {
+  const tbody = document.querySelector("#tablaUsuarios tbody");
+  const rows = Array.from(tbody.querySelectorAll("tr"));
+  const buscador = document.getElementById("buscador");
+  const filtroRol = document.getElementById("filtroRol");
+  const filtroEstado = document.getElementById("filtroEstado");
+  const pageSizeSel = document.getElementById("pageSize");
+  const pagerInfo = document.getElementById("pagerInfo");
+  const prevBtn = document.getElementById("prevPage");
+  const nextBtn = document.getElementById("nextPage");
+  let page = 1;
+
+  function renumerar(visibleRows) {
+    let i = 1;
+    visibleRows.forEach(tr => {
+      tr.querySelector("td").textContent = i++;
+    });
+  }
+
+  function aplicarFiltros() {
+    const q = (buscador.value || "").toLowerCase();
+    const rol = filtroRol.value;
+    const estado = filtroEstado.value;
+
+    rows.forEach(tr => {
+      const hayRol = !rol || tr.dataset.rol === rol;
+      const hayEstado = !estado || tr.dataset.estado === estado;
+      const hayTexto = !q || tr.dataset.search.toLowerCase().includes(q);
+      tr.dataset.visible = (hayRol && hayEstado && hayTexto) ? "1" : "0";
+    });
+
+    page = 1;
+    pintarPagina();
+  }
+
+  function visibles() {
+    return rows.filter(tr => tr.dataset.visible !== "0");
+  }
+
+  function pintarPagina() {
+    const size = parseInt(pageSizeSel.value, 10);
+    const visiblesRows = visibles();
+    const total = visiblesRows.length;
+    const pages = Math.max(1, Math.ceil(total / size));
+    if (page > pages) page = pages;
+
+    rows.forEach(tr => tr.style.display = "none");
+    const start = (page - 1) * size;
+    visiblesRows.slice(start, start + size).forEach(tr => tr.style.display = "");
+    renumerar(visiblesRows.slice(start, start + size));
+
+    pagerInfo.textContent = `Mostrando ${Math.min(total, start + 1)}-${Math.min(total, start + size)} de ${total}`;
+    prevBtn.disabled = (page <= 1);
+    nextBtn.disabled = (page >= pages);
+  }
+
+  buscador.addEventListener("input", aplicarFiltros);
+  filtroRol.addEventListener("change", aplicarFiltros);
+  filtroEstado.addEventListener("change", aplicarFiltros);
+  pageSizeSel.addEventListener("change", () => { page = 1; pintarPagina(); });
+  prevBtn.addEventListener("click", () => { page--; pintarPagina(); });
+  nextBtn.addEventListener("click", () => { page++; pintarPagina(); });
+
+  
+  rows.forEach(tr => tr.dataset.visible = "1");
+  pintarPagina();
+
+  document.getElementById("excelExport").addEventListener("click", () => {
+    const head = document.querySelector("#tablaUsuarios thead").outerHTML;
+    const bodyVisible = visibles().map(tr => {
+      const c = tr.cloneNode(true);
+      c.querySelector("td").remove();
+      c.lastElementChild.remove();
+      return c.outerHTML;
+    }).join("");
+    const html = `<table>${head.replace('Acciones','')}${bodyVisible}</table>`;
+    const data = "data:application/vnd.ms-excel," + encodeURIComponent(html);
+    const a = document.createElement("a");
+    a.href = data;
+    a.download = "usuarios_nstock.xls";
+    a.click();
+  });
+
+  const modal = document.getElementById('confirmEliminarModal');
+  modal.addEventListener('show.bs.modal', event => {
+    const btn = event.relatedTarget;
+    const url = btn.getAttribute('data-url');
+    const username = btn.getAttribute('data-username');
+    document.getElementById('eliminarUser').textContent = username;
+    const form = document.getElementById('formEliminar');
+    form.setAttribute('action', url);
+  });
+});
+</script>
+
+{% endblock contenido %}

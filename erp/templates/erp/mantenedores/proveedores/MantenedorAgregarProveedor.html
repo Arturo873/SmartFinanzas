@@ -1,0 +1,228 @@
+{% extends "erp/mantenedores/paginaBase.html" %}
+{% load static %}
+
+{% block titulo %}
+<h1 class="text-center p-3">Agregar Nuevo Proveedor</h1>
+{% endblock titulo %}
+
+{% block contenido %}
+
+{% if not proveedores_crear %}
+<div class="alert alert-warning text-center fw-bold mt-4">
+    🚫 No tienes permisos para agregar proveedores.
+</div>
+<div class="text-center mt-3">
+    <a href="{% url 'erp_proveedores_listar' %}" class="btn btn-outline-warning fw-bold">Volver</a>
+</div>
+{% else %}
+
+<div class="card mx-auto mb-4 shadow-lg" style="max-width: 1200px;">
+    <form method="post" class="p-4">
+        {% csrf_token %}
+
+        <h4 class="mb-3 fw-bold text-warning">Identificación Legal</h4>
+        <div class="row">
+
+            <div class="col-md-4 mb-3">
+                {{ form.rut_nif.label_tag }}
+                {{ form.rut_nif }}
+                {% for error in form.rut_nif.errors %}
+                    <p class="text-warning small fw-bold">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <div class="col-md-4 mb-3">
+                {{ form.razon_social.label_tag }}
+                {{ form.razon_social }}
+                {% for error in form.razon_social.errors %}
+                    <p class="text-warning small fw-bold">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <div class="col-md-4 mb-3">
+                {{ form.nombre_fantasia.label_tag }}
+                {{ form.nombre_fantasia }}
+                {% for error in form.nombre_fantasia.errors %}
+                    <p class="text-warning small fw-bold">{{ error }}</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <hr>
+
+        <h4 class="mb-3 fw-bold text-warning">Contacto & Dirección</h4>
+        <div class="row">
+
+            <div class="col-md-4 mb-3">
+                {{ form.email.label_tag }}
+                {{ form.email }}
+                {% for error in form.email.errors %}
+                    <p class="text-warning small fw-bold">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <div class="col-md-4 mb-3">
+                {{ form.telefono.label_tag }}
+                {{ form.telefono }}
+                {% for error in form.telefono.errors %}
+                    <p class="text-warning small fw-bold">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <div class="col-md-4 mb-3">
+                {{ form.sitio_web.label_tag }}
+                {{ form.sitio_web }}
+                {% for error in form.sitio_web.errors %}
+                    <p class="text-warning small fw-bold">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <div class="col-md-4 mb-3">
+                {{ form.direccion.label_tag }}
+                {{ form.direccion }}
+            </div>
+
+            <div class="col-md-4 mb-3">
+                {{ form.pais.label_tag }}
+                {{ form.pais }}
+            </div>
+
+            <div class="col-md-4 mb-3">
+                {{ form.division.label_tag }}
+                {{ form.division }}
+            </div>
+
+            <div class="col-md-4 mb-3">
+                {{ form.ciudad.label_tag }}
+                {{ form.ciudad }}
+            </div>
+
+            <div class="col-md-4 mb-3">
+                {{ form.contacto_principal_nombre.label_tag }}
+                {{ form.contacto_principal_nombre }}
+                {% for error in form.contacto_principal_nombre.errors %}
+                    <p class="text-warning small fw-bold">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <div class="col-md-4 mb-3">
+                {{ form.contacto_principal_email.label_tag }}
+                {{ form.contacto_principal_email }}
+                {% for error in form.contacto_principal_email.errors %}
+                    <p class="text-warning small fw-bold">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <div class="col-md-4 mb-3">
+                {{ form.contacto_principal_telefono.label_tag }}
+                {{ form.contacto_principal_telefono }}
+                {% for error in form.contacto_principal_telefono.errors %}
+                    <p class="text-warning small fw-bold">{{ error }}</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <hr>
+
+        <h4 class="mb-3 fw-bold text-warning">Información Comercial</h4>
+        <div class="row">
+
+            <div class="col-md-6 mb-3">
+                {{ form.condiciones_pago.label_tag }}
+                {{ form.condiciones_pago }}
+                {% for error in form.condiciones_pago.errors %}
+                    <p class="text-warning small fw-bold">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <div class="col-md-3 mb-3">
+                {{ form.moneda.label_tag }}
+                {{ form.moneda }}
+                {% for error in form.moneda.errors %}
+                    <p class="text-warning small fw-bold">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <div class="col-md-3 mb-3">
+                {{ form.estado.label_tag }}
+                {{ form.estado }}
+                {% for error in form.estado.errors %}
+                    <p class="text-warning small fw-bold">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <div class="col-md-12 mb-3">
+                {{ form.observaciones.label_tag }}
+                {{ form.observaciones }}
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center gap-3 mt-4 mb-3">
+            <button type="submit" class="btn btn-success px-4">Guardar</button>
+            <a href="{% url 'erp_proveedores_listar' %}" class="btn btn-warning px-4">Volver</a>
+        </div>
+
+    </form>
+</div>
+{% endif %}
+
+<!-- JS: carga dinámica de divisiones por país -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const paisSelect = document.getElementById("id_pais");
+    const divisionSelect = document.getElementById("id_division");
+
+    if (!paisSelect || !divisionSelect) return;
+
+    function cargarDivisiones(paisId, selectedId) {
+        if (!paisId) {
+            divisionSelect.innerHTML = "<option value=''>Seleccione primero un país</option>";
+            return;
+        }
+
+        // URL Django con placeholder 0, reemplazamos por el id real
+        const url = "{% url 'erp_obtener_divisiones' 0 %}".replace("/0/", "/" + paisId + "/");
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                divisionSelect.innerHTML = "";
+                if (data.length === 0) {
+                    const opt = document.createElement("option");
+                    opt.value = "";
+                    opt.textContent = "Sin divisiones disponibles";
+                    divisionSelect.appendChild(opt);
+                    return;
+                }
+                data.forEach(function (div) {
+                    const opt = document.createElement("option");
+                    opt.value = div.id;
+                    opt.textContent = div.nombre;
+                    if (selectedId && String(selectedId) === String(div.id)) {
+                        opt.selected = true;
+                    }
+                    divisionSelect.appendChild(opt);
+                });
+            })
+            .catch(err => {
+                console.error(err);
+                divisionSelect.innerHTML = "<option value=''>Error al cargar divisiones</option>";
+            });
+    }
+
+    // Al cambiar el país
+    paisSelect.addEventListener("change", function () {
+        cargarDivisiones(this.value, null);
+    });
+
+    // Si viene con país seleccionado (POST con errores)
+    const currentPais = paisSelect.value;
+    const currentDivision = divisionSelect.value;
+    if (currentPais) {
+        cargarDivisiones(currentPais, currentDivision || null);
+    }
+});
+</script>
+
+{% endblock contenido %}

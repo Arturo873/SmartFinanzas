@@ -1,0 +1,409 @@
+{% extends "erp/mantenedores/paginaBase.html" %}
+{% load static %}
+
+{% block titulo %}
+<h2 class="fw-bold text-center mb-4">Registrar movimiento</h2>
+{% endblock titulo %}
+
+{% block contenido %}
+
+<style>
+    .wizard-card {
+        border-radius: 18px;
+        box-shadow: 0 10px 35px rgba(0,0,0,.08);
+        background: #ffffff;
+        padding: 24px 24px 18px;
+    }
+
+    .wizard-steps {
+        display: flex;
+        gap: .5rem;
+        flex-wrap: wrap;
+        margin-bottom: 1.25rem;
+    }
+
+    .wizard-step-btn {
+        flex: 1 1 0;
+        border-radius: 999px;
+        border: 1px solid #e5e5e5;
+        background: #f7f7f7;
+        color: #555;
+        font-weight: 600;
+        font-size: .9rem;
+        padding: .55rem .75rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all .2s ease;
+    }
+
+    .wizard-step-btn span {
+        font-weight: 700;
+        margin-right: .25rem;
+    }
+
+    .wizard-step-btn.active {
+        background: #b22222;
+        border-color: #b22222;
+        color: #fff;
+        box-shadow: 0 6px 15px rgba(178,34,34,.35);
+    }
+
+    .wizard-step-btn:hover:not(.active) {
+        background: #fff5f5;
+    }
+
+    .wizard-section {
+        display: none;
+        animation: fadeIn .18s ease-in-out;
+    }
+    .wizard-section.active {
+        display: block;
+    }
+
+    .form-hint {
+        font-size: .78rem;
+        color: #888;
+    }
+
+    .form-label {
+        font-weight: 600;
+        font-size: .88rem;
+        color: #333;
+    }
+
+    .form-control, .form-select {
+        border-radius: 10px;
+        font-size: .88rem;
+    }
+
+    .wizard-footer {
+        border-top: 1px solid #f1f1f1;
+        margin-top: 1.25rem;
+        padding-top: 1rem;
+    }
+
+    .btn-outline-secondary-nstock {
+        border-radius: 999px;
+        border-color: #b0b0b0;
+        color: #555;
+        padding-inline: 1.5rem;
+    }
+
+    .btn-outline-secondary-nstock:hover {
+        background-color: #f2f2f2;
+        color: #333;
+    }
+
+    .btn-warning-nstock {
+        border-radius: 999px;
+        background-color: #b22222;
+        border-color: #b22222;
+        padding-inline: 1.8rem;
+        font-weight: 600;
+    }
+
+    .btn-warning-nstock:hover {
+        background-color: #951a1a;
+        border-color: #951a1a;
+    }
+
+    .toggle-label {
+        font-size: .85rem;
+        margin-left: .35rem;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(4px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+</style>
+
+<div class="container-lg">
+  <div class="wizard-card">
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      {# errores generales #}
+      {% if form.non_field_errors %}
+      <div class="alert alert-warning mb-3">
+          {{ form.non_field_errors }}
+      </div>
+      {% endif %}
+
+      <!-- PASOS -->
+      <div class="wizard-steps">
+          <button type="button"
+                  class="wizard-step-btn active"
+                  data-step="1">
+              <span>1.</span> Datos del movimiento
+          </button>
+          <button type="button"
+                  class="wizard-step-btn"
+                  data-step="2">
+              <span>2.</span> Control avanzado
+          </button>
+          <button type="button"
+                  class="wizard-step-btn"
+                  data-step="3">
+              <span>3.</span> Referencias / Observaciones
+          </button>
+      </div>
+
+      <!-- SECCIÓN 1: DATOS DEL MOVIMIENTO -->
+      <div class="wizard-section active" id="wizard-step-1">
+          <div class="row g-3 mb-2">
+
+              <div class="col-md-4">
+                  <label class="form-label">Fecha</label>
+                  <input type="text"
+                         class="form-control"
+                         value="{% if form.instance.pk %}{{ form.instance.fecha|date:'d-m-Y H:i' }}{% else %}Se asignará al guardar{% endif %}"
+                         readonly>
+                  <div class="form-hint mt-1">
+                      La fecha de registro se genera automáticamente.
+                  </div>
+              </div>
+
+              <div class="col-md-4">
+                  <label class="form-label" for="{{ form.tipo.id_for_label }}">Tipo</label>
+                  {{ form.tipo }}
+                  {% if form.tipo.errors %}
+                    <div class="text-warning small">{{ form.tipo.errors.0 }}</div>
+                  {% endif %}
+              </div>
+
+              <div class="col-md-4">
+                  <label class="form-label" for="{{ form.cantidad.id_for_label }}">Cantidad</label>
+                  {{ form.cantidad }}
+                  <div class="form-hint">Solo cantidades enteras mayores a cero.</div>
+                  {% if form.cantidad.errors %}
+                    <div class="text-warning small">{{ form.cantidad.errors.0 }}</div>
+                  {% endif %}
+              </div>
+
+          </div>
+
+          <div class="row g-3">
+              <div class="col-md-4">
+                  <label class="form-label" for="{{ form.producto.id_for_label }}">Producto</label>
+                  {{ form.producto }}
+                  {% if form.producto.errors %}
+                    <div class="text-warning small">{{ form.producto.errors.0 }}</div>
+                  {% endif %}
+              </div>
+
+              <div class="col-md-4">
+                  <label class="form-label" for="{{ form.proveedor.id_for_label }}">Proveedor</label>
+                  {{ form.proveedor }}
+                  {% if form.proveedor.errors %}
+                    <div class="text-warning small">{{ form.proveedor.errors.0 }}</div>
+                  {% endif %}
+              </div>
+
+              <div class="col-md-4">
+                  <label class="form-label" for="{{ form.bodega_destino.id_for_label }}">Bodega destino</label>
+                  {{ form.bodega_destino }}
+                  {% if form.bodega_destino.errors %}
+                    <div class="text-warning small">{{ form.bodega_destino.errors.0 }}</div>
+                  {% endif %}
+              </div>
+
+              {# En caso de que uses también bodega_origen, lo dejamos oculto pero presente #}
+              <div class="col-12 mt-2">
+                  <details class="small">
+                      <summary class="mb-1">Opciones de bodega origen (para salidas / transferencias)</summary>
+                      <div class="row g-2">
+                          <div class="col-md-4">
+                              <label class="form-label" for="{{ form.bodega_origen.id_for_label }}">Bodega origen</label>
+                              {{ form.bodega_origen }}
+                              {% if form.bodega_origen.errors %}
+                                <div class="text-warning small">{{ form.bodega_origen.errors.0 }}</div>
+                              {% endif %}
+                          </div>
+                      </div>
+                  </details>
+              </div>
+          </div>
+      </div>
+
+    <!-- SECCIÓN 2: CONTROL AVANZADO -->
+        <div class="wizard-section" id="wizard-step-2">
+            <div class="row g-3 mb-3">
+
+                <div class="col-md-4">
+                    <div class="form-check">
+                        {{ form.manejo_lote }}
+                        <label class="form-check-label toggle-label" for="{{ form.manejo_lote.id_for_label }}">
+                            Manejo por lotes
+                        </label>
+                    </div>
+                    <div class="form-hint">Activa si quieres registrar lote específico.</div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-check">
+                        {{ form.manejo_serie }}
+                        <label class="form-check-label toggle-label" for="{{ form.manejo_serie.id_for_label }}">
+                            Manejo por serie
+                        </label>
+                    </div>
+                    <div class="form-hint">Útil para productos con número de serie.</div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-check">
+                        {{ form.manejo_vencimiento }}
+                        <label class="form-check-label toggle-label" for="{{ form.manejo_vencimiento.id_for_label }}">
+                            Perecible (vencimiento)
+                        </label>
+                    </div>
+                    <div class="form-hint">Activa si requiere fecha de vencimiento.</div>
+                </div>
+            </div>
+
+          </div>
+
+          <div class="row g-3">
+
+              <div class="col-md-4">
+                  <label class="form-label" for="{{ form.lote.id_for_label }}">Lote</label>
+                  {{ form.lote }}
+                  {% if form.lote.errors %}
+                    <div class="text-warning small">{{ form.lote.errors.0 }}</div>
+                  {% endif %}
+              </div>
+
+              <div class="col-md-4">
+                  <label class="form-label" for="{{ form.serie.id_for_label }}">Serie</label>
+                  {{ form.serie }}
+                  {% if form.serie.errors %}
+                    <div class="text-warning small">{{ form.serie.errors.0 }}</div>
+                  {% endif %}
+              </div>
+
+              <div class="col-md-4">
+                  <label class="form-label" for="{{ form.fecha_vencimiento.id_for_label }}">Fecha de vencimiento</label>
+                  {{ form.fecha_vencimiento }}
+                  <div class="form-hint">No se permiten fechas de vencimiento pasadas.</div>
+                  {% if form.fecha_vencimiento.errors %}
+                    <div class="text-warning small">{{ form.fecha_vencimiento.errors.0 }}</div>
+                  {% endif %}
+              </div>
+
+          </div>
+      </div>
+
+        <!-- SECCIÓN 3: REFERENCIAS / OBSERVACIONES -->
+        <div class="wizard-section" id="wizard-step-3">
+
+            <div class="row g-3 mb-3">
+
+                <div class="col-md-6">
+                    <label class="form-label" for="{{ form.doc_referencia.id_for_label }}">Documento de referencia</label>
+                    {{ form.doc_referencia }}
+                    <div class="form-hint">OC-123 / FAC-456 / GUIA-789 (opcional)</div>
+                    {% if form.doc_referencia.errors %}
+                        <div class="text-warning small">{{ form.doc_referencia.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="{{ form.motivo.id_for_label }}">Motivo (ajustes / devoluciones)</label>
+                    {{ form.motivo }}
+                    <div class="form-hint">Diferencia inventario, devolución cliente, daño, etc.</div>
+                    {% if form.motivo.errors %}
+                        <div class="text-warning small">{{ form.motivo.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label" for="{{ form.observaciones.id_for_label }}">Observaciones</label>
+                {{ form.observaciones }}
+                <div class="form-hint">
+                    Notas de operación, recepción, daño, comentarios extra.
+                </div>
+                {% if form.observaciones.errors %}
+                    <div class="text-warning small">{{ form.observaciones.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+        </div>
+
+
+
+      <!-- FOOTER -->
+      <div class="wizard-footer d-flex justify-content-between align-items-center">
+          <a href="{% url 'erp_movimientos_listar' %}"
+             class="btn btn-outline-secondary-nstock">
+              Cancelar
+          </a>
+
+          <div class="d-flex gap-2">
+              <button type="reset" class="btn btn-outline-secondary-nstock">
+                  Limpiar
+              </button>
+              <button type="submit" class="btn btn-warning-nstock">
+                  Guardar movimiento
+              </button>
+          </div>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    // Tabs
+    const stepButtons = document.querySelectorAll(".wizard-step-btn");
+    const sections = document.querySelectorAll(".wizard-section");
+
+    stepButtons.forEach(btn => {
+        btn.addEventListener("click", () => {
+            const step = btn.dataset.step;
+
+            stepButtons.forEach(b => b.classList.toggle("active", b === btn));
+            sections.forEach(sec => {
+                sec.classList.toggle("active", sec.id === "wizard-step-" + step);
+            });
+        });
+    });
+
+    // Toggles (solo UX: habilitan / deshabilitan campos)
+    const chkLote   = document.getElementById("{{ form.manejo_lote.id_for_label }}");
+    const chkSerie  = document.getElementById("{{ form.manejo_serie.id_for_label }}");
+    const chkPere   = document.getElementById("{{ form.manejo_vencimiento.id_for_label }}");
+
+
+    const inputLote   = document.getElementById("{{ form.lote.id_for_label }}");
+    const inputSerie  = document.getElementById("{{ form.serie.id_for_label }}");
+    const inputFechaV = document.getElementById("{{ form.fecha_vencimiento.id_for_label }}");
+
+    function syncToggle(chk, input) {
+        if (!input) return;
+        const active = chk.checked;
+        input.readOnly = !active;
+        input.classList.toggle("bg-light", !active);
+        if (!active) input.value = "";
+    }
+
+    if (chkLote && inputLote) {
+        chkLote.addEventListener("change", () => syncToggle(chkLote, inputLote));
+        // estado inicial
+        syncToggle(chkLote, inputLote);
+    }
+    if (chkSerie && inputSerie) {
+        chkSerie.addEventListener("change", () => syncToggle(chkSerie, inputSerie));
+        syncToggle(chkSerie, inputSerie);
+    }
+    if (chkPere && inputFechaV) {
+        chkPere.addEventListener("change", () => syncToggle(chkPere, inputFechaV));
+        syncToggle(chkPere, inputFechaV);
+    }
+});
+</script>
+
+{% endblock contenido %}

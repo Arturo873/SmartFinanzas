@@ -1,0 +1,225 @@
+{% extends "erp/mantenedores/paginaBase.html" %}
+{% load static %}
+
+{% block titulo %}
+<h1 class="text-center p-3">Editar/Actualizar Proveedor</h1>
+{% endblock titulo %}
+
+{% block contenido %}
+
+{% if not proveedores_editar %}
+<div class="alert alert-warning text-center fw-bold mt-4">
+    🚫 No tienes permisos para editar proveedores.
+</div>
+<div class="text-center mt-3">
+    <a href="{% url 'erp_proveedores_listar' %}" class="btn btn-outline-warning fw-bold">Volver</a>
+</div>
+
+{% else %}
+
+<style>
+.card-form {
+    background: white;         
+    border-radius: 15px;
+    padding: 25px;
+}
+
+.section-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    border-bottom: 2px solid #a61414;
+    padding-bottom: 8px;
+    margin-bottom: 20px;
+}
+</style>
+
+<div class="container my-4">
+    <div class="card card-form mx-auto shadow-lg" style="max-width: 1000px;">
+
+        <form method="POST" action="{% url 'erp_editar_proveedor' proveedor.id %}">
+            {% csrf_token %}
+
+            <!-- ============================
+                 IDENTIFICACIÓN LEGAL
+            ============================= -->
+            <div class="section-title">Identificación Legal</div>
+            <div class="row mb-3">
+
+                <div class="col-md-6">
+                    {{ form.rut_nif.label_tag }} {{ form.rut_nif }}
+                    <p class="text-warning small fw-bold">{{ form.rut_nif.errors }}</p>
+                </div>
+
+                <div class="col-md-6">
+                    {{ form.razon_social.label_tag }} {{ form.razon_social }}
+                    <p class="text-warning small fw-bold">{{ form.razon_social.errors }}</p>
+                </div>
+
+                <div class="col-md-12">
+                    {{ form.nombre_fantasia.label_tag }} {{ form.nombre_fantasia }}
+                    <p class="text-warning small fw-bold">{{ form.nombre_fantasia.errors }}</p>
+                </div>
+            </div>
+
+
+            <!-- ============================
+                 CONTACTO & DIRECCIÓN
+            ============================= -->
+            <div class="section-title">Contacto & Dirección</div>
+            <div class="row mb-3">
+
+                <div class="col-md-6">
+                    {{ form.email.label_tag }} {{ form.email }}
+                    <p class="text-warning small fw-bold">{{ form.email.errors }}</p>
+                </div>
+
+                <div class="col-md-6">
+                    {{ form.telefono.label_tag }} {{ form.telefono }}
+                    <p class="text-warning small fw-bold">{{ form.telefono.errors }}</p>
+                </div>
+
+                <div class="col-md-6">
+                    {{ form.sitio_web.label_tag }} {{ form.sitio_web }}
+                    <p class="text-warning small fw-bold">{{ form.sitio_web.errors }}</p>
+                </div>
+
+                <div class="col-md-6">
+                    {{ form.direccion.label_tag }} {{ form.direccion }}
+                    <p class="text-warning small fw-bold">{{ form.direccion.errors }}</p>
+                </div>
+
+                <div class="col-md-4">
+                    {{ form.ciudad.label_tag }} {{ form.ciudad }}
+                    <p class="text-warning small fw-bold">{{ form.ciudad.errors }}</p>
+                </div>
+
+                <div class="col-md-4">
+                    {{ form.pais.label_tag }} {{ form.pais }}
+                </div>
+
+                <div class="col-md-4">
+                    {{ form.division.label_tag }} {{ form.division }}
+                </div>
+            </div>
+
+
+            <!-- ============================
+                 INFORMACIÓN COMERCIAL
+            ============================= -->
+            <div class="section-title">Información Comercial</div>
+            <div class="row mb-3">
+
+                <div class="col-md-6">
+                    {{ form.condiciones_pago.label_tag }} {{ form.condiciones_pago }}
+                    <p class="text-warning small fw-bold">{{ form.condiciones_pago.errors }}</p>
+                </div>
+
+                <div class="col-md-3">
+                    {{ form.moneda.label_tag }} {{ form.moneda }}
+                    <p class="text-warning small fw-bold">{{ form.moneda.errors }}</p>
+                </div>
+
+                <div class="col-md-3">
+                    {{ form.estado.label_tag }} {{ form.estado }}
+                </div>
+
+                <div class="col-md-6">
+                    {{ form.contacto_principal_nombre.label_tag }} {{ form.contacto_principal_nombre }}
+                    <p class="text-warning small fw-bold">{{ form.contacto_principal_nombre.errors }}</p>
+                </div>
+
+                <div class="col-md-6">
+                    {{ form.contacto_principal_email.label_tag }} {{ form.contacto_principal_email }}
+                    <p class="text-warning small fw-bold">{{ form.contacto_principal_email.errors }}</p>
+                </div>
+
+                <div class="col-md-6">
+                    {{ form.contacto_principal_telefono.label_tag }} {{ form.contacto_principal_telefono }}
+                    <p class="text-warning small fw-bold">{{ form.contacto_principal_telefono.errors }}</p>
+                </div>
+
+                <div class="col-md-12">
+                    {{ form.observaciones.label_tag }} {{ form.observaciones }}
+                    <p class="text-warning small fw-bold">{{ form.observaciones.errors }}</p>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-center gap-3 mt-4">
+                <button type="submit" class="btn btn-warning px-5 fw-bold">Actualizar</button>
+                <a href="{% url 'erp_proveedores_listar' %}" class="btn btn-outline-warning px-5 fw-bold">Volver</a>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+{% endif %}
+
+
+<!-- ================
+     JS AJAX: País → Divisiones
+================ -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const paisSelect = document.getElementById("id_pais");
+    const divisionSelect = document.getElementById("id_division");
+
+    if (!paisSelect || !divisionSelect) return;
+
+    function cargarDivisiones(paisId, selectedId) {
+        if (!paisId) {
+            divisionSelect.innerHTML = "<option value=''>Seleccione primero un país</option>";
+            return;
+        }
+
+        const url = "{% url 'erp_obtener_divisiones' 0 %}".replace("/0/", "/" + paisId + "/");
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                divisionSelect.innerHTML = "";
+
+                if (data.length === 0) {
+                    const opt = document.createElement("option");
+                    opt.value = "";
+                    opt.textContent = "Sin divisiones disponibles";
+                    divisionSelect.appendChild(opt);
+                    return;
+                }
+
+                data.forEach(function (div) {
+                    const opt = document.createElement("option");
+                    opt.value = div.id;
+                    opt.textContent = div.nombre;
+
+                    // marcar seleccionada si estamos editando
+                    if (selectedId && String(selectedId) === String(div.id)) {
+                        opt.selected = true;
+                    }
+
+                    divisionSelect.appendChild(opt);
+                });
+            })
+            .catch(err => {
+                console.error(err);
+                divisionSelect.innerHTML = "<option value=''>Error al cargar divisiones</option>";
+            });
+    }
+
+    // Al cambiar el país
+    paisSelect.addEventListener("change", function () {
+        cargarDivisiones(this.value, null);
+    });
+
+    // Caso EDITAR → cargar divisiones iniciales
+    const initialPais = paisSelect.value;
+    const initialDivision = divisionSelect.value;
+
+    if (initialPais) {
+        cargarDivisiones(initialPais, initialDivision || null);
+    }
+});
+</script>
+
+{% endblock contenido %}

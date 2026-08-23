@@ -1,0 +1,169 @@
+{% extends "erp/mantenedores/paginaBase.html" %}
+{% load static %}
+
+{% block titulo %}
+<h2 class="fw-bold text-center mb-4">Editar / Actualizar Producto</h2>
+{% endblock titulo %}
+
+{% block contenido %}
+
+<div class="container">
+    {% if messages %}
+        <div class="mb-3">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} text-center fw-bold">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="card mx-auto p-4 shadow-lg" style="max-width:1200px;">
+
+        <form method="post" enctype="multipart/form-data" action="{% url 'erp_editar_producto' producto.id %}">
+            {% csrf_token %}
+
+            <div class="row g-3">
+
+                <div class="col-md-4 text-center">
+                    {% if producto.imagen %}
+                        <img id="preview-img" src="{{ producto.imagen.url }}"
+                             class="rounded shadow-sm mb-3"
+                             width="260" style="max-height:240px; object-fit:cover;">
+                    {% else %}
+                        <img id="preview-img" src="{% static 'images/default.jpg' %}"
+                             class="rounded shadow-sm mb-3"
+                             width="260" style="max-height:240px; object-fit:cover;">
+                    {% endif %}
+
+                    <label class="fw-bold text-warning">Cambiar imagen:</label>
+                    {{ form.imagen }}
+                    <span class="text-muted small">Formatos: JPG · PNG · WEBP</span>
+                </div>
+
+                <div class="col-md-8">
+
+                    <h5 class="fw-bold text-warning">1. Identificación del Producto</h5>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.sku.label_tag }} {{ form.sku }}
+                            <p class="text-warning small fw-bold">{{ form.sku.errors }}</p>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            {{ form.ean_upc.label_tag }} {{ form.ean_upc }}
+                            <p class="text-warning small fw-bold">{{ form.ean_upc.errors }}</p>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            {{ form.nombre.label_tag }} {{ form.nombre }}
+                            <p class="text-warning small fw-bold">{{ form.nombre.errors }}</p>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            {{ form.categoria.label_tag }} {{ form.categoria }}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            {{ form.marca.label_tag }} {{ form.marca }}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            {{ form.modelo.label_tag }} {{ form.modelo }}
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <h5 class="fw-bold text-warning">2. Unidades y Precios</h5>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            {{ form.uom_compra.label_tag }} {{ form.uom_compra }}
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            {{ form.uom_venta.label_tag }} {{ form.uom_venta }}
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            {{ form.factor_conversion.label_tag }} {{ form.factor_conversion }}
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            {{ form.costo_estandar.label_tag }} {{ form.costo_estandar }}
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            {{ form.costo_promedio.label_tag }} {{ form.costo_promedio }}
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            {{ form.precio_venta.label_tag }} {{ form.precio_venta }}
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            {{ form.impuesto_iva.label_tag }} {{ form.impuesto_iva }}
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <h5 class="fw-bold text-warning">3. Control de Stock</h5>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            {{ form.stock_minimo.label_tag }} {{ form.stock_minimo }}
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            {{ form.stock_maximo.label_tag }} {{ form.stock_maximo }}
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            {{ form.punto_reorden.label_tag }} {{ form.punto_reorden }}
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            {{ form.perishable }} {{ form.perishable.label_tag }}
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            {{ form.control_por_lote }} {{ form.control_por_lote.label_tag }}
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            {{ form.control_por_serie }} {{ form.control_por_serie.label_tag }}
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-3">
+                        {{ form.descripcion.label_tag }} {{ form.descripcion }}
+                        <p class="text-warning small fw-bold">{{ form.descripcion.errors }}</p>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                {% if productos_editar %}
+                <button type="submit" class="btn btn-warning px-4 fw-bold">Actualizar Producto</button>
+                {% endif %}
+                <a href="{% url 'erp_mostrar_todos_productos' %}" class="btn btn-warning px-4 fw-bold">Cancelar</a>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+<script>
+document.querySelector('input[name="imagen"]').addEventListener("change", function (e) {
+    let img = document.getElementById("preview-img");
+    img.src = URL.createObjectURL(e.target.files[0]);
+});
+</script>
+
+{% endblock contenido %}

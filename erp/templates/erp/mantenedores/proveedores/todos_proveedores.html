@@ -1,0 +1,296 @@
+{% extends "erp/mantenedores/paginaBase.html" %}
+{% load static %}
+
+{% block titulo %}
+<h2 class="fw-bold text-center mb-4">Listado de Proveedores</h2>
+{% endblock titulo %}
+
+{% block contenido %}
+
+<div class="container-fluid px-4">
+
+  {% if messages %}
+  <div class="mb-3">
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} mb-2" role="alert">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="card shadow-lg p-3 p-md-4" style="overflow:hidden;">
+
+    <!-- CONTROLES SUPERIORES -->
+    <div class="row g-2 align-items-center mb-3">
+
+      <!-- BOTÓN AGREGAR -->
+      <div class="col-12 col-md-3">
+        {% if proveedores_crear %}
+          <a href="{% url 'erp_crear_proveedor' %}" class="btn btn-warning fw-bold">+ Agregar Proveedor</a>
+        {% else %}
+          <button class="btn btn-secondary fw-bold w-100" disabled>Sin permiso para agregar</button>
+        {% endif %}
+      </div>
+
+      <!-- BUSCADOR -->
+      <div class="col-12 col-md-3">
+        <input type="text" id="buscador" class="form-control"
+              placeholder="🔎 Buscar proveedor / rut / correo / ciudad / país / división">
+      </div>
+
+      <!-- PAGE SIZE -->
+      <div class="col-6 col-md-2">
+        <select id="pageSize" class="form-select">
+          <option value="5">5</option>
+          <option value="15" selected>15</option>
+          <option value="20">20</option>
+        </select>
+      </div>
+
+      <!-- EXPORTAR -->
+      <div class="col-6 col-md-1 ms-md-auto">
+        <button id="excelExport" class="btn btn-success w-100 fw-bold">Excel</button>
+      </div>
+
+    </div>
+
+    <!-- TABLA -->
+    <div class="table-responsive">
+      <table id="tablaProveedores" class="table table-hover align-middle mb-0">
+        <thead class="text-white" style="background-color:#B22222;">
+          <tr class="text-nowrap">
+            <th style="width:60px;">#</th>
+            <th>Razón social</th>
+            <th>RUT/NIF</th>
+            <th>Email</th>
+            <th>Teléfono</th>
+            <th>Ciudad</th>
+            <th>País</th>
+            <th>División</th>
+            <th>Estado</th>
+            <th class="text-end" style="width:140px;">Acciones</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for p in proveedores %}
+          <tr 
+            data-search="{{ p.razon_social }} {{ p.rut_nif }} {{ p.email }} {{ p.telefono }} {{ p.ciudad }} {{ p.pais.nombre }} {% if p.division %}{{ p.division.nombre }}{% endif %}"
+          >
+
+            <td class="text-muted"></td>
+
+            <td>{{ p.razon_social }}</td>
+            <td>{{ p.rut_nif }}</td>
+            <td class="text-nowrap">{{ p.email }}</td>
+            <td>{{ p.telefono }}</td>
+            <td>{{ p.ciudad }}</td>
+
+            <td>{{ p.pais.nombre }}</td>
+
+            <td>
+              {% if p.division %}
+                {{ p.division.nombre }}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if p.estado == "ACTIVO" %}
+                <span class="badge bg-success">Activo</span>
+              {% else %}
+                <span class="badge bg-secondary">Inactivo</span>
+              {% endif %}
+            </td>
+
+            <td class="text-end text-nowrap">
+
+              {% if proveedores_editar %}
+              <a href="{% url 'erp_editar_proveedor' p.id %}"
+                 class="btn btn-warning btn-sm me-1">
+                 Editar
+              </a>
+              {% endif %}
+
+              {% if proveedores_eliminar %}
+              <button type="button"
+                      class="btn btn-warning btn-sm"
+                      data-bs-toggle="modal"
+                      data-bs-target="#confirmEliminarModal"
+                      data-url="{% url 'erp_eliminar_proveedor' p.id %}"
+                      data-nombre="{{ p.razon_social }}">
+                Eliminar
+              </button>
+              {% endif %}
+            </td>
+
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- PAGINACIÓN -->
+    <div class="d-flex justify-content-between align-items-center pt-3">
+      <div class="small text-muted" id="pagerInfo"></div>
+      <div class="btn-group">
+        <button id="prevPage" class="btn btn-outline-secondary btn-sm">Anterior</button>
+        <button id="nextPage" class="btn btn-outline-secondary btn-sm">Siguiente</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- MODAL ELIMINAR -->
+<div class="modal fade" id="confirmEliminarModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <form id="formEliminar" method="post">
+        {% csrf_token %}
+
+        <div class="modal-header">
+          <h5 class="modal-title">Confirmar eliminación</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body">
+          ¿Eliminar proveedor <strong id="proveedorName"></strong>?
+          <p class="text-warning mb-0"><strong>Esta acción es irreversible.</strong></p>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-warning">Sí, eliminar</button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  const tbody = document.querySelector("#tablaProveedores tbody");
+  const rows = Array.from(tbody.querySelectorAll("tr"));
+  const buscador = document.getElementById("buscador");
+  const pageSizeSel = document.getElementById("pageSize");
+  const pagerInfo = document.getElementById("pagerInfo");
+  const prevBtn = document.getElementById("prevPage");
+  const nextBtn = document.getElementById("nextPage");
+
+  let page = 1;
+
+  function visibles() { return rows.filter(tr => tr.dataset.visible !== "0"); }
+
+  function renumerar(list) {
+    let i = 1;
+    list.forEach(tr => tr.querySelector("td").textContent = i++);
+  }
+
+  function pintarPagina() {
+    const size = parseInt(pageSizeSel.value, 10);
+    const list = visibles();
+    const total = list.length;
+    const pages = Math.max(1, Math.ceil(total / size));
+    if (page > pages) page = pages;
+
+    rows.forEach(tr => tr.style.display = "none");
+    const start = (page - 1) * size;
+    list.slice(start, start + size).forEach(tr => tr.style.display = "");
+
+    renumerar(list.slice(start, start + size));
+    pagerInfo.textContent = `Mostrando ${Math.min(total, start+1)}-${Math.min(total, start+size)} de ${total}`;
+    prevBtn.disabled = page <= 1;
+    nextBtn.disabled = page >= pages;
+  }
+
+  buscador.addEventListener("input", () => {
+    const q = buscador.value.toLowerCase();
+    rows.forEach(tr => {
+      tr.dataset.visible = tr.dataset.search.toLowerCase().includes(q) ? "1" : "0";
+    });
+    page = 1;
+    pintarPagina();
+  });
+
+  pageSizeSel.addEventListener("change", () => { page = 1; pintarPagina(); });
+  prevBtn.addEventListener("click", () => { page--; pintarPagina(); });
+  nextBtn.addEventListener("click", () => { page++; pintarPagina(); });
+
+  rows.forEach(tr => tr.dataset.visible = "1");
+  pintarPagina();
+
+  // --- EXPORTAR A EXCEL (CORREGIDO: ALINEACIÓN Y NÚMEROS) ---
+  document.getElementById("excelExport").addEventListener("click", () => {
+    
+    // 1. Clonar y limpiar el ENCABEZADO
+    const theadClone = document.querySelector("#tablaProveedores thead").cloneNode(true);
+    const headerRow = theadClone.querySelector("tr");
+    
+    // Eliminamos explícitamente la primera columna (#) y la última (Acciones)
+    if (headerRow.cells.length > 0) {
+        headerRow.deleteCell(0); // Borra el #
+        headerRow.deleteCell(-1); // Borra Acciones
+    }
+    const headHtml = theadClone.innerHTML;
+
+    // 2. Clonar y limpiar el CUERPO
+    const bodyVisible = visibles().map(tr => {
+      const c = tr.cloneNode(true);
+      c.querySelector("td").remove(); // Borra la columna #
+      c.lastElementChild.remove();    // Borra la columna Botones
+      return c.outerHTML;
+    }).join("");
+
+    // 3. Estilos: Agregué 'mso-number-format:"\@"' para que los teléfonos
+    // se vean como texto y no como notación científica (5.43E+11)
+    const html = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; }
+          th, td { 
+            border: 1px solid #000000; 
+            padding: 8px; 
+            vertical-align: middle; 
+            white-space: nowrap; 
+            mso-number-format:"\@"; 
+          }
+          th { background-color: #B22222; color: #ffffff; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <table>${headHtml}<tbody>${bodyVisible}</tbody></table>
+      </body>
+      </html>
+    `;
+    
+    const blob = new Blob(["\ufeff", html], {
+        type: "application/vnd.ms-excel;charset=utf-8"
+    });
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "proveedores_nstock.xls";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  });
+  // -----------------------------------------------------------
+
+  const modal = document.getElementById("confirmEliminarModal");
+  modal.addEventListener("show.bs.modal", event => {
+    const btn = event.relatedTarget;
+    document.getElementById("proveedorName").textContent = btn.dataset.nombre;
+    document.getElementById("formEliminar").action = btn.dataset.url;
+  });
+});
+</script>
+{% endblock contenido %}

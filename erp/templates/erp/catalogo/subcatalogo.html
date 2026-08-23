@@ -1,0 +1,70 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ categoria }} - Nstock Importaciones</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #fff8f5;
+    }
+    .page-header {
+      background-color: #b22222;
+      color: white;
+      padding: 50px 20px;
+      border-radius: 10px;
+      text-align: center;
+      margin-bottom: 40px;
+      box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+    }
+    .card {
+      border: 2px solid #ffeaea;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    }
+    .card-title {
+      color: #b22222;
+      font-weight: bold;
+    }
+    .btn-catalogo {
+      background-color: #b22222;
+      border: none;
+    }
+    .btn-catalogo:hover {
+      background-color: #8b1a1a;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container py-5">
+    <div class="page-header">
+      <h1 class="fw-bold">Productos de {{ categoria }}</h1>
+      <p class="lead">Elige tu favorito y descubre su detalle</p>
+    </div>
+
+    <div class="row">
+      {% for producto in productos %}
+      <div class="col-md-3 mb-4">
+        <div class="card shadow h-100">
+          <img src="{% static 'images/' %}{{ producto.imagen }}" class="card-img-top" alt="{{ producto.nombre }}">
+          <div class="card-body text-center d-flex flex-column">
+            <h5 class="card-title">{{ producto.nombre }}</h5>
+            <a href="{% url 'erp_detalle_producto' producto.nombre %}" class="btn btn-catalogo text-white mt-auto">Ver detalle</a>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="text-center mt-4">
+      <a href="{% url 'erp_catalogo' %}" class="btn btn-outline-warning">Volver al catálogo principal</a>
+    </div>
+  </div>
+
+</body>
+</html>

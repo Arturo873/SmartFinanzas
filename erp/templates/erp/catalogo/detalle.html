@@ -1,0 +1,50 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ producto }} - Detalle</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #fff8f5;
+    }
+    .card {
+      border: 2px solid #ffeaea;
+    }
+    .card-title {
+      color: #b22222;
+      font-weight: bold;
+    }
+    .btn-catalogo {
+      background-color: #b22222;
+      border: none;
+    }
+    .btn-catalogo:hover {
+      background-color: #8b1a1a;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container py-5">
+    <div class="card shadow-lg">
+      <div class="row g-0">
+        <div class="col-md-4">
+          <img src="{% static 'images/' %}{{ detalle.imagen }}" class="img-fluid rounded-start" alt="{{ producto }}">
+        </div>
+        <div class="col-md-8">
+          <div class="card-body">
+            <h2 class="card-title">{{ producto }}</h2>
+            <p class="card-text"><strong>Descripción:</strong> {{ detalle.descripcion }}</p>
+            <p class="card-text"><strong>Ingredientes:</strong> {{ detalle.ingredientes }}</p>
+            <p class="card-text"><strong>Tiempo de producción:</strong> {{ detalle.tiempo_produccion }}</p>
+            <a href="{% url 'erp_subcatalogo' categoria %}" class="btn btn-catalogo text-white mt-3">Volver a {{ categoria }}</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

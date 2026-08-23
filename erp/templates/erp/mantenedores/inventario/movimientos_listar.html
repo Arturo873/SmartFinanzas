@@ -1,0 +1,269 @@
+{% extends "erp/mantenedores/paginaBase.html" %}
+{% load static %}
+
+{% block titulo %}
+<h2 class="fw-bold text-center mb-4">Movimientos de Inventario</h2>
+{% endblock titulo %}
+
+{% block contenido %}
+
+<div class="container-fluid px-4">
+
+  {# Mensajes flash #}
+  {% if messages %}
+  <div class="mb-3">
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} mb-2" role="alert">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="card shadow-lg p-3 p-md-4" style="overflow:hidden;">
+
+    <div class="row g-2 align-items-center mb-3">
+
+      <div class="col-12 col-md-3">
+        {% if permisos.inventario_crear %}
+          <a href="{% url 'erp_movimiento_crear' %}" class="btn btn-warning fw-bold w-100 w-md-auto">
+            + Registrar Movimiento
+          </a>
+        {% else %}
+          <button class="btn btn-secondary fw-bold w-100" disabled>
+            Sin permiso para registrar
+          </button>
+        {% endif %}
+      </div>
+
+      <div class="col-12 col-md-4">
+        <input type="text" id="buscadorMov"
+              class="form-control"
+              placeholder="🔎 Buscar producto / proveedor / bodega / usuario">
+      </div>
+
+      <div class="col-6 col-md-2">
+        <select id="pageSizeMov" class="form-select">
+          <option value="5">5</option>
+          <option value="10" selected>10</option>
+          <option value="20">20</option>
+        </select>
+      </div>
+
+      <div class="col-6 col-md-3 text-md-end">
+        <a href="{% url 'erp_movimientos_exportar' %}"
+          class="btn btn-success w-100 w-md-auto">
+          <i class="bi bi-file-earmark-excel"></i> Exportar a Excel
+        </a>
+      </div>
+
+    </div>
+
+
+    <div class="table-responsive">
+      <table id="tablaMovimientos" class="table table-hover align-middle mb-0">
+        <thead class="text-white" style="background-color:#B22222;">
+          <tr class="text-nowrap">
+            <th style="width:60px;">#</th>
+            <th>Fecha</th>
+            <th>Tipo</th>
+            <th>Producto</th>
+            <th>Proveedor</th>
+            <th>Bodega Origen</th>
+            <th>Bodega Destino</th>
+            <th>Cantidad</th>
+            <th>Lote</th>
+            <th>Serie</th>
+            <th>Vence</th>
+            <th>Usuario</th>
+            <th class="text-end" style="width:150px;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          {% for m in movimientos %}
+          <tr
+            data-search="
+              {{ m.get_tipo_display }}
+              {{ m.producto.nombre }}
+              {{ m.proveedor.nombre }}
+              {{ m.bodega_origen.nombre }}
+              {{ m.bodega_destino.nombre }}
+              {{ m.usuario.username }}
+            "
+          >
+
+            {# Número secuencial (lo setea el JS) #}
+            <td class="text-muted"></td>
+
+            <td>{{ m.fecha|date:"d-m-Y H:i" }}</td>
+            <td>{{ m.get_tipo_display }}</td>
+            <td>{{ m.producto.nombre }}</td>
+            <td>
+                {% if m.proveedor %}
+                    {{ m.proveedor.rut_nif }} - {{ m.proveedor.nombre_fantasia|default:m.proveedor.razon_social }}
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            <td>{{ m.bodega_origen.nombre|default:"-" }}</td>
+            <td>{{ m.bodega_destino.nombre|default:"-" }}</td>
+            <td>{{ m.cantidad|floatformat:0 }}</td>
+            <td>{{ m.lote|default:"-" }}</td>
+            <td>{{ m.serie|default:"-" }}</td>
+            <td>{{ m.fecha_vencimiento|date:"d-m-Y"|default:"-" }}</td>
+            <td>{{ m.usuario.username }}</td>
+
+            <td class="text-end text-nowrap">
+              {% if not permisos.inventario_crear %}
+                <span class="text-muted small">Solo lectura</span>
+              {% else %}
+
+                <a href="{% url 'erp_movimiento_editar' m.id %}"
+                   class="btn btn-warning btn-sm me-1"
+                   title="Editar movimiento">
+                  <i class="bi bi-pencil-square"></i>
+                </a>
+
+                <button type="button"
+                        class="btn btn-warning btn-sm"
+                        title="Eliminar movimiento"
+                        data-bs-toggle="modal"
+                        data-bs-target="#confirmEliminarMovModal"
+                        data-url="{% url 'erp_movimiento_eliminar' m.id %}"
+                        data-desc="{{ m.get_tipo_display }} de {{ m.producto.nombre }} ({{ m.cantidad }})">
+                  <i class="bi bi-trash"></i>
+                </button>
+
+              {% endif %}
+            </td>
+
+          </tr>
+          {% endfor %}
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center pt-3">
+      <div class="small text-muted" id="pagerInfoMov"></div>
+      <div class="btn-group">
+        <button id="prevPageMov" class="btn btn-outline-secondary btn-sm">Anterior</button>
+        <button id="nextPageMov" class="btn btn-outline-secondary btn-sm">Siguiente</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{# MODAL DE CONFIRMACIÓN ELIMINAR #}
+<div class="modal fade" id="confirmEliminarMovModal" tabindex="-1"
+     aria-labelledby="labelEliminarMov" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="formEliminarMov" method="post">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title" id="labelEliminarMov">Confirmar eliminación</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          ¿Eliminar movimiento <strong id="movDesc"></strong>?
+          <p class="text-warning mb-0"><strong>Esta acción es irreversible.</strong></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-warning">Sí, eliminar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  const tbody = document.querySelector("#tablaMovimientos tbody");
+  const rows = Array.from(tbody.querySelectorAll("tr"));
+  const buscador = document.getElementById("buscadorMov");
+  const pageSizeSel = document.getElementById("pageSizeMov");
+  const pagerInfo = document.getElementById("pagerInfoMov");
+  const prevBtn = document.getElementById("prevPageMov");
+  const nextBtn = document.getElementById("nextPageMov");
+  let page = 1;
+
+  function visibles() {
+    return rows.filter(tr => tr.dataset.visible !== "0");
+  }
+
+  function renumerar(list) {
+    let i = 1;
+    list.forEach(tr => tr.querySelector("td").textContent = i++);
+  }
+
+  function pintarPagina() {
+    const size = parseInt(pageSizeSel.value, 10);
+    const list = visibles();
+    const total = list.length;
+    const pages = Math.max(1, Math.ceil(total / size));
+    if (page > pages) page = pages;
+
+    rows.forEach(tr => tr.style.display = "none");
+    const start = (page - 1) * size;
+    list.slice(start, start + size).forEach(tr => tr.style.display = "");
+
+    renumerar(list.slice(start, start + size));
+
+    if (total === 0) {
+      pagerInfo.textContent = "No hay movimientos para mostrar.";
+    } else {
+      pagerInfo.textContent =
+        `Mostrando ${Math.min(total, start + 1)}-${Math.min(total, start + size)} de ${total}`;
+    }
+
+    prevBtn.disabled = page <= 1;
+    nextBtn.disabled = page >= pages;
+  }
+
+  // Filtro de búsqueda
+  buscador.addEventListener("input", () => {
+    const q = buscador.value.toLowerCase();
+    rows.forEach(tr => {
+      tr.dataset.visible = tr.dataset.search.toLowerCase().includes(q) ? "1" : "0";
+    });
+    page = 1;
+    pintarPagina();
+  });
+
+  // Cambio de tamaño de página
+  pageSizeSel.addEventListener("change", () => {
+    page = 1;
+    pintarPagina();
+  });
+
+  // Botones de paginación
+  prevBtn.addEventListener("click", () => {
+    page--;
+    pintarPagina();
+  });
+
+  nextBtn.addEventListener("click", () => {
+    page++;
+    pintarPagina();
+  });
+
+  // Inicialización
+  rows.forEach(tr => tr.dataset.visible = "1");
+  pintarPagina();
+
+
+  // Modal eliminar
+  const modal = document.getElementById("confirmEliminarMovModal");
+  modal.addEventListener("show.bs.modal", event => {
+    const btn = event.relatedTarget;
+    document.getElementById("movDesc").textContent = btn.dataset.desc;
+    document.getElementById("formEliminarMov").action = btn.dataset.url;
+  });
+
+});
+</script>
+
+{% endblock contenido %}

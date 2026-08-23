@@ -1,0 +1,17 @@
+{% extends "erp/mantenedores/paginaBase.html" %}
+
+{% block titulo %}
+<h1 class=" text-center p-3 rounded">Eliminacion</h1>
+
+{% endblock titulo %}
+
+{% block contenido %}
+<div class="container mt-5 text-center">
+  <h4>¿Estás seguro de que deseas eliminar <strong>"{{ producto.nombre }}"</strong>?</h4>
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-warning mt-3">Sí, eliminar</button>
+    <a href="{% url 'erp_mantenedores' %}" class="btn btn-secondary mt-3">Cancelar</a>
+  </form>
+</div>
+{% endblock contenido %}
