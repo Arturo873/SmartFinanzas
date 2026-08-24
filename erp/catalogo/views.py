@@ -34,10 +34,10 @@ def detalle_producto(request, producto):
 
 def empresa(request):
     data = {
-        "historia": "Nstock Importaciones nació en 1995...",
-        "mision": "Endulzar la vida de nuestros clientes con productos artesanales.",
-        "vision": "Ser reconocidos como la dulcería líder en innovación y calidad en la región.",
-        "valores": ["Calidad", "Tradición", "Innovación", "Compromiso"],
+        "historia": "Nstock Importaciones nació con el propósito de conectar mercados internacionales con el comercio local, asegurando abastecimiento constante y variedad.",
+        "mision": "Proveer productos de importación de alta rotación y calidad, optimizando la cadena de suministro para nuestros clientes del sector retail.",
+        "vision": "Ser el socio logístico y comercial preferido a nivel nacional para la importación directa y distribución de bienes.",
+        "valores": ["Transparencia", "Eficiencia Logística", "Calidad Garantizada", "Compromiso Comercial"],
         "contacto": "contacto@nstockimportaciones.com",
         "redes": {
             "Facebook": "https://facebook.com/nstockimportaciones",

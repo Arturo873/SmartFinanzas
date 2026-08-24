@@ -33,9 +33,8 @@ class Producto(models.Model):
     stock_minimo = models.PositiveIntegerField(default=0)
     stock_maximo = models.PositiveIntegerField(blank=True, null=True)
     punto_reorden = models.PositiveIntegerField(blank=True, null=True)
-    perishable = models.BooleanField(default=False, verbose_name='Perecible')
-    control_por_lote = models.BooleanField(default=False)
-    control_por_serie = models.BooleanField(default=False)
+    hs_code = models.CharField(max_length=20, blank=True, null=True, verbose_name='Código Arancelario (HS Code)')
+    landed_cost = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, verbose_name='Costo Puesto en Bodega')
 
     imagen = models.ImageField(upload_to='productos/', blank=True, null=True, verbose_name='Imagen del Producto')
     ficha_tecnica_url = models.CharField(max_length=200, blank=True, null=True)

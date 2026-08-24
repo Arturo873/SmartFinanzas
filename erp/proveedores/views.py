@@ -9,9 +9,10 @@ from .choices import CONDICIONES_PAGO
 
 def permisos_mock():
     return {
-        "puede_crear": True,
-        "puede_editar": True,
-        "puede_eliminar": True,
+        "proveedores_crear": True,
+        "proveedores_editar": True,
+        "proveedores_eliminar": True,
+        "proveedores_ver": True,
     }
 
 def mostrar_todos_proveedores(request):

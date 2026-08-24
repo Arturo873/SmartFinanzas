@@ -141,9 +141,20 @@ class ProductoForm(forms.ModelForm):
         widget=forms.NumberInput(attrs={"class": "form-control"})
     )
 
-    perishable = forms.BooleanField(required=False)
-    control_por_lote = forms.BooleanField(required=False)
-    control_por_serie = forms.BooleanField(required=False)
+    hs_code = forms.CharField(
+        required=False,
+        max_length=20,
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "placeholder": "Ej: 8517.12.00"
+        })
+    )
+
+    landed_cost = forms.DecimalField(
+        required=False,
+        min_value=0,
+        widget=forms.NumberInput(attrs={"class": "form-control", "step": "0.01"})
+    )
 
     categoria = forms.ModelChoiceField(
         queryset=Categoria.objects.all(),

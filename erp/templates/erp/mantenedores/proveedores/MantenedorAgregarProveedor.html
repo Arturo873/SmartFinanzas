@@ -144,6 +144,14 @@
             </div>
 
             <div class="col-md-3 mb-3">
+                {{ form.incoterm_defecto.label_tag }}
+                {{ form.incoterm_defecto }}
+                {% for error in form.incoterm_defecto.errors %}
+                    <p class="text-warning small fw-bold">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <div class="col-md-3 mb-3">
                 {{ form.estado.label_tag }}
                 {{ form.estado }}
                 {% for error in form.estado.errors %}

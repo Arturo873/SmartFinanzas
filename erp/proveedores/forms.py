@@ -164,7 +164,7 @@ class ProveedorForm(forms.ModelForm):
             "rut_nif", "razon_social", "nombre_fantasia",
             "email", "telefono", "sitio_web",
             "direccion", "ciudad", "pais", "division",
-            "condiciones_pago", "moneda",
+            "condiciones_pago", "moneda", "incoterm_defecto",
             "contacto_principal_nombre", "contacto_principal_email",
             "contacto_principal_telefono",
             "estado", "observaciones"

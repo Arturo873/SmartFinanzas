@@ -11,11 +11,7 @@ def movimientos_listar(request):
         "producto", "proveedor", "bodega_origen", "bodega_destino"
     ).all()
     # Mocking permisos as True for all, since we removed roles for now
-    permisos = {
-        "puede_crear": True,
-        "puede_editar": True,
-        "puede_eliminar": True,
-    }
+    permisos = {"inventario_crear": True, "inventario_editar": True, "inventario_eliminar": True}
     return render(request, "erp/mantenedores/inventario/movimientos_listar.html", {
         "movimientos": movimientos, "permisos": permisos,
     })
@@ -30,7 +26,7 @@ def movimiento_crear(request):
         messages.error(request, "❌ Revisa los errores del formulario.")
     else:
         form = MovimientoInventarioForm()
-    permisos = {"puede_crear": True, "puede_editar": True, "puede_eliminar": True}
+    permisos = {"inventario_crear": True, "inventario_editar": True, "inventario_eliminar": True}
     return render(request, "erp/mantenedores/inventario/movimiento_form.html", {
         "form": form, "permisos": permisos,
     })
@@ -49,7 +45,7 @@ def movimiento_editar(request, pk):
         messages.error(request, "❌ Revisa los errores del formulario.")
     else:
         form = MovimientoInventarioForm(instance=movimiento)
-    permisos = {"puede_crear": True, "puede_editar": True, "puede_eliminar": True}
+    permisos = {"inventario_crear": True, "inventario_editar": True, "inventario_eliminar": True}
     return render(request, "erp/mantenedores/inventario/movimiento_form.html", {
         "form": form, "permisos": permisos,
     })
@@ -60,7 +56,7 @@ def movimiento_eliminar(request, pk):
         movimiento.delete()
         messages.success(request, "✅ Movimiento de inventario eliminado correctamente.")
         return redirect("erp_movimientos_listar")
-    permisos = {"puede_crear": True, "puede_editar": True, "puede_eliminar": True}
+    permisos = {"inventario_crear": True, "inventario_editar": True, "inventario_eliminar": True}
     return render(request, "erp/mantenedores/inventario/movimiento_confirmar_eliminar.html", {
         "movimiento": movimiento, "permisos": permisos,
     })

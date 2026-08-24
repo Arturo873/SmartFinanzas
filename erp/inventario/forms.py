@@ -8,7 +8,6 @@ from .models import MovimientoInventario
 class MovimientoInventarioForm(forms.ModelForm):
     manejo_lote = forms.BooleanField(required=False, label="Manejo por lotes")
     manejo_serie = forms.BooleanField(required=False, label="Manejo por serie")
-    manejo_vencimiento = forms.BooleanField(required=False, label="Perecible (vencimiento)")
 
     cantidad = forms.DecimalField(
         min_value=1,
@@ -56,15 +55,6 @@ class MovimientoInventarioForm(forms.ModelForm):
         },
     )
 
-    fecha_vencimiento = forms.DateField(
-        required=False,
-        label="Fecha de vencimiento",
-        widget=forms.DateInput(attrs={"type": "date"}),
-        error_messages={
-            "invalid": "Ingresa una fecha de vencimiento válida.",
-        },
-    )
-
     doc_referencia = forms.CharField(
         required=False,
         max_length=100,
@@ -89,31 +79,15 @@ class MovimientoInventarioForm(forms.ModelForm):
             # flags
             "manejo_lote",
             "manejo_serie",
-            "manejo_vencimiento",
             # campos avanzados
             "lote",
             "serie",
-            "fecha_vencimiento",
             "doc_referencia",
             "motivo",  
             "observaciones",
         ]
 
     # ---------- Validaciones individuales ----------
-
-    def clean_fecha_vencimiento(self):
-        fecha = self.cleaned_data.get("fecha_vencimiento")
-        manejo_venc = self.cleaned_data.get("manejo_vencimiento")
-
-        # Solo valido si el checkbox está marcado
-        if manejo_venc:
-            if not fecha:
-                raise forms.ValidationError("La fecha de vencimiento es obligatoria.")
-            if fecha < timezone.localdate():
-                raise forms.ValidationError(
-                    "La fecha de vencimiento no puede ser anterior a hoy."
-                )
-        return fecha
 
     # ---------- Validaciones cruzadas ----------
 
@@ -128,11 +102,9 @@ class MovimientoInventarioForm(forms.ModelForm):
 
         manejo_lote = cleaned_data.get("manejo_lote")
         manejo_serie = cleaned_data.get("manejo_serie")
-        manejo_vencimiento = cleaned_data.get("manejo_vencimiento")
 
         lote = cleaned_data.get("lote")
         serie = cleaned_data.get("serie")
-        fecha_vencimiento = cleaned_data.get("fecha_vencimiento")
 
         # --- Reglas por tipo de movimiento ---
         if tipo == "TRANSFERENCIA":
@@ -167,12 +139,6 @@ class MovimientoInventarioForm(forms.ModelForm):
         if manejo_serie and not serie:
             self.add_error("serie", "La serie es obligatoria si activas manejo por serie.")
 
-        # Si manejo VENCIMIENTO está activo y no hay fecha, error (refuerzo)
-        if manejo_vencimiento and not fecha_vencimiento:
-            self.add_error(
-                "fecha_vencimiento",
-                "La fecha de vencimiento es obligatoria si el producto es perecible.",
-            )
         # --- Validación de stock en bodega origen ---
         if (
             producto

@@ -20,6 +20,44 @@ class Bodega(models.Model):
         ordering = ["codigo"]
 
 
+class EmbarqueImportacion(models.Model):
+    codigo_bl = models.CharField(max_length=100, unique=True, verbose_name="Código BL / Tracking")
+    proveedor = models.ForeignKey(Proveedor, on_delete=models.PROTECT, related_name="embarques", verbose_name="Proveedor")
+    incoterm = models.CharField(
+        max_length=10,
+        choices=[('FOB', 'FOB'), ('CIF', 'CIF'), ('EXW', 'EXW'), ('DDP', 'DDP')],
+        verbose_name="Incoterm"
+    )
+    fecha_etd = models.DateField(blank=True, null=True, verbose_name="Fecha ETD (Salida Estimada)")
+    fecha_eta = models.DateField(blank=True, null=True, verbose_name="Fecha ETA (Llegada Estimada)")
+    estado = models.CharField(
+        max_length=20,
+        choices=[
+            ('EN_ORIGEN', 'En Origen'),
+            ('EN_TRANSITO', 'En Tránsito'),
+            ('EN_ADUANA', 'En Aduana'),
+            ('RECIBIDO', 'Recibido en Bodega')
+        ],
+        default='EN_ORIGEN',
+        verbose_name="Estado del Embarque"
+    )
+    costo_flete = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Costo Flete")
+    costo_seguro = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Costo Seguro")
+    impuestos_internacion = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Impuestos y Aranceles")
+    
+    creado_en = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.codigo_bl} - {self.proveedor.razon_social}"
+
+    class Meta:
+        db_table = "embarque_importacion"
+        verbose_name = "Embarque de Importación"
+        verbose_name_plural = "Embarques de Importación"
+        ordering = ["-fecha_eta"]
+
+
 class MovimientoInventario(models.Model):
     TIPO_MOVIMIENTO = (
         ("INGRESO", "Ingreso"),
@@ -39,7 +77,6 @@ class MovimientoInventario(models.Model):
     # Flags de control avanzado
     manejo_lote = models.BooleanField(default=False)
     manejo_serie = models.BooleanField(default=False)
-    manejo_vencimiento = models.BooleanField(default=False)
 
     producto = models.ForeignKey(
         Producto,
@@ -55,6 +92,15 @@ class MovimientoInventario(models.Model):
         null=True,
         related_name="movimientos",
         verbose_name="Proveedor"
+    )
+
+    embarque = models.ForeignKey(
+        EmbarqueImportacion,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="movimientos",
+        verbose_name="Embarque Asociado"
     )
 
     bodega_origen = models.ForeignKey(
@@ -92,10 +138,11 @@ class MovimientoInventario(models.Model):
         null=True,
         verbose_name="Serie"
     )
-    fecha_vencimiento = models.DateField(
+    contenedor = models.CharField(
+        max_length=50,
         blank=True,
         null=True,
-        verbose_name="Fecha de vencimiento"
+        verbose_name="Contenedor"
     )
 
     observaciones = models.TextField(

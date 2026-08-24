@@ -82,6 +82,14 @@ class Proveedor(models.Model):
         verbose_name='Estado'
     )
 
+    incoterm_defecto = models.CharField(
+        max_length=10,
+        choices=[('FOB', 'FOB (Free on Board)'), ('CIF', 'CIF (Cost, Insurance, Freight)'), ('EXW', 'EXW (Ex Works)'), ('DDP', 'DDP (Delivered Duty Paid)')],
+        blank=True,
+        null=True,
+        verbose_name='Incoterm por Defecto'
+    )
+
     observaciones = models.TextField(blank=True, null=True, verbose_name='Observaciones')
     fecha_registro = models.DateTimeField(default=timezone.now, verbose_name='Fecha Registro')
 
