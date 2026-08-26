@@ -129,6 +129,21 @@
         {% endif %}
 
 
+        {% if embarques_ver %}
+        <div class="col">
+            <a href="{% url 'erp_embarques_listar' %}" class="text-decoration-none text-dark">
+                <div class="card-menu shadow-lg">
+                    <i class="bi bi-ship icono-menu"></i>
+                    <h4 class="card-title">Embarques</h4>
+                    <p class="info-number">{{ total_embarques }} embarques</p>
+                    <p class="text-secondary small">
+                        Gestionar importaciones, contenedores y costos logísticos.
+                    </p>
+                </div>
+            </a>
+        </div>
+        {% endif %}
+
     </div>
 </div>
 

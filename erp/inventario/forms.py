@@ -178,3 +178,41 @@ class MovimientoInventarioForm(forms.ModelForm):
                 )
 
         return cleaned_data
+
+from .models import EmbarqueImportacion
+
+class EmbarqueImportacionForm(forms.ModelForm):
+    fecha_etd = forms.DateField(
+        required=False,
+        label="Fecha ETD (Salida Estimada)",
+        widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+    )
+    fecha_eta = forms.DateField(
+        required=False,
+        label="Fecha ETA (Llegada Estimada)",
+        widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+    )
+
+    class Meta:
+        model = EmbarqueImportacion
+        fields = "__all__"
+        widgets = {
+            "codigo_bl": forms.TextInput(attrs={"class": "form-control", "placeholder": "Ej: HLCU1234567"}),
+            "proveedor": forms.Select(attrs={"class": "form-select"}),
+            "incoterm": forms.Select(attrs={"class": "form-select"}),
+            "estado": forms.Select(attrs={"class": "form-select"}),
+            "costo_flete": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
+            "costo_seguro": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
+            "impuestos_internacion": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        fecha_etd = cleaned_data.get("fecha_etd")
+        fecha_eta = cleaned_data.get("fecha_eta")
+
+        if fecha_etd and fecha_eta:
+            if fecha_eta < fecha_etd:
+                self.add_error("fecha_eta", "La fecha de llegada (ETA) no puede ser anterior a la de salida (ETD).")
+
+        return cleaned_data

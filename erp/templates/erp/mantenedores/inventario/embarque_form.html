@@ -1,0 +1,113 @@
+{% extends "erp/mantenedores/paginaBase.html" %}
+{% load static %}
+
+{% block titulo %}
+<h1 class="text-center p-3">
+    {% if form.instance.pk %}Editar Embarque{% else %}Nuevo Embarque{% endif %}
+</h1>
+{% endblock titulo %}
+
+{% block contenido %}
+
+<div class="card mx-auto mb-4 shadow-lg" style="max-width: 900px;">
+    <form method="post" class="p-4">
+        {% csrf_token %}
+
+        <h4 class="mb-3 fw-bold text-warning border-bottom border-warning pb-2">Información del Embarque</h4>
+        
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                {{ form.codigo_bl.label_tag }}
+                {{ form.codigo_bl }}
+                {% for error in form.codigo_bl.errors %}
+                    <p class="text-danger small fw-bold mt-1">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <div class="col-md-6 mb-3">
+                {{ form.proveedor.label_tag }}
+                {{ form.proveedor }}
+                {% for error in form.proveedor.errors %}
+                    <p class="text-danger small fw-bold mt-1">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <div class="col-md-6 mb-3">
+                {{ form.incoterm.label_tag }}
+                {{ form.incoterm }}
+                {% for error in form.incoterm.errors %}
+                    <p class="text-danger small fw-bold mt-1">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <div class="col-md-6 mb-3">
+                {{ form.estado.label_tag }}
+                {{ form.estado }}
+                {% for error in form.estado.errors %}
+                    <p class="text-danger small fw-bold mt-1">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <div class="col-md-6 mb-3">
+                {{ form.fecha_etd.label_tag }}
+                {{ form.fecha_etd }}
+                {% for error in form.fecha_etd.errors %}
+                    <p class="text-danger small fw-bold mt-1">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <div class="col-md-6 mb-3">
+                {{ form.fecha_eta.label_tag }}
+                {{ form.fecha_eta }}
+                {% for error in form.fecha_eta.errors %}
+                    <p class="text-danger small fw-bold mt-1">{{ error }}</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <h4 class="mt-4 mb-3 fw-bold text-success border-bottom border-success pb-2">Costos Logísticos y Aduaneros</h4>
+        
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                {{ form.costo_flete.label_tag }}
+                <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    {{ form.costo_flete }}
+                </div>
+                {% for error in form.costo_flete.errors %}
+                    <p class="text-danger small fw-bold mt-1">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <div class="col-md-4 mb-3">
+                {{ form.costo_seguro.label_tag }}
+                <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    {{ form.costo_seguro }}
+                </div>
+                {% for error in form.costo_seguro.errors %}
+                    <p class="text-danger small fw-bold mt-1">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <div class="col-md-4 mb-3">
+                {{ form.impuestos_internacion.label_tag }}
+                <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    {{ form.impuestos_internacion }}
+                </div>
+                {% for error in form.impuestos_internacion.errors %}
+                    <p class="text-danger small fw-bold mt-1">{{ error }}</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+            <a href="{% url 'erp_embarques_listar' %}" class="btn btn-secondary fw-bold px-4">Cancelar</a>
+            <button type="submit" class="btn btn-warning fw-bold px-4">Guardar Embarque</button>
+        </div>
+
+    </form>
+</div>
+
+{% endblock contenido %}

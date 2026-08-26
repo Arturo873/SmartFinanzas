@@ -24,6 +24,12 @@ urlpatterns = [
     path("mantenedores/inventario/<int:pk>/editar/", inventario_views.movimiento_editar, name="erp_movimiento_editar"),
     path("mantenedores/inventario/<int:pk>/eliminar/", inventario_views.movimiento_eliminar, name="erp_movimiento_eliminar"),
     path("mantenedores/inventario/exportar/", inventario_views.exportar_movimientos_excel, name="erp_movimientos_exportar"),
+    # --- Embarques ---
+    path("mantenedores/embarques/", inventario_views.embarques_listar, name="erp_embarques_listar"),
+    path("mantenedores/embarques/nuevo/", inventario_views.embarque_crear, name="erp_embarque_crear"),
+    path("mantenedores/embarques/<int:pk>/editar/", inventario_views.embarque_editar, name="erp_embarque_editar"),
+    path("mantenedores/embarques/<int:pk>/eliminar/", inventario_views.embarque_eliminar, name="erp_embarque_eliminar"),
+    path("mantenedores/embarques/exportar/", inventario_views.exportar_embarques_excel, name="erp_embarques_exportar"),
 
     # --- Proveedores ---
     path('mantenedores/proveedores/', proveedores_views.mostrar_todos_proveedores, name='erp_proveedores_listar'),

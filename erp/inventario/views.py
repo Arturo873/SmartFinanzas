@@ -2,8 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import HttpResponse
 from openpyxl import Workbook
-from .models import MovimientoInventario
-from .forms import MovimientoInventarioForm
+from .models import MovimientoInventario, EmbarqueImportacion
+from .forms import MovimientoInventarioForm, EmbarqueImportacionForm
 from django.utils import timezone
 
 def movimientos_listar(request):
@@ -97,5 +97,86 @@ def exportar_movimientos_excel(request):
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
     response["Content-Disposition"] = 'attachment; filename="movimientos_inventario.xlsx"'
+    wb.save(response)
+    return response
+
+
+# --- Vistas para Embarques de Importación ---
+
+def embarques_listar(request):
+    embarques = EmbarqueImportacion.objects.select_related("proveedor").order_by("-fecha_eta")
+    permisos = {"embarque_crear": True, "embarque_editar": True, "embarque_eliminar": True}
+    return render(request, "erp/mantenedores/inventario/embarques_listar.html", {
+        "embarques": embarques, "permisos": permisos,
+    })
+
+def embarque_crear(request):
+    if request.method == "POST":
+        form = EmbarqueImportacionForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "✅ Embarque registrado correctamente.")
+            return redirect("erp_embarques_listar")
+        messages.error(request, "❌ Revisa los errores del formulario.")
+    else:
+        form = EmbarqueImportacionForm()
+    permisos = {"embarque_crear": True, "embarque_editar": True, "embarque_eliminar": True}
+    return render(request, "erp/mantenedores/inventario/embarque_form.html", {
+        "form": form, "permisos": permisos,
+    })
+
+def embarque_editar(request, pk):
+    embarque = get_object_or_404(EmbarqueImportacion, pk=pk)
+    if request.method == "POST":
+        form = EmbarqueImportacionForm(request.POST, instance=embarque)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "✅ Embarque actualizado correctamente.")
+            return redirect("erp_embarques_listar")
+        messages.error(request, "❌ Revisa los errores del formulario.")
+    else:
+        form = EmbarqueImportacionForm(instance=embarque)
+    permisos = {"embarque_crear": True, "embarque_editar": True, "embarque_eliminar": True}
+    return render(request, "erp/mantenedores/inventario/embarque_form.html", {
+        "form": form, "permisos": permisos,
+    })
+
+def embarque_eliminar(request, pk):
+    embarque = get_object_or_404(EmbarqueImportacion, pk=pk)
+    if request.method == "POST":
+        # Verificación simple para no borrar si tiene movimientos
+        if embarque.movimientos.exists():
+            messages.error(request, "❌ No puedes eliminar un embarque que tiene movimientos de inventario asociados.")
+            return redirect("erp_embarques_listar")
+        embarque.delete()
+        messages.success(request, "✅ Embarque eliminado correctamente.")
+        return redirect("erp_embarques_listar")
+    permisos = {"embarque_crear": True, "embarque_editar": True, "embarque_eliminar": True}
+    return render(request, "erp/mantenedores/inventario/embarque_confirmar_eliminar.html", {
+        "embarque": embarque, "permisos": permisos,
+    })
+
+def exportar_embarques_excel(request):
+    embarques = EmbarqueImportacion.objects.select_related("proveedor").order_by("-fecha_eta")
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Embarques"
+    encabezados = [
+        "ID", "Código BL", "Proveedor", "Incoterm", "Estado", 
+        "Fecha ETD", "Fecha ETA", "Costo Flete", "Costo Seguro", "Impuestos"
+    ]
+    ws.append(encabezados)
+    for e in embarques:
+        ws.append([
+            e.id, e.codigo_bl, e.proveedor.razon_social if e.proveedor else "",
+            e.incoterm, e.get_estado_display(),
+            e.fecha_etd.strftime("%d-%m-%Y") if e.fecha_etd else "",
+            e.fecha_eta.strftime("%d-%m-%Y") if e.fecha_eta else "",
+            float(e.costo_flete), float(e.costo_seguro), float(e.impuestos_internacion)
+        ])
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = 'attachment; filename="embarques_importacion.xlsx"'
     wb.save(response)
     return response

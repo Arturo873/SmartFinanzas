@@ -47,19 +47,23 @@ def empresa(request):
     return render(request, "erp/catalogo/empresa.html", data)
 
 def mantenedores(request):
+    from erp.inventario.models import EmbarqueImportacion
     total_productos = Producto.objects.count()
     total_proveedores = Proveedor.objects.count()
     total_movimientos = MovimientoInventario.objects.count()
+    total_embarques = EmbarqueImportacion.objects.count()
 
     return render(request, 'erp/mantenedores/inicioMantenedores.html', {
         "total_productos": total_productos,
         "total_proveedores": total_proveedores,
         "total_usuarios": 0,  # Usuarios removed
         "total_movimientos": total_movimientos,
+        "total_embarques": total_embarques,
         "productos_ver": True,
         "proveedores_ver": True,
         "usuarios_ver": False,
         "inventario_ver": True,
+        "embarques_ver": True,
     })
 
 def mostrar_todos_productos(request):

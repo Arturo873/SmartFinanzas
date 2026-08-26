@@ -1,0 +1,94 @@
+{% extends "erp/mantenedores/paginaBase.html" %}
+{% load static %}
+
+{% block titulo %}
+<h1 class="text-center p-3">Gestión de Embarques de Importación</h1>
+{% endblock titulo %}
+
+{% block contenido %}
+
+<div class="card mx-auto mb-4 shadow-lg" style="max-width: 95%;">
+    <div class="card-body bg-light rounded">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+            
+            <div>
+              {% if permisos.embarque_crear %}
+                <a href="{% url 'erp_embarque_crear' %}" class="btn btn-warning fw-bold shadow-sm">
+                    <i class="bi bi-plus-circle"></i> Agregar Embarque
+                </a>
+              {% endif %}
+            </div>
+
+            <div class="d-flex gap-2">
+                <a href="{% url 'erp_embarques_exportar' %}" class="btn btn-success fw-bold shadow-sm">
+                    <i class="bi bi-file-earmark-excel"></i> Excel
+                </a>
+            </div>
+        </div>
+
+        {% if not embarques %}
+        <div class="alert alert-warning text-center fw-bold">
+            No hay embarques registrados en el sistema.
+        </div>
+        {% else %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle shadow-sm rounded overflow-hidden">
+                <thead class="table-dark text-center">
+                    <tr>
+                        <th>Código BL</th>
+                        <th>Proveedor</th>
+                        <th>Estado</th>
+                        <th>ETD</th>
+                        <th>ETA</th>
+                        <th>Incoterm</th>
+                        <th>Costos Totales</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="text-center">
+                    {% for emb in embarques %}
+                    <tr>
+                        <td class="fw-bold">{{ emb.codigo_bl }}</td>
+                        <td>{{ emb.proveedor.razon_social|default:"-" }}</td>
+                        <td>
+                            {% if emb.estado == 'EN_ORIGEN' %}
+                                <span class="badge bg-secondary">En Origen</span>
+                            {% elif emb.estado == 'EN_TRANSITO' %}
+                                <span class="badge bg-info text-dark">En Tránsito</span>
+                            {% elif emb.estado == 'EN_ADUANA' %}
+                                <span class="badge bg-warning text-dark">En Aduana</span>
+                            {% elif emb.estado == 'RECIBIDO' %}
+                                <span class="badge bg-success">Recibido</span>
+                            {% else %}
+                                <span class="badge bg-dark">{{ emb.get_estado_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ emb.fecha_etd|date:"d M Y"|default:"-" }}</td>
+                        <td>{{ emb.fecha_eta|date:"d M Y"|default:"-" }}</td>
+                        <td>{{ emb.incoterm }}</td>
+                        <td class="text-success fw-bold">
+                            $ {{ emb.costo_flete|add:emb.costo_seguro|add:emb.impuestos_internacion|floatformat:2 }}
+                        </td>
+                        <td>
+                            {% if permisos.embarque_editar %}
+                            <a href="{% url 'erp_embarque_editar' emb.id %}" class="btn btn-sm btn-outline-primary" title="Editar">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+                            {% endif %}
+                            
+                            {% if permisos.embarque_eliminar %}
+                            <a href="{% url 'erp_embarque_eliminar' emb.id %}" class="btn btn-sm btn-outline-danger" title="Eliminar">
+                                <i class="bi bi-trash3-fill"></i>
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock contenido %}
