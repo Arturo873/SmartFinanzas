@@ -51,7 +51,11 @@
       {% for producto in productos %}
       <div class="col-md-3 mb-4">
         <div class="card shadow h-100">
-          <img src="{% static 'images/' %}{{ producto.imagen }}" class="card-img-top" alt="{{ producto.nombre }}">
+          {% if producto.imagen %}
+            <img src="{{ producto.imagen.url }}" class="card-img-top" alt="{{ producto.nombre }}">
+          {% else %}
+            <img src="{% static 'images/default.jpg' %}" class="card-img-top" alt="{{ producto.nombre }}">
+          {% endif %}
           <div class="card-body text-center d-flex flex-column">
             <h5 class="card-title">{{ producto.nombre }}</h5>
             <a href="{% url 'erp_detalle_producto' producto.nombre %}" class="btn btn-catalogo text-white mt-auto">Ver detalle</a>

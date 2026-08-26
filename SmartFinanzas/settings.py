@@ -136,3 +136,8 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [
     BASE_DIR / 'erp' / 'static',
 ]
+
+# Configuración para archivos subidos por los usuarios (como las imágenes de los productos)
+MEDIA_URL = '/media/'
+# Las imágenes se guardarán en la carpeta "media/productos/" en la raíz de tu proyecto
+MEDIA_ROOT = BASE_DIR / 'media'
