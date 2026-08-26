@@ -26,6 +26,7 @@ class ProductoForm(forms.ModelForm):
         max_length=16,
         min_length=4,
         required=True,
+        label="SKU (Unidad de Mantenimiento de Stock)",
         widget=forms.TextInput(attrs={
             "class": "form-control",
             "placeholder": "Ej: CK-0023-R"
@@ -35,6 +36,7 @@ class ProductoForm(forms.ModelForm):
     ean_upc = forms.CharField(
         required=False,
         validators=[validar_ean_upc],
+        label="EAN/UPC (Código de Barras Universal)",
         widget=forms.TextInput(attrs={
             "class": "form-control",
             "placeholder": "Ej: 7501031130001 (opcional)"
@@ -84,11 +86,13 @@ class ProductoForm(forms.ModelForm):
 
     uom_compra = forms.ChoiceField(
         choices=UOM_OPCIONES,
+        label="UOM Compra (Unidad de Medida)",
         widget=forms.Select(attrs={"class": "form-select"})
     )
 
     uom_venta = forms.ChoiceField(
         choices=UOM_OPCIONES,
+        label="UOM Venta (Unidad de Medida)",
         widget=forms.Select(attrs={"class": "form-select"})
     )
 
@@ -144,6 +148,7 @@ class ProductoForm(forms.ModelForm):
     hs_code = forms.CharField(
         required=False,
         max_length=20,
+        label="Código Arancelario (HS Code)",
         widget=forms.TextInput(attrs={
             "class": "form-control",
             "placeholder": "Ej: 8517.12.00"

@@ -36,10 +36,23 @@
         <div class="col-md-8">
           <div class="card-body">
             <h2 class="card-title">{{ producto }}</h2>
-            <p class="card-text"><strong>Descripción:</strong> {{ detalle.descripcion }}</p>
-            <p class="card-text"><strong>Ingredientes:</strong> {{ detalle.ingredientes }}</p>
-            <p class="card-text"><strong>Tiempo de producción:</strong> {{ detalle.tiempo_produccion }}</p>
-            <a href="{% url 'erp_subcatalogo' categoria %}" class="btn btn-catalogo text-white mt-3">Volver a {{ categoria }}</a>
+            <p class="card-text"><strong>Descripción:</strong> {% if detalle.descripcion %}{{ detalle.descripcion }}{% else %}No disponible{% endif %}</p>
+            
+            <div class="row mt-4">
+              <div class="col-md-6">
+                <p class="card-text mb-1"><strong title="Stock Keeping Unit">SKU (Unidad de Mantenimiento de Stock):</strong> {{ detalle.sku }}</p>
+                {% if detalle.ean_upc %}<p class="card-text mb-1"><strong title="European Article Number / Universal Product Code">EAN/UPC (Código de Barras Universal):</strong> {{ detalle.ean_upc }}</p>{% endif %}
+                {% if detalle.marca %}<p class="card-text mb-1"><strong>Marca:</strong> {{ detalle.marca }}</p>{% endif %}
+                {% if detalle.modelo %}<p class="card-text mb-1"><strong>Modelo:</strong> {{ detalle.modelo }}</p>{% endif %}
+              </div>
+              <div class="col-md-6">
+                {% if detalle.precio_venta %}<p class="card-text mb-1"><strong>Precio:</strong> ${{ detalle.precio_venta }}</p>{% endif %}
+                <p class="card-text mb-1"><strong title="Unit of Measure">UOM Venta (Unidad de Medida):</strong> {{ detalle.uom_venta }}</p>
+                {% if detalle.ficha_tecnica_url %}<p class="card-text mb-1"><strong>Ficha Técnica:</strong> <a href="{{ detalle.ficha_tecnica_url }}" target="_blank">Ver Documento</a></p>{% endif %}
+              </div>
+            </div>
+
+            <a href="{% url 'erp_subcatalogo' categoria %}" class="btn btn-catalogo text-white mt-4">Volver a {{ categoria }}</a>
           </div>
         </div>
       </div>
