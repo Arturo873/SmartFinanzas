@@ -14,6 +14,7 @@ Los detalles están en los documentos enlazados; este archivo es el índice.
 | [requerimientos_v8_propuesta.md](requerimientos_v8_propuesta.md) | Cada requerimiento modificado: texto v7, texto v8 y fundamento |
 | [Requerimientos_funcionales_y_no_funcionales_v8.xlsx](Requerimientos_funcionales_y_no_funcionales_v8.xlsx) | Documento oficial de requerimientos v8 (celdas cambiadas en verde) |
 | [resultados_entrenamiento_v8.md](resultados_entrenamiento_v8.md) | Metodología del entrenamiento, resultados, limitaciones y reproducción |
+| [guia_seccion_metodologia_informe.md](guia_seccion_metodologia_informe.md) | Esqueleto con el contenido de la metodología para el informe final y la defensa |
 | [busqueda_mejora_f1.md](busqueda_mejora_f1.md) | Historia anterior: intentos de mejorar el modelo de Taiwán (reemplazado) |
 | [correo_profesor_rnf08.md](correo_profesor_rnf08.md) | Correo al profesor sobre la meta de RNF-08 |
 

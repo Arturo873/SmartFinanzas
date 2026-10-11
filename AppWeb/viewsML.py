@@ -1,6 +1,7 @@
 import hashlib
 import os
 import numpy as np
+import pandas as pd
 import joblib
 
 MODELOS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'modelos')
@@ -63,16 +64,17 @@ def ajustar_riesgo_por_capm(probabilidad_base, beta_sector: float,
     return np.clip(np.asarray(probabilidad_base) * factor, 0.0, 1.0)
 
 
-def _vectores(lista_variables: list) -> np.ndarray:
+def _vectores(lista_variables: list) -> pd.DataFrame:
     """Matriz de entrada del modelo. V7 sin datos de caja toma el valor neutro
     (mediana de las empresas solventes), para no empujar la predicción hacia
     ninguna clase (RNF-10)."""
     _, metricas = _cargar_modelo_oficial()
     neutros = {'volatilidad_flujo_caja': metricas['volatilidad_neutra']}
-    return np.array([
-        [v[clave] if v[clave] is not None else neutros[clave] for clave in metricas['features_orden']]
-        for v in lista_variables
-    ], dtype=float)
+    orden = metricas['features_orden']
+    return pd.DataFrame(
+        [[v[clave] if v[clave] is not None else neutros[clave] for clave in orden] for v in lista_variables],
+        columns=orden, dtype=float,
+    )
 
 
 def predecir_probabilidades(lista_variables: list, beta_sector: float = 1.0) -> np.ndarray:
