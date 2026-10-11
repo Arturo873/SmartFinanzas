@@ -1,0 +1,11 @@
+Total NIT a descargar: 6010
+
+=== Descargando balance (pfdp-zks5) ===
+  ya procesados antes: 6010 NIT distintos en el archivo, pendientes: 0
+balance: 0 filas nuevas -> financieros_raw/negativos_balance.csv
+
+=== Descargando resultados (prwj-nzxa) ===
+  ya procesados antes: 5380 NIT distintos en el archivo, pendientes: 630
+  0/630 NIT pendientes procesados, 3326 filas nuevas acumuladas
+  400/630 NIT pendientes procesados, 83165 filas nuevas acumuladas
+resultados: 121119 filas nuevas -> financieros_raw/negativos_resultados.csv

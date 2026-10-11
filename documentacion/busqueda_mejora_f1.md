@@ -377,6 +377,98 @@ sobre `entrenar_modelo_oficial.py`. Pendiente de decisión del equipo sobre
 si vale la pena reemplazar `RandomForestClassifier` por
 `EasyEnsembleClassifier` en el modelo oficial.
 
+## Intento 10 — Dataset chileno real (CMF × Boletín Concursal), descartado por escasez de positivos
+
+Motivación: los 6 datasets probados (Taiwan, Polish, American, Russian, HAT
+China, SMEsD, Slovak) no son hispanohablantes, objeción recurrente del
+profesor guía por sesgo geográfico. Se investigó la única ruta para un
+dataset 100% chileno a nivel de empresa: el cruce por RUT entre:
+
+- **CMF Chile** — Estados Financieros IFRS en TXT, gratuitos,
+  `https://www.cmfchile.cl/institucional/estadisticas/estadisticas_ifrs.php`,
+  archivos anuales 2009-2024 vía `ver_archivo.php?inicio=YYYY03&termino=YYYY12`
+  (sin autenticación). Solo cubre grandes emisores (S.A. abiertas / emisores
+  de bonos).
+- **Boletín Concursal (Superir)** — publicaciones de procedimientos
+  concursales (Ley 20.720), gratuito,
+  `https://www.boletinconcursal.cl/boletin/procedimientos`, exportación CSV
+  masiva vía POST a `getRegistroDiarioPublicacionCsv` (requiere token
+  `_csrf` de la página, sin login). El export trae el histórico completo
+  (no solo "vigentes"), ~784.000 filas hasta 2014.
+
+Scripts y datos en `DatasetEntrenamientoML/chile_cmf_boletin/`
+(`cruce_viabilidad.py`, `boletin_concursal_raw.csv`, `cmf_raw/eifrs_*.txt`,
+`resultado_interseccion.csv`, `entrenar_chile_n3.py`,
+`chile_dataset_ratios.csv`).
+
+**Resultado del cruce por RUT:**
+
+| Fuente | RUT únicos |
+|---|---|
+| CMF (2009-2024, todos los emisores con estados financieros) | 912 |
+| Boletín Concursal (Empresa Deudora, en algún tipo de Liquidación) | 3.149 |
+| **Intersección (positivos reales con estados financieros completos)** | **3** |
+
+Las 3 empresas encontradas: Sartor Administradora General de Fondos S.A.,
+Claro Vicuña Valenzuela S.A. y Telecomunicaciones Internacionales S.A.
+
+Nota técnica: el RUT en CMF viene **sin dígito verificador** (ej.
+`60503000`) y en el Boletín Concursal viene **con DV** (ej. `13824595-0`);
+cruzar por el string completo sin normalizar da intersección 0 por un
+falso negativo de formato, no por ausencia real de coincidencias — hay que
+comparar solo por el número base.
+
+Muy por debajo del umbral de viabilidad para entrenamiento (n≥cientos) o
+incluso para validación externa cuantitativa (n≥30-50 recomendado). Confirma
+la hipótesis de partida: la CMF cubre unos cientos de emisores grandes,
+mientras que las quiebras chilenas reales son casi todas de PYMES fuera de
+ese universo.
+
+**Intento adicional: entrenar/validar igual con las 3 empresas, para tener
+evidencia empírica y no solo el argumento teórico.** Se calcularon los 7
+ratios de `RATIOS_MODELO` (misma fórmula exacta que
+`AppWeb/views.py::calcular_ratios_liquidez()`) a partir de las cuentas IFRS
+de CMF, para las 912 empresas del cruce (821 quedaron con balance
+clasificado corriente/no corriente completo; 84 se descartaron por ser
+bancos, seguros o AFP con otra taxonomía contable). Se entrenó un
+`RandomForestClassifier` idéntico al de producción
+(`n_estimators=300, max_depth=8, class_weight='balanced'`) sobre ese
+dataset de 821 filas (3 positivas), con `train_test_split(test_size=0.2)`
+repetido en 10 semillas, con y sin estratificación:
+
+| Split | Positivos en test (rango sobre 10 semillas) | F1 en las 10 semillas |
+|---|---|---|
+| Con `stratify=y` | 1 de 3, siempre (redondeo determinista de 3×0.2=0.6→1) | **0.0% en las 10** |
+| Sin estratificar | 0 a 3 de 3, según semilla | **0.0% en las 10** |
+
+El modelo **nunca** identificó como riesgo alto ninguna de las 3 quiebras
+reales chilenas, sin importar cuántos casos positivos veía en
+entrenamiento (0 a 3) ni cuál caía en el set de prueba. No es una cuestión
+de mala suerte con el split: con solo 2-3 ejemplos de la clase minoritaria,
+`RandomForestClassifier` no tiene señal suficiente para aprender ningún
+patrón de insolvencia generalizable. Esto confirma con datos reales, no
+solo con el razonamiento teórico sobre tamaño de muestra, que n=3 no es
+entrenable ni validable: con un solo split al azar (como haría cualquier
+pipeline de entrenamiento estándar) el resultado habría sido F1=0% de
+todas formas, pero por las razones equivocadas para sacar una conclusión
+—no porque el modelo "generalice mal", sino porque no hay señal
+estadística posible con 2-3 ejemplos de la clase minoritaria—, así que
+tampoco es un número citable como métrica de rendimiento real.
+
+**Estado: descartado como set de entrenamiento y como validación externa
+cuantitativa.** Queda como evidencia cualitativa (3 casos reales
+confirmados, más el resultado empírico de F1=0% en 20 corridas) de que no
+existe un dataset chileno público suficiente a nivel de empresa con
+etiqueta de quiebra — respaldo directo para renegociar el RNF-08 citando la
+ausencia de fuente pública, no solo el techo de F1 encontrado en datasets
+extranjeros.
+
+Próximo paso recomendado: **SuperCias Ecuador** (activos, pasivo,
+patrimonio, utilidad, y ratios `liquidez_corriente`/`prueba_acida` ya
+calculados, con estado societario para derivar la etiqueta) como dataset
+hispanohablante con volumen suficiente para entrenar, no solo para validar.
+No se ha ejecutado aún.
+
 ## Conclusión general
 
 Con datos de balance financiero simple (5-7 ratios, sin variables
@@ -399,3 +491,14 @@ hacer que el semáforo de riesgo subestime casos límite reales — otra
 consecuencia de depender de un dataset público sin poder validar contra
 datos reales de una PYME chilena (ver restricción "Falta de Stakeholder(s)"
 en el plan de proyecto, sección 4.1.5).
+
+Esa misma limitación se intentó cerrar directamente con datos chilenos
+reales (Intento 10): el cruce CMF × Boletín Concursal solo entrega 3
+empresas con estados financieros y quiebra confirmada, y entrenar/validar
+con ellas da F1=0% de forma consistente en 20 corridas distintas — no por
+falla del algoritmo, sino porque no existe en Chile una fuente pública que
+cruce estados financieros de PYMES con su desenlace de insolvencia a la
+escala necesaria. Esto convierte el techo de F1 (~44-48%) y la ausencia de
+dataset chileno viable en dos argumentos independientes y complementarios
+para renegociar el RNF-08: uno de rendimiento del algoritmo sobre datos
+extranjeros disponibles, y otro de disponibilidad de datos nacionales.

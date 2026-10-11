@@ -14,6 +14,9 @@
                     Sube un archivo Excel (.xlsx) o CSV con la plantilla estandarizada de 
                     estados financieros (Balance General) para procesamiento masivo.
                 </p>
+                <p class="small text-muted">
+                    Columnas requeridas: <code>{{ columnas_plantilla|join:", " }}</code>
+                </p>
 
                 <!-- Mostrar mensajes de error o éxito -->
                 {% if messages %}

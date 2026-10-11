@@ -1,0 +1,38 @@
+Total NIT a descargar: 6010
+
+=== Descargando balance (pfdp-zks5) ===
+  ya procesados antes: 0 NIT distintos en el archivo, pendientes: 6010
+  0/6010 NIT pendientes procesados, 11079 filas nuevas acumuladas
+  400/6010 NIT pendientes procesados, 227615 filas nuevas acumuladas
+  800/6010 NIT pendientes procesados, 448687 filas nuevas acumuladas
+  1200/6010 NIT pendientes procesados, 657112 filas nuevas acumuladas
+  1600/6010 NIT pendientes procesados, 877804 filas nuevas acumuladas
+  2000/6010 NIT pendientes procesados, 1093515 filas nuevas acumuladas
+  2400/6010 NIT pendientes procesados, 1310515 filas nuevas acumuladas
+  2800/6010 NIT pendientes procesados, 1522425 filas nuevas acumuladas
+  3200/6010 NIT pendientes procesados, 1730351 filas nuevas acumuladas
+  3600/6010 NIT pendientes procesados, 1943862 filas nuevas acumuladas
+  4000/6010 NIT pendientes procesados, 2152362 filas nuevas acumuladas
+  4400/6010 NIT pendientes procesados, 2368968 filas nuevas acumuladas
+  4800/6010 NIT pendientes procesados, 2560207 filas nuevas acumuladas
+  5200/6010 NIT pendientes procesados, 2766280 filas nuevas acumuladas
+  5600/6010 NIT pendientes procesados, 2969038 filas nuevas acumuladas
+  6000/6010 NIT pendientes procesados, 3152753 filas nuevas acumuladas
+balance: 3152753 filas nuevas -> financieros_raw/negativos_balance.csv
+
+=== Descargando resultados (prwj-nzxa) ===
+  ya procesados antes: 0 NIT distintos en el archivo, pendientes: 6010
+  0/6010 NIT pendientes procesados, 4468 filas nuevas acumuladas
+  400/6010 NIT pendientes procesados, 91907 filas nuevas acumuladas
+  800/6010 NIT pendientes procesados, 180786 filas nuevas acumuladas
+  1200/6010 NIT pendientes procesados, 264530 filas nuevas acumuladas
+  1600/6010 NIT pendientes procesados, 352337 filas nuevas acumuladas
+  2000/6010 NIT pendientes procesados, 439512 filas nuevas acumuladas
+  2400/6010 NIT pendientes procesados, 527303 filas nuevas acumuladas
+  2800/6010 NIT pendientes procesados, 613331 filas nuevas acumuladas
+  3200/6010 NIT pendientes procesados, 696820 filas nuevas acumuladas
+  3600/6010 NIT pendientes procesados, 782752 filas nuevas acumuladas
+  4000/6010 NIT pendientes procesados, 866689 filas nuevas acumuladas
+  4400/6010 NIT pendientes procesados, 952328 filas nuevas acumuladas
+  4800/6010 NIT pendientes procesados, 1027674 filas nuevas acumuladas
+  5200/6010 NIT pendientes procesados, 1111728 filas nuevas acumuladas

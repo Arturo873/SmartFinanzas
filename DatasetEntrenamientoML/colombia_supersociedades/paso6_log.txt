@@ -1,0 +1,38 @@
+Train: 5,398 (1,966 quebradas, 36.4%)
+Comparando algoritmos, evaluados a prevalencia real (3.2%), 20 repeticiones cada uno:
+
+--- RandomForest class_weight=balanced (baseline, Escenario C) ---
+  umbral calibrado: 0.84
+  F1-score    26.0%  (+/- 4.6)
+  Precision   21.0%  (+/- 3.4)
+  Recall      33.9%  (+/- 6.8)
+  Accuracy    93.8%  (+/- 0.2)
+  ROC-AUC     86.5%  (+/- 2.7)
+  PR-AUC      19.8%  (+/- 2.8)
+
+--- BalancedRandomForestClassifier ---
+  umbral calibrado: 0.85
+  F1-score    26.4%  (+/- 3.9)
+  Precision   20.9%  (+/- 2.9)
+  Recall      35.8%  (+/- 6.1)
+  Accuracy    93.6%  (+/- 0.2)
+  ROC-AUC     86.5%  (+/- 2.6)
+  PR-AUC      19.9%  (+/- 3.0)
+
+--- EasyEnsembleClassifier ---
+  umbral calibrado: 0.67
+  F1-score    25.7%  (+/- 5.3)
+  Precision   22.9%  (+/- 4.2)
+  Recall      29.3%  (+/- 6.9)
+  Accuracy    94.6%  (+/- 0.2)
+  ROC-AUC     85.7%  (+/- 2.4)
+  PR-AUC      18.0%  (+/- 2.8)
+
+======================================================================
+RESUMEN COMPARATIVO (F1 a prevalencia real 3.2%)
+======================================================================
+   26.4%  F1  |   19.9%  PR-AUC  |  BalancedRandomForestClassifier
+   26.0%  F1  |   19.8%  PR-AUC  |  RandomForest class_weight=balanced (baseline, Escenario C)
+   25.7%  F1  |   18.0%  PR-AUC  |  EasyEnsembleClassifier
+
+  46.8%  F1  |  43.3%  PR-AUC  |  Referencia: produccion actual (Taiwan)

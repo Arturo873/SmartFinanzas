@@ -26,13 +26,17 @@ from .fetch_capm_data import (
     get_sectores_beta,
     DEFAULT_SECTORES_BETA,
 )
+from .datos_macro import obtener_contexto_macro
+from .variables_modelo import VARIABLES_MODELO, calcular_variables_modelo
 from .models import Empresa, HistorialPrediccion, PerfilUsuario, EstadoCarga
 from .decorators import rol_requerido
 
 COLUMNAS_PLANTILLA = [
     'Id_Empresa', 'Periodo', 'Activo_Circulante', 'Pasivo_Circulante',
     'Efectivo_Equivalentes', 'Inventarios', 'Activo_Total',
-    'Pasivo_Total', 'Patrimonio_Neto', 'Utilidad_Neta'
+    'Pasivo_Total', 'Patrimonio_Neto', 'Utilidad_Neta',
+    # Requerimientos v8 (RF-08): V4, V5, V6 y el Z-score de Altman.
+    'Ingresos_Netos', 'EBIT', 'Utilidades_Retenidas',
 ]
 
 COLUMNAS_NUMERICAS = COLUMNAS_PLANTILLA[2:]
@@ -96,19 +100,26 @@ def home(request: HttpRequest):
     }
     return render(request, 'AppWeb/index.html', contexto)
 
+def _contexto_carga():
+    return {
+        'datos_cargados': bool(EstadoCarga.actual().ruta_csv),
+        'columnas_plantilla': COLUMNAS_PLANTILLA,
+    }
+
+
 @rol_requerido(PerfilUsuario.ROL_CONTADOR)
 def carga_datos(request: HttpRequest):
     if request.method == 'POST':
         if 'archivo_datos' not in request.FILES:
             messages.error(request, 'No se seleccionó ningún archivo.')
-            return render(request, 'AppWeb/cargaDatos.html', {'datos_cargados': bool(EstadoCarga.actual().ruta_csv)})
+            return render(request, 'AppWeb/cargaDatos.html', _contexto_carga())
 
         archivo = request.FILES['archivo_datos']
         tipo_documento = request.POST.get('tipo_documento')
 
         if not (archivo.name.endswith('.csv') or archivo.name.endswith('.xlsx')):
             messages.error(request, 'Formato no soportado. Por favor suba un archivo .csv o .xlsx')
-            return render(request, 'AppWeb/cargaDatos.html', {'datos_cargados': bool(EstadoCarga.actual().ruta_csv)})
+            return render(request, 'AppWeb/cargaDatos.html', _contexto_carga())
 
         try:
             if archivo.name.endswith('.csv'):
@@ -149,6 +160,16 @@ def carga_datos(request: HttpRequest):
                                 f"Empresas: {', '.join(map(str, empresas[:5]))}" + ('...' if len(empresas) > 5 else '')
                             )
 
+                        # RF-09 v8: una parte no puede superar al total.
+                        for parte, total in (('Activo_Circulante', 'Activo_Total'), ('Pasivo_Circulante', 'Pasivo_Total')):
+                            invalidas = df[df[parte] > df[total] + TOLERANCIA_DESCUADRE_MINIMA]
+                            if not invalidas.empty:
+                                filas = ', '.join(str(i + 2) for i in invalidas.index[:5])
+                                errores.append(
+                                    f"Descuadre contable: {parte} es mayor que {total} en {len(invalidas)} fila(s). "
+                                    f"Filas del archivo: {filas}" + ('...' if len(invalidas) > 5 else '')
+                                )
+
             if errores:
                 for e in errores:
                     messages.error(request, e)
@@ -165,9 +186,9 @@ def carga_datos(request: HttpRequest):
         except Exception as e:
             messages.error(request, f'Error al procesar el archivo: {e}')
 
-        return render(request, 'AppWeb/cargaDatos.html', {'datos_cargados': bool(EstadoCarga.actual().ruta_csv)})
+        return render(request, 'AppWeb/cargaDatos.html', _contexto_carga())
 
-    return render(request, 'AppWeb/cargaDatos.html', {'datos_cargados': bool(EstadoCarga.actual().ruta_csv)})
+    return render(request, 'AppWeb/cargaDatos.html', _contexto_carga())
 
 @rol_requerido(PerfilUsuario.ROL_CONTADOR)
 def calculo_capm(request: HttpRequest):
@@ -282,6 +303,18 @@ def ejecutar_prediccion(request: HttpRequest):
             row = df_empresa.iloc[0]
             ratios_empresa = calcular_ratios_liquidez(row)
 
+            # Requerimientos v8: las 8 variables se calculan y muestran (RF-01,
+            # RF-10); el score sigue saliendo del modelo de Taiwan hasta que la
+            # Fase 4 entrene el modelo sintético con estas variables. V7 queda
+            # en el valor neutro porque el módulo de caja (RF-19 a RF-22) aún
+            # no está implementado.
+            contexto_macro = obtener_contexto_macro(row['Periodo'])
+            variables_modelo = calcular_variables_modelo(row.to_dict(), contexto_macro)
+            tabla_variables_modelo = [
+                {'clave': clave, 'nombre': nombre, 'grupo': grupo, 'valor': variables_modelo[clave]}
+                for clave, nombre, grupo in VARIABLES_MODELO
+            ]
+
             beta_sector = estado.beta_capm if estado.beta_capm is not None else 0.85
 
             puntaje_riesgo, riesgo, color = predecir_riesgo(ratios_empresa, beta_sector)
@@ -312,6 +345,9 @@ def ejecutar_prediccion(request: HttpRequest):
 
             contexto = {
                 'ratios': ratios_empresa,
+                'variables_modelo': tabla_variables_modelo,
+                'contexto_macro': contexto_macro,
+                'periodo': row['Periodo'],
                 'beta': beta_sector,
                 'score': puntaje_riesgo,
                 'riesgo': riesgo,

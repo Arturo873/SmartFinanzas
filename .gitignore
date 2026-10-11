@@ -227,3 +227,9 @@ db.sqlite3
 #carpeta data se crea si no exite
 data/
 .claude/
+
+# Datos crudos descargados (pesan cientos de MB; GitHub rechaza archivos > 100 MB).
+# Se regeneran con los scripts de cada carpeta.
+DatasetEntrenamientoML/colombia_supersociedades/financieros_raw/
+DatasetEntrenamientoML/chile_cmf_boletin/cmf_raw/
+DatasetEntrenamientoML/chile_cmf_boletin/boletin_concursal_raw.csv

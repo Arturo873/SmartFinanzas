@@ -1,0 +1,26 @@
+Total NIT a descargar: 3429
+
+=== Descargando balance (pfdp-zks5) ===
+  0/3429 NIT procesados, 11562 filas acumuladas
+  400/3429 NIT procesados, 231042 filas acumuladas
+  800/3429 NIT procesados, 412867 filas acumuladas
+  1200/3429 NIT procesados, 595366 filas acumuladas
+  1600/3429 NIT procesados, 840683 filas acumuladas
+  2000/3429 NIT procesados, 1015208 filas acumuladas
+    reintento (The read operation timed out)
+  2400/3429 NIT procesados, 1170930 filas acumuladas
+  2800/3429 NIT procesados, 1307010 filas acumuladas
+  3200/3429 NIT procesados, 1411167 filas acumuladas
+balance: 1449498 filas totales -> financieros_raw/positivos_balance.csv
+
+=== Descargando resultados (prwj-nzxa) ===
+  0/3429 NIT procesados, 4523 filas acumuladas
+  400/3429 NIT procesados, 87885 filas acumuladas
+  800/3429 NIT procesados, 158840 filas acumuladas
+  1200/3429 NIT procesados, 230348 filas acumuladas
+  1600/3429 NIT procesados, 324035 filas acumuladas
+  2000/3429 NIT procesados, 392155 filas acumuladas
+  2400/3429 NIT procesados, 453537 filas acumuladas
+  2800/3429 NIT procesados, 508291 filas acumuladas
+  3200/3429 NIT procesados, 551671 filas acumuladas
+resultados: 567561 filas totales -> financieros_raw/positivos_resultados.csv
