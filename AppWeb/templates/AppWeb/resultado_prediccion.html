@@ -62,16 +62,18 @@
                     {% for factor in top_3_riesgo %}
                     <div class="mb-3{% if not forloop.last %} border-bottom pb-3{% endif %}">
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                            <strong class="fs-6">{{ forloop.counter }}. {{ factor.label }}</strong>
-                            <span class="badge {% if factor.impacto >= 10 %}bg-danger{% elif factor.impacto >= 5 %}bg-warning text-dark{% else %}bg-success{% endif %} fs-7">
-                                {{ factor.puntaje }}/{{ factor.max_puntaje }} pts
+                            <strong class="fs-6">{{ forloop.counter }}. {{ factor.label }} ({{ factor.valor }})</strong>
+                            <span class="badge {% if factor.impacto >= 10 %}bg-danger{% elif factor.impacto >= 5 %}bg-warning text-dark{% else %}bg-success{% endif %} fs-7"
+                                  data-bs-toggle="tooltip"
+                                  title="Puntos de riesgo que bajaría el score si esta variable tuviera el valor de una empresa solvente típica.">
+                                +{{ factor.impacto }} pts de riesgo
                             </span>
                         </div>
                         <div class="progress mb-2" style="height: 8px;">
                             <div class="progress-bar {% if factor.impacto >= 10 %}bg-danger{% elif factor.impacto >= 5 %}bg-warning{% else %}bg-success{% endif %}"
                                 role="progressbar"
-                                data-width="{% widthratio factor.puntaje 25 100 %}"
-                                aria-valuenow="{{ factor.puntaje }}" aria-valuemin="0" aria-valuemax="25">
+                                data-width="{{ factor.impacto }}"
+                                aria-valuenow="{{ factor.impacto }}" aria-valuemin="0" aria-valuemax="100">
                             </div>
                         </div>
                         <p class="mb-1 small text-muted">{{ factor.explicacion }}</p>
@@ -79,6 +81,8 @@
                             <span class="text-secondary">Recomendación:</span> {{ factor.consejo }}
                         </p>
                     </div>
+                    {% empty %}
+                    <p class="mb-0 text-muted">Ninguna variable eleva tu riesgo por sobre el de una empresa solvente típica.</p>
                     {% endfor %}
                 </div>
             </div>
@@ -253,6 +257,15 @@
                                         {% if f1_score is not None %}{{ f1_score }}%{% else %}<span class="text-muted">—</span>{% endif %}
                                     </td>
                                 </tr>
+                                <tr>
+                                    <td class="ps-3">
+                                        F1-Score con empresas reales
+                                        <span data-bs-toggle="tooltip"
+                                              title="F1 sobre empresas chilenas de la CMF que el modelo nunca vio al entrenar, sin datos de caja (V7 neutra). Accuracy: {{ accuracy_real }}%, Recall: {{ recall_real }}%."
+                                              style="cursor:help;">&#9432;</span>
+                                    </td>
+                                    <td class="text-end pe-3 fw-semibold">{{ f1_score_real }}%</td>
+                                </tr>
                                 <!--
                                 <tr>
                                     <td class="ps-3">Empresas analizadas</td>
@@ -388,6 +401,10 @@
 document.addEventListener('DOMContentLoaded', function() {
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.map(function (el) { return new bootstrap.Tooltip(el); });
+
+    document.querySelectorAll('.progress-bar[data-width]').forEach(function (barra) {
+        barra.style.width = Math.min(parseFloat(barra.dataset.width) || 0, 100) + '%';
+    });
 
     var historialEmpresa = JSON.parse(document.getElementById('data-historial-empresa').textContent);
     var canvasHistorial = document.getElementById('chartHistorialEmpresa');

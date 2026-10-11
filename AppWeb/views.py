@@ -13,8 +13,8 @@ import uuid
 import os
 
 from .viewsML import (
-    calcular_score_compuesto,
     obtener_metricas_modelo_oficial,
+    predecir_probabilidades,
     predecir_riesgo,
     analizar_contribucion_riesgo,
     obtener_recomendacion_general,
@@ -264,11 +264,13 @@ def calcular_ratios_liquidez(row: dict):
     return {k: round(v, 4) for k, v in ratios.items()}
 
 
-def calcular_tendencia_periodos(df: pd.DataFrame) -> list:
-    scores_por_fila = []
-    for _, row in df.iterrows():
-        ratios = calcular_ratios_liquidez(row.to_dict())
-        scores_por_fila.append(calcular_score_compuesto(ratios))
+def calcular_tendencia_periodos(df: pd.DataFrame, beta_sector: float) -> list:
+    contextos_macro = {periodo: obtener_contexto_macro(periodo) for periodo in df['Periodo'].unique()}
+    variables_por_fila = [
+        calcular_variables_modelo(fila, contextos_macro[fila['Periodo']])
+        for fila in df.to_dict('records')
+    ]
+    scores_por_fila = predecir_probabilidades(variables_por_fila, beta_sector) * 100
 
     df_scores = df.assign(_score=scores_por_fila)
     promedio = df_scores.groupby('Periodo')['_score'].mean().round(1)
@@ -303,11 +305,9 @@ def ejecutar_prediccion(request: HttpRequest):
             row = df_empresa.iloc[0]
             ratios_empresa = calcular_ratios_liquidez(row)
 
-            # Requerimientos v8: las 8 variables se calculan y muestran (RF-01,
-            # RF-10); el score sigue saliendo del modelo de Taiwan hasta que la
-            # Fase 4 entrene el modelo sintético con estas variables. V7 queda
-            # en el valor neutro porque el módulo de caja (RF-19 a RF-22) aún
-            # no está implementado.
+            # Las 8 variables del modelo v8 (RF-10). V7 queda en el valor
+            # neutro porque el módulo de caja (RF-19 a RF-22) aún no está
+            # implementado.
             contexto_macro = obtener_contexto_macro(row['Periodo'])
             variables_modelo = calcular_variables_modelo(row.to_dict(), contexto_macro)
             tabla_variables_modelo = [
@@ -317,11 +317,11 @@ def ejecutar_prediccion(request: HttpRequest):
 
             beta_sector = estado.beta_capm if estado.beta_capm is not None else 0.85
 
-            puntaje_riesgo, riesgo, color = predecir_riesgo(ratios_empresa, beta_sector)
+            puntaje_riesgo, riesgo, color = predecir_riesgo(variables_modelo, beta_sector)
 
             metricas_modelo = obtener_metricas_modelo_oficial()
 
-            top_3_riesgo = analizar_contribucion_riesgo(ratios_empresa)
+            top_3_riesgo = analizar_contribucion_riesgo(variables_modelo, beta_sector)
             recomendacion_general = obtener_recomendacion_general(color)
 
             empresa, _ = Empresa.objects.get_or_create(
@@ -339,7 +339,7 @@ def ejecutar_prediccion(request: HttpRequest):
                 for h in HistorialPrediccion.objects.filter(empresa=empresa).order_by('fecha_prediccion')
             ]
 
-            tendencia_periodos = calcular_tendencia_periodos(df)
+            tendencia_periodos = calcular_tendencia_periodos(df, beta_sector)
 
             messages.success(request, f'Análisis predictivo completado para {empresa_id}.')
 
@@ -358,9 +358,9 @@ def ejecutar_prediccion(request: HttpRequest):
                 'historial_empresa': historial_empresa,
                 'tendencia_periodos': tendencia_periodos,
                 'modelo_info': {
-                    'dataset': 'Conjunto de validación (20% de los datos)',
-                    'split': 'test_size=0.2, random_state=42',
-                    'version': 'v1.2',
+                    'dataset': 'Datos sintéticos generados desde empresas chilenas reales (CMF)',
+                    'split': 'Prueba: 20% del dataset sintético y empresas CMF no usadas al entrenar',
+                    'version': 'v8',
                 },
             }
             contexto.update(metricas_modelo)

@@ -1,0 +1,6 @@
+proporcion_insolventes_solventes,sintetica_accuracy,sintetica_f1,sintetica_recall_insolvente,sintetica_precision_insolvente,sintetica_pr_auc,real_accuracy,real_f1,real_recall_insolvente,real_precision_insolvente,real_pr_auc
+50/50,0.9870,0.9871,0.9910,0.9831,0.9993,0.9690,0.7130,0.8039,0.6406,0.8427
+40/60,0.9910,0.9888,0.9888,0.9888,0.9993,0.9681,0.7018,0.7843,0.6349,0.8432
+30/70,0.9870,0.9783,0.9783,0.9783,0.9982,0.9653,0.6891,0.8039,0.6029,0.8400
+20/80,0.9865,0.9661,0.9625,0.9698,0.9957,0.9681,0.7018,0.7843,0.6349,0.8322
+10/90,0.9805,0.8987,0.8650,0.9351,0.9666,0.9756,0.7593,0.8039,0.7193,0.8515

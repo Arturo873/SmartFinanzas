@@ -96,11 +96,17 @@ def calcular_volatilidad_flujo_caja(flujos_netos_diarios, ingresos_diarios):
     return float(flujos.std(ddof=1) / ingresos.mean())
 
 
-def calcular_z1_altman(fila: dict) -> float:
-    """Z-score de Altman para empresas que no cotizan (Altman y Hotchkiss,
-    2006, citado en Riquelme, 2018, pp. 53-54). Z1 < 1,23 = alta probabilidad
-    de insolvencia. Se usa para etiquetar los datos sintéticos (RNF-08), no
-    como variable del modelo.
+# Corte de la zona de insolvencia del Z''EM (Riquelme, 2018, p. 55).
+UMBRAL_ZEM_INSOLVENCIA = 1.10
+
+
+def calcular_zem_altman(fila: dict) -> float:
+    """Z-score de Altman para mercados emergentes (Z''EM): Altman (2000) quitó
+    la rotación de activos (X5) para minimizar el efecto de la industria en
+    empresas no manufactureras, y Altman et al. (2017) agregaron la constante
+    3,25 (citados en Riquelme, 2018, pp. 54-55). Z''EM < 1,10 = alta
+    probabilidad de insolvencia. Se usa para etiquetar los datos de
+    entrenamiento (RNF-08), no como variable del modelo.
     """
     activo_total = float(fila['Activo_Total'])
     pasivo_total = float(fila['Pasivo_Total'])
@@ -109,8 +115,7 @@ def calcular_z1_altman(fila: dict) -> float:
     x3 = float(fila['EBIT']) / activo_total
     # Sin pasivos, Patrimonio/Pasivo tiende a infinito (máxima solvencia); se acota al mismo tope.
     x4 = float(fila['Patrimonio_Neto']) / pasivo_total if pasivo_total > 0 else LEVERAGE_MAXIMO
-    x5 = float(fila['Ingresos_Netos']) / activo_total
-    return 0.717 * x1 + 0.847 * x2 + 3.107 * x3 + 0.420 * x4 + 0.998 * x5
+    return 3.25 + 6.56 * x1 + 3.26 * x2 + 6.72 * x3 + 1.05 * x4
 
 
 def calcular_variables_modelo(fila: dict, contexto_macro: dict, volatilidad_flujo_caja=None) -> dict:

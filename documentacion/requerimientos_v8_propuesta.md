@@ -86,7 +86,9 @@ El sistema debe permitir arrastrar o seleccionar archivos .xlsx o .csv basados e
 | **EBIT** (resultado operacional) | **Nueva** | V4, V5 |
 | **Ingresos_Netos** | **Nueva** | V5, V6 |
 | Patrimonio_Neto | Existente (ya se validaba Activo = Pasivo + Patrimonio) | V3 |
-| **Utilidades_Retenidas** | **Nueva** | Z-score de Altman (Z1), usado para etiquetar los datos de entrenamiento (RNF-08) |
+| **Utilidades_Retenidas** | **Nueva** | Z-score de Altman (Z''EM), usado para etiquetar los datos de entrenamiento (RNF-08) |
+
+Los montos de resultado (Ingresos_Netos, EBIT y Utilidad_Neta) deben corresponder a los **últimos 12 meses** al cierre del período informado, porque el modelo se entrenó con estados financieros anuales de la CMF. Si se informara un solo trimestre, el ROA y la rotación de activos saldrían cuatro veces más bajos.
 
 ---
 
@@ -124,7 +126,7 @@ Una vez que el usuario presione el botón "Ejecutar Predicción", el motor de Ma
 **Validación v8:**
 El motor predictivo (Random Forest; Breiman, 2001) debe entrenarse desde cero con datasets sintéticos generados a partir de:
 (a) la distribución de empresas chilenas reales informadas a la CMF, para la clase solvente;
-(b) reglas axiomáticas de consistencia contable y los umbrales de la literatura, incluido el Z-score de Altman para empresas no cotizadas (Z1 < 1,23), para etiquetar la clase insolvente;
+(b) reglas axiomáticas de consistencia contable y los umbrales de la literatura, incluido el Z-score de Altman para mercados emergentes (Z''EM < 1,10), para etiquetar la clase insolvente;
 (c) sobremuestreo con Borderline-SMOTE (Han et al., 2005).
 
 Se deben generar y evaluar al menos cinco datasets con distintas proporciones de empresas insolventes/solventes: 50/50, 40/60, 30/70, 20/80 y 10/90 (cada par suma 100 %). Para cada uno se deben reportar Accuracy, F1-score y Recall de la clase insolvente sobre un conjunto de prueba separado, no usado en el entrenamiento. El modelo seleccionado debe alcanzar como mínimo 90 % en Accuracy y F1-score, con 95 % como meta ideal.

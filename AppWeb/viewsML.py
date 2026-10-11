@@ -6,116 +6,38 @@ import joblib
 MODELOS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'modelos')
 os.makedirs(MODELOS_DIR, exist_ok=True)
 
-# Modelo entrenado con quiebras reales (Taiwan Economic Journal), generado por
-# DatasetEntrenamientoML/entrenar_modelo_oficial.py. Es el que predice el
-# riesgo real en producción (RNF-08); calcular_score_compuesto más abajo
-# solo se usa para el panel de explicabilidad (RF-03), no para el score final.
+# Random Forest entrenado desde cero con datos sintéticos generados a partir de
+# empresas chilenas reales de la CMF (Requerimientos v8, RNF-08), por
+# DatasetSinteticoEntrenamientoML/paso3_entrenar_evaluar.py. Recibe las 8
+# variables de AppWeb/variables_modelo.py.
 MODELO_OFICIAL_DIR = os.path.join(os.path.dirname(__file__), 'modelo_oficial')
 _modelo_oficial_cache = {}
 
 
 def _cargar_modelo_oficial():
     if not _modelo_oficial_cache:
-        _modelo_oficial_cache['clf'] = joblib.load(os.path.join(MODELO_OFICIAL_DIR, 'modelo_riesgo.joblib'))
-        _modelo_oficial_cache['escalador'] = joblib.load(os.path.join(MODELO_OFICIAL_DIR, 'escalador_ratios.joblib'))
-        _modelo_oficial_cache['metricas'] = joblib.load(os.path.join(MODELO_OFICIAL_DIR, 'metricas.joblib'))
-    return _modelo_oficial_cache['clf'], _modelo_oficial_cache['escalador'], _modelo_oficial_cache['metricas']
-
-
-# Calibracion heuristica de escala: 3 de las 7 columnas del dataset de Taiwan
-# (cobertura_operacional, rentabilidad_activos, capital_trabajo_sobre_activos)
-# vienen pre-normalizadas 0-1 por los autores originales del dataset con una
-# formula desconocida (no es min-max sobre valores tipicos: la mediana de
-# 'rentabilidad_activos' es 0.81 con std de solo 0.04, y hasta las empresas
-# que SI quebraron tienen mediana 0.77 -- la escala completa 0-1 casi no se usa,
-# todo vive comprimido cerca de 1). Los ratios crudos que calcula Django
-# (ej. utilidad_neta/activo_total de una empresa real con perdidas, que puede
-# dar negativo) caen muy por fuera de ese rango angosto si se pasan tal cual,
-# y el arbol los enruta a hojas poco pobladas que no reflejan quiebra real.
-#
-# Como no existe forma de invertir exactamente la normalizacion original de
-# Taiwan (no publicaron la formula), se aproxima con una interpolacion lineal
-# por tramos usando 3 anclas por ratio: un valor crudo "sano", uno "en
-# problemas leves" y uno "en problemas severos", mapeados a la mediana de
-# empresas sanas, la mediana de empresas quebradas, y el percentil 25 de
-# empresas quebradas del propio dataset de Taiwan (calculado sobre
-# DatasetEntrenamientoML/data.csv). Es una aproximacion heuristica, no una
-# reconstruccion exacta -- documentado como limitacion conocida.
-CALIBRACION_ESCALA_TAIWAN = {
-    # ratio: ((raw_severo, raw_leve, raw_sano), (taiwan_p25_quebrada, taiwan_mediana_quebrada, taiwan_mediana_sana))
-    'rentabilidad_activos': ((-0.20, -0.05, 0.08), (0.7192, 0.7663, 0.8101)),
-    'capital_trabajo_sobre_activos': ((-0.30, -0.05, 0.10), (0.7099, 0.7529, 0.8162)),
-    'cobertura_operacional': ((-0.30, -0.05, 0.15), (0.3353, 0.3403, 0.3490)),
-}
-
-
-def _calibrar_a_escala_taiwan(ratios: dict) -> dict:
-    """Devuelve una copia de ratios con los 3 valores de escala-Taiwan
-    reemplazados por su calibración heurística (ver CALIBRACION_ESCALA_TAIWAN).
-    Los ratios sin calibración conocida (razon_corriente, prueba_acida,
-    endeudamiento_corto_plazo, solvencia_general) ya son escala cruda real
-    en ambos lados, así que no se tocan."""
-    calibrados = dict(ratios)
-    for clave, (raw_puntos, taiwan_puntos) in CALIBRACION_ESCALA_TAIWAN.items():
-        if clave in calibrados:
-            calibrados[clave] = float(np.interp(calibrados[clave], raw_puntos, taiwan_puntos))
-    return calibrados
+        _modelo_oficial_cache['clf'] = joblib.load(os.path.join(MODELO_OFICIAL_DIR, 'modelo_riesgo_v8.joblib'))
+        _modelo_oficial_cache['metricas'] = joblib.load(os.path.join(MODELO_OFICIAL_DIR, 'metricas_v8.joblib'))
+    return _modelo_oficial_cache['clf'], _modelo_oficial_cache['metricas']
 
 
 def obtener_metricas_modelo_oficial() -> dict:
-    """Métricas reales (accuracy/recall/f1) del modelo entrenado con quiebras
-    históricas reales, fijas para todas las predicciones (a diferencia de
-    obtener_metricas(), que reentrena por archivo con etiquetas sintéticas)."""
-    _, _, metricas = _cargar_modelo_oficial()
+    """Métricas fijas del modelo entrenado (RNF-08): las de la prueba sintética,
+    que es lo que exige el requerimiento, y las de la prueba con empresas
+    reales de la CMF sin datos de caja, que es la situación actual del sistema."""
+    _, metricas = _cargar_modelo_oficial()
+    sintetica = metricas['metricas_prueba_sintetica']
+    real = metricas['metricas_prueba_real_sin_caja']
     return {
-        'accuracy': metricas.get('accuracy'),
-        'recall': metricas.get('recall'),
-        'f1_score': metricas.get('f1_score'),
-        'total_empresas': metricas.get('total_empresas_entrenamiento'),
-        'umbral_clasificacion': metricas.get('umbral_clasificacion', 50),
+        'accuracy': round(sintetica['accuracy'] * 100, 1),
+        'recall': round(sintetica['recall_insolvente'] * 100, 1),
+        'f1_score': round(sintetica['f1'] * 100, 1),
+        'accuracy_real': round(real['accuracy'] * 100, 1),
+        'recall_real': round(real['recall_insolvente'] * 100, 1),
+        'f1_score_real': round(real['f1'] * 100, 1),
+        'proporcion_entrenamiento': metricas['proporcion_entrenamiento'],
+        'total_empresas': metricas['total_empresas_entrenamiento'],
     }
-
-
-def _score_razon_corriente(rc):
-    if rc <= 0.5: return 25
-    elif rc <= 1.0: return 20
-    elif rc <= 1.5: return 14
-    elif rc <= 2.0: return 8
-    return 3
-
-def _score_prueba_acida(pa):
-    if pa <= 0.5: return 20
-    elif pa <= 1.0: return 14
-    return 4
-
-def _score_endeudamiento(ecp):
-    if ecp >= 0.7: return 25
-    elif ecp >= 0.5: return 18
-    elif ecp >= 0.3: return 10
-    return 4
-
-def _score_solvencia(sg):
-    if sg <= 1.0: return 20
-    elif sg <= 1.5: return 14
-    elif sg <= 2.0: return 8
-    return 3
-
-def _score_cobertura(co):
-    if co <= -0.5: return 10
-    elif co < 0: return 7
-    elif co < 0.1: return 4
-    return 1
-
-
-def calcular_score_compuesto(ratios: dict) -> float:
-    score = (
-        _score_razon_corriente(ratios.get('razon_corriente', 1))
-        + _score_prueba_acida(ratios.get('prueba_acida', 1))
-        + _score_endeudamiento(ratios.get('endeudamiento_corto_plazo', 0.5))
-        + _score_solvencia(ratios.get('solvencia_general', 1))
-        + _score_cobertura(ratios.get('cobertura_operacional', 0))
-    )
-    return min(max(round(score, 1), 0), 100)
 
 
 # Sensibilidad del ajuste CAPM sobre la probabilidad de quiebra: con 0.5,
@@ -127,149 +49,202 @@ def calcular_score_compuesto(ratios: dict) -> float:
 SENSIBILIDAD_CAPM = 0.5
 
 
-def ajustar_riesgo_por_capm(probabilidad_base: float, beta_sector: float,
-                             sensibilidad: float = SENSIBILIDAD_CAPM) -> float:
-    """Pondera la probabilidad de quiebra que entrega el modelo de ML (entrenado
-    solo con ratios financieros reales) según el riesgo sistémico del sector,
-    sin inventar una columna 'Beta' en el entrenamiento (el dataset de quiebras
-    reales no trae información de industria/sector que respalde eso).
+def ajustar_riesgo_por_capm(probabilidad_base, beta_sector: float,
+                             sensibilidad: float = SENSIBILIDAD_CAPM):
+    """Pondera la probabilidad de insolvencia que entrega el modelo según el
+    riesgo sistemático del sector (RF-01). El dataset de entrenamiento no trae
+    el sector de cada empresa, por eso el Beta se aplica después del modelo.
 
     Beta = 1.0 (riesgo de mercado promedio) no cambia la probabilidad.
     Beta > 1.0 (sector más volátil) la sube; Beta < 1.0 la baja. El resultado
     se recorta a [0, 1] para seguir siendo una probabilidad válida.
     """
     factor = 1 + (beta_sector - 1) * sensibilidad
-    return min(max(probabilidad_base * factor, 0.0), 1.0)
+    return np.clip(np.asarray(probabilidad_base) * factor, 0.0, 1.0)
 
 
-def predecir_riesgo(ratios: dict, beta_sector: float = 1.0):
-    """Predicción real de riesgo de insolvencia: usa el modelo entrenado con
-    quiebras históricas reales (modelo_oficial) sobre los ratios financieros,
-    y pondera el resultado con el Beta del sector vía ajustar_riesgo_por_capm.
+def _vectores(lista_variables: list) -> np.ndarray:
+    """Matriz de entrada del modelo. V7 sin datos de caja toma el valor neutro
+    (mediana de las empresas solventes), para no empujar la predicción hacia
+    ninguna clase (RNF-10)."""
+    _, metricas = _cargar_modelo_oficial()
+    neutros = {'volatilidad_flujo_caja': metricas['volatilidad_neutra']}
+    return np.array([
+        [v[clave] if v[clave] is not None else neutros[clave] for clave in metricas['features_orden']]
+        for v in lista_variables
+    ], dtype=float)
 
-    Devuelve (puntaje_riesgo 0-100, etiqueta 'Bajo'/'Moderado'/'Crítico', color).
-    """
-    clf, escalador, metricas = _cargar_modelo_oficial()
-    orden = metricas['features_orden']
 
-    ratios_calibrados = _calibrar_a_escala_taiwan(ratios)
-    vector = np.array([[ratios_calibrados.get(clave, 0) for clave in orden]])
-    vector_escalado = escalador.transform(vector)
-    probabilidad_base = clf.predict_proba(vector_escalado)[0, 1]
+def predecir_probabilidades(lista_variables: list, beta_sector: float = 1.0) -> np.ndarray:
+    """Probabilidad de insolvencia (0-1), ajustada por CAPM, para varias empresas a la vez."""
+    clf, _ = _cargar_modelo_oficial()
+    probabilidad_base = clf.predict_proba(_vectores(lista_variables))[:, 1]
+    return ajustar_riesgo_por_capm(probabilidad_base, beta_sector)
 
-    probabilidad_ajustada = ajustar_riesgo_por_capm(probabilidad_base, beta_sector)
-    puntaje_riesgo = round(probabilidad_ajustada * 100, 1)
 
+def clasificar_puntaje(puntaje_riesgo: float):
     if puntaje_riesgo <= 35:
-        riesgo, color = 'Bajo', 'Verde'
+        return 'Bajo', 'Verde'
     elif puntaje_riesgo <= 70:
-        riesgo, color = 'Moderado', 'Amarillo'
-    else:
-        riesgo, color = 'Crítico', 'Rojo'
-
-    return puntaje_riesgo, riesgo, color
+        return 'Moderado', 'Amarillo'
+    return 'Crítico', 'Rojo'
 
 
-ANALISIS_REGISTRO = [
-    {
-        'key': 'razon_corriente',
+def predecir_riesgo(variables: dict, beta_sector: float = 1.0):
+    """Devuelve (puntaje_riesgo 0-100, etiqueta 'Bajo'/'Moderado'/'Crítico', color)."""
+    puntaje_riesgo = round(float(predecir_probabilidades([variables], beta_sector)[0]) * 100, 1)
+    return (puntaje_riesgo, *clasificar_puntaje(puntaje_riesgo))
+
+
+# Explicación y consejo por variable (RF-03) y por grupo (RF-05). Los umbrales
+# citados están en documentacion/fuentes_modelo_ml.md.
+EXPLICACIONES = {
+    'razon_corriente': {
         'label': 'Razón Corriente',
-        'score_fn': _score_razon_corriente,
-        'ideal': 3,
-        'max_puntaje': 25,
-        'format_val': lambda v: f'{v:.2f}x',
+        'formato': lambda v: f'{v:.2f}x',
         'explicacion': lambda v: (
-            f'Tus activos circulantes equivalen a {v:.2f} veces tus deudas a corto plazo. '
-            'Un valor inferior a 2.0 indica que podrías tener dificultades para cubrir tus obligaciones inmediatas.'
-        ),
-        'consejo': (
-            'Aumenta tu efectivo disponible, reduce cuentas por cobrar o renegocia plazos con proveedores '
-            'para mejorar tu liquidez corriente.'
+            f'Tu activo corriente cubre {v:.2f} veces tu pasivo corriente. Bajo 1,0 las deudas de corto plazo '
+            'superan a los recursos de corto plazo, y bajo 0,5 la capacidad de pago es baja (Riquelme, 2018).'
         ),
     },
-    {
-        'key': 'prueba_acida',
-        'label': 'Prueba Ácida',
-        'score_fn': _score_prueba_acida,
-        'ideal': 4,
-        'max_puntaje': 20,
-        'format_val': lambda v: f'{v:.2f}x',
+    'capital_trabajo_sobre_activos': {
+        'label': 'Capital de Trabajo sobre Activos',
+        'formato': lambda v: f'{v:.1%}',
         'explicacion': lambda v: (
-            f'Sin considerar inventarios, tus activos líquidos cubren {v:.2f} veces tus deudas a corto plazo. '
-            'Un valor menor a 1.0 indica dependencia de tus inventarios para pagar deudas.'
-        ),
-        'consejo': (
-            'Reduce tus inventarios de lenta rotación o convierte cuentas por cobrar en efectivo '
-            'para mejorar tu liquidez más exigente.'
+            f'Tu capital de trabajo equivale al {v:.1%} de tus activos totales. Un valor negativo indica que '
+            'las deudas de corto plazo superan a los activos corrientes (Altman, 1968).'
         ),
     },
-    {
-        'key': 'endeudamiento_corto_plazo',
-        'label': 'Endeudamiento C/P',
-        'score_fn': _score_endeudamiento,
-        'ideal': 4,
-        'max_puntaje': 25,
-        'format_val': lambda v: f'{v:.2f}',
+    'leverage_total': {
+        'label': 'Leverage Total',
+        'formato': lambda v: f'{v:.2f}x',
         'explicacion': lambda v: (
-            f'El {v:.1%} de tu pasivo total vence en el corto plazo. '
-            'Una concentración alta de deuda a corto plazo incrementa el riesgo de refinanciamiento.'
-        ),
-        'consejo': (
-            'Reestructura parte de tu deuda a largo plazo para aliviar la presión de pagos inmediatos '
-            'y mejorar tu perfil de vencimientos.'
+            f'Tus deudas equivalen a {v:.2f} veces tu patrimonio. Bajo 1,0 indica buena capacidad de pago y '
+            'sobre 5,0 es un endeudamiento alto (Riquelme, 2018). El valor máximo se asigna con patrimonio negativo.'
         ),
     },
-    {
-        'key': 'solvencia_general',
-        'label': 'Solvencia General',
-        'score_fn': _score_solvencia,
-        'ideal': 3,
-        'max_puntaje': 20,
-        'format_val': lambda v: f'{v:.2f}x',
+    'roa_operacional': {
+        'label': 'ROA Operacional',
+        'formato': lambda v: f'{v:.1%}',
         'explicacion': lambda v: (
-            f'Tus activos totales respaldan {v:.2f} veces tus deudas totales. '
-            'Un valor cercano a 1.0 indica que una caída en el valor de tus activos podría dejar sin respaldo a tus acreedores.'
-        ),
-        'consejo': (
-            'Aumenta tu patrimonio mediante capitalización de utilidades o aportes de socios, '
-            'y reduce tu dependencia de financiamiento externo.'
+            f'Tu resultado operacional (EBIT) equivale al {v:.1%} de tus activos. Un valor negativo indica que '
+            'la operación no genera rentabilidad sobre lo invertido (Altman, 1968).'
         ),
     },
-    {
-        'key': 'cobertura_operacional',
-        'label': 'Cobertura Operacional',
-        'score_fn': _score_cobertura,
-        'ideal': 1,
-        'max_puntaje': 10,
-        'format_val': lambda v: f'{v:.2f}x',
+    'margen_operacional': {
+        'label': 'Margen Operacional',
+        'formato': lambda v: f'{v:.1%}',
         'explicacion': lambda v: (
-            f'Tu utilidad neta representa {v:.2f} veces tus deudas a corto plazo. '
-            'Un valor negativo significa que tus operaciones no generan suficiente flujo para cubrir obligaciones.'
-        ),
-        'consejo': (
-            'Revisa tu estructura de costos y gastos operacionales. Busca mejorar márgenes '
-            'o aumentar ingresos para generar flujo operacional positivo sostenido.'
+            f'Por cada $100 de ventas te quedan ${v * 100:.1f} de resultado operacional. Un margen bajo 8% refleja '
+            'baja capacidad de generar resultados (Riquelme, 2018).'
         ),
     },
-]
+    'rotacion_activos': {
+        'label': 'Rotación de Activos',
+        'formato': lambda v: f'{v:.2f}x',
+        'explicacion': lambda v: (
+            f'Tus activos generan {v:.2f} veces su valor en ventas al año. Una rotación baja indica que los '
+            'activos producen pocos ingresos (Altman, 1968).'
+        ),
+    },
+    'volatilidad_flujo_caja': {
+        'label': 'Volatilidad del Flujo de Caja',
+        'formato': lambda v: f'{v:.2f}',
+        'explicacion': lambda v: (
+            f'La variación diaria de tu flujo de caja equivale a {v:.2f} veces tu ingreso promedio diario. '
+            'Más volatilidad aumenta la probabilidad de quiebra (Ringeling, 2004).'
+        ),
+    },
+    'var_pib': {
+        'label': 'Crecimiento del PIB',
+        'formato': lambda v: f'{v:.1f}%',
+        'explicacion': lambda v: (
+            f'La economía chilena creció {v:.1f}% respecto del mismo trimestre del año anterior. '
+            'La probabilidad de quiebra baja con el crecimiento económico (Zurita, 2008).'
+        ),
+    },
+    'tasa_captacion_uf': {
+        'label': 'Tasa de Interés (UF)',
+        'formato': lambda v: f'{v:.2f}%',
+        'explicacion': lambda v: (
+            f'La tasa de captación en UF a 90 días-1 año fue {v:.2f}% anual. '
+            'La probabilidad de quiebra aumenta con la tasa de interés (Zurita, 2008).'
+        ),
+    },
+    'tipo_cambio_real': {
+        'label': 'Tipo de Cambio Real',
+        'formato': lambda v: f'{v:.1f}',
+        'explicacion': lambda v: (
+            f'El índice de tipo de cambio real fue {v:.1f} (1986 = 100). '
+            'La probabilidad de quiebra aumenta con el tipo de cambio real (Zurita, 2008).'
+        ),
+    },
+}
+
+GRUPO_VARIABLE = {
+    'razon_corriente': 'liquidez', 'capital_trabajo_sobre_activos': 'liquidez',
+    'leverage_total': 'endeudamiento',
+    'roa_operacional': 'rentabilidad', 'margen_operacional': 'rentabilidad',
+    'rotacion_activos': 'eficiencia',
+    'volatilidad_flujo_caja': 'flujo de caja',
+    'var_pib': 'contexto económico', 'tasa_captacion_uf': 'contexto económico', 'tipo_cambio_real': 'contexto económico',
+}
+
+CONSEJOS_POR_GRUPO = {
+    'liquidez': (
+        'Acelera la cobranza, reduce inventario de lenta rotación o renegocia plazos con proveedores '
+        'para que tus activos de corto plazo cubran tus deudas de corto plazo.'
+    ),
+    'endeudamiento': (
+        'Reestructura deuda hacia el largo plazo y fortalece el patrimonio con capitalización de utilidades '
+        'o aportes de socios para reducir la dependencia de financiamiento externo.'
+    ),
+    'rentabilidad': (
+        'Revisa tu estructura de costos y gastos operacionales, y tu política de precios, '
+        'para recuperar un resultado operacional positivo y sostenido.'
+    ),
+    'eficiencia': (
+        'Evalúa vender o arrendar activos que generan pocos ingresos y enfoca la inversión '
+        'en los que impulsan las ventas.'
+    ),
+    'flujo de caja': (
+        'Suaviza tus flujos diarios: planifica pagos grandes, negocia cobros parciales '
+        'y mantén un fondo de reserva para los días de menor venta.'
+    ),
+    'contexto económico': (
+        'El entorno económico no depende de tu empresa: evita endeudarte a tasa variable, '
+        'cubre tu exposición al tipo de cambio y mantén liquidez extra mientras dure el escenario adverso.'
+    ),
+}
 
 
-def analizar_contribucion_riesgo(ratios: dict) -> list:
+def analizar_contribucion_riesgo(variables: dict, beta_sector: float = 1.0) -> list:
+    """Las 3 variables que más suben el riesgo (RF-03): para cada una, cuánto
+    baja la probabilidad de insolvencia si toma el valor de una empresa
+    solvente típica (mediana de las empresas solventes de la CMF), dejando las
+    demás iguales. V7 sin datos de caja no se considera."""
+    _, metricas = _cargar_modelo_oficial()
+    medianas = metricas['medianas_solventes']
+    claves = [c for c in metricas['features_orden'] if variables.get(c) is not None]
+
+    escenarios = [variables] + [{**variables, clave: medianas[clave]} for clave in claves]
+    probabilidades = predecir_probabilidades(escenarios, beta_sector)
+
     resultados = []
-    for regla in ANALISIS_REGISTRO:
-        v = ratios.get(regla['key'], 0)
-        puntaje = regla['score_fn'](v)
-        impacto = puntaje - regla['ideal']
+    for clave, probabilidad_como_sana in zip(claves, probabilidades[1:]):
+        impacto = round(float(probabilidades[0] - probabilidad_como_sana) * 100, 1)
+        if impacto <= 0:
+            continue
+        texto, valor = EXPLICACIONES[clave], variables[clave]
         resultados.append({
-            'key': regla['key'],
-            'label': regla['label'],
-            'valor': regla['format_val'](v),
-            'valor_raw': round(v, 4),
-            'puntaje': puntaje,
-            'max_puntaje': regla.get('max_puntaje', 25),
+            'key': clave,
+            'label': texto['label'],
+            'grupo': GRUPO_VARIABLE[clave],
+            'valor': texto['formato'](valor),
+            'valor_raw': round(valor, 4),
             'impacto': impacto,
-            'explicacion': regla['explicacion'](v),
-            'consejo': regla['consejo'],
+            'explicacion': texto['explicacion'](valor),
+            'consejo': CONSEJOS_POR_GRUPO[GRUPO_VARIABLE[clave]],
         })
     return sorted(resultados, key=lambda r: r['impacto'], reverse=True)[:3]
 

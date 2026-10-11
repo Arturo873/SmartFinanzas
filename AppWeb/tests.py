@@ -15,9 +15,10 @@ from .variables_modelo import (
     calcular_variables_financieras,
     calcular_variables_modelo,
     calcular_volatilidad_flujo_caja,
-    calcular_z1_altman,
+    calcular_zem_altman,
 )
 from .views import COLUMNAS_PLANTILLA
+from .viewsML import analizar_contribucion_riesgo, obtener_metricas_modelo_oficial, predecir_riesgo
 
 FILA_SANA = {
     'Id_Empresa': 'EMP-1', 'Periodo': '2024-Q4',
@@ -55,9 +56,9 @@ class VariablesModeloTests(TestCase):
         ingresos = [100.0] * MINIMO_CIERRES_VOLATILIDAD
         self.assertGreater(calcular_volatilidad_flujo_caja(flujos, ingresos), 0)
 
-    def test_z1_altman(self):
-        # 0.717*0.25 + 0.847*0.2 + 3.107*0.09 + 0.420*1.5 + 0.998*1.2
-        self.assertAlmostEqual(calcular_z1_altman(FILA_SANA), 2.45588, places=4)
+    def test_zem_altman(self):
+        # 3.25 + 6.56*0.25 + 3.26*0.2 + 6.72*0.09 + 1.05*1.5
+        self.assertAlmostEqual(calcular_zem_altman(FILA_SANA), 7.7218, places=4)
 
     def test_variables_modelo_en_orden_y_completas(self):
         macro = {'var_pib': 2.0, 'tasa_captacion_uf': 1.5, 'tipo_cambio_real': 100.0}
@@ -81,6 +82,38 @@ class DatosMacroTests(TestCase):
         contexto = obtener_contexto_macro('2099-Q1')
         self.assertFalse(contexto['es_periodo_exacto'])
         self.assertLess(contexto['trimestre_usado'], '2099-Q1')
+
+
+MACRO_2024_Q4 = {'var_pib': 2.0, 'tasa_captacion_uf': 1.5, 'tipo_cambio_real': 100.0}
+# Pasivos mayores que activos y pérdida operacional: insolvente según Z''EM.
+FILA_EN_CRISIS = {
+    **FILA_SANA, 'Activo_Circulante': 200.0, 'Pasivo_Circulante': 700.0,
+    'Pasivo_Total': 1100.0, 'Patrimonio_Neto': -100.0, 'EBIT': -150.0,
+    'Utilidades_Retenidas': -400.0, 'Ingresos_Netos': 600.0,
+}
+
+
+class ModeloV8Tests(TestCase):
+    def test_puntaje_en_rango_y_empresa_en_crisis_mas_riesgosa(self):
+        sana = calcular_variables_modelo(FILA_SANA, MACRO_2024_Q4)
+        crisis = calcular_variables_modelo(FILA_EN_CRISIS, MACRO_2024_Q4)
+        puntaje_sana, _, _ = predecir_riesgo(sana)
+        puntaje_crisis, _, color_crisis = predecir_riesgo(crisis)
+        self.assertTrue(0 <= puntaje_sana <= 100 and 0 <= puntaje_crisis <= 100)
+        self.assertGreater(puntaje_crisis, puntaje_sana)
+        self.assertEqual(color_crisis, 'Rojo')
+
+    def test_explicabilidad_muestra_hasta_3_variables_que_suben_el_riesgo(self):
+        crisis = calcular_variables_modelo(FILA_EN_CRISIS, MACRO_2024_Q4)
+        factores = analizar_contribucion_riesgo(crisis)
+        self.assertTrue(1 <= len(factores) <= 3)
+        self.assertTrue(all(f['impacto'] > 0 for f in factores))
+        self.assertNotIn('volatilidad_flujo_caja', [f['key'] for f in factores])
+
+    def test_metricas_cumplen_meta_minima_de_rnf08(self):
+        metricas = obtener_metricas_modelo_oficial()
+        self.assertGreaterEqual(metricas['accuracy'], 90)
+        self.assertGreaterEqual(metricas['f1_score'], 90)
 
 
 class CargaYPrediccionTests(TestCase):

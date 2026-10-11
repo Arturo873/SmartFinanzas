@@ -31,36 +31,37 @@ Fecha de revisión: 2026-10-11.
 | V7 Volatilidad del flujo | Desv. estándar del flujo de caja diario | R3 p. 75: los modelos contables no capturan la volatilidad; "un aumento en la volatilidad incrementa la probabilidad de quiebra" y es "una importante variable omitida en los modelos de Altman (1968) y Ohlson (1980)". R3 p. 78: es el componente clave del modelo Black-Scholes-Merton. R3 p. 87 (Moody's): volatilidad de activos 21 % → prob. de quiebra 0,03 %; 39 % → 1,97 %. También R5 sección 2.1. | **Sin umbral contable en las fuentes.** Dirección confirmada: más volatilidad = más riesgo. Adaptar la volatilidad de activos (mercado) a la del flujo de caja es el aporte propio del proyecto |
 | V8 Contexto macro | Variación PIB, tasa de interés | R5 p. 7 y 29: la variación del PIB, la tasa de interés y el **tipo de cambio real** explican la tasa agregada de quiebras. La probabilidad de quiebra baja con el crecimiento y sube con la tasa y el tipo de cambio. R5 p. 24: PIB trimestral a 4 trimestres; tasa de captación UF de 30 a 365 días. | Dirección del efecto; **efecto individual pequeño** (ver hallazgo 3) |
 
-### Regla combinada: Z-score de Altman para empresas que no cotizan (Z1)
+### Regla de etiquetado: Z-score de Altman para mercados emergentes (Z''EM)
 
-R2 p. 53-54 (citando a Altman y Hotchkiss, 2006):
+R2 pp. 54-55: Altman (2000) eliminó X5 (Ventas / AT) del modelo para empresas no manufactureras, "para minimizar el efecto potencial de la industria"; Altman, Iwanicz-Drozdowska, Laitinen y Suvas (2017) agregaron la constante 3,25 para mercados emergentes:
 
-`Z1 = 0,717·X1 + 0,847·X2 + 3,107·X3 + 0,420·X4 + 0,998·X5`
+`Z''EM = 3,25 + 6,56·X1 + 3,26·X2 + 6,72·X3 + 1,05·X4`
 
 - X1 = Capital de trabajo / AT → **V2**
-- X2 = Utilidades retenidas / AT → **no está entre las 8 variables**
+- X2 = Utilidades retenidas / AT → **no es variable del modelo** (columna `Utilidades_Retenidas` de la plantilla)
 - X3 = EBIT / AT → **V4**
 - X4 = Patrimonio libro / Pasivo total → **1 / V3**
-- X5 = Ventas / AT → **V6**
 
-Cortes: **Z1 < 1,23 alta probabilidad de insolvencia**; 1,23-2,90 zona gris; > 2,90 sin problemas.
+Cortes: **Z''EM < 1,10 alta probabilidad de insolvencia**; 1,10-2,60 zona gris; > 2,60 sin problemas.
 
-Cuatro de las cinco variables de Z1 ya están en el modelo, así que Z1 sirve como regla axiomática para etiquetar los datos sintéticos, con fuente citable.
+**Etiqueta usada (aprobada 2026-10-11):** insolvente si Z''EM < 1,10 **o** patrimonio ≤ 0 (pasivos mayores que activos; R2 p. 116).
+
+**Por qué no Z1 (Altman y Hotchkiss, 2006, R2 pp. 53-54):** aplicado a 5.277 empresa-año reales de la CMF, Z1 < 1,23 marca al **40 %** como insolventes, porque su X5 castiga la baja rotación de activos (mediana 0,22 en las marcadas contra 0,62 en el resto) típica de sociedades de inversión, eléctricas e inmobiliarias. Z''EM marca al **4,5 %** y detecta en zona de insolvencia a 2 de las 3 empresas con quiebra real del Boletín Concursal (la tercera solo tiene datos hasta 2014).
 
 ## 3. Hallazgos importantes para el equipo
 
 1. **La quiebra legal es muy rara en Chile.** R5 p. 30: la probabilidad promedio de quiebra en su muestra fue de solo 0,64 %. Esto confirma por qué no hay suficientes quiebras reales y justifica los datos sintéticos.
 2. **Al Miro le falta una variable macro.** R5 usa tres variables: PIB, tasa de interés y **tipo de cambio real**. El Miro solo menciona PIB y tasa.
 3. **El efecto macro es pequeño por empresa.** R5 p. 29: si todas las variables macro empeoran una desviación estándar, la probabilidad de quiebra de una empresa sube solo 0,33 %. V8 sirve como contexto, pero no va a decidir la predicción por sí sola. Conviene decirlo en el informe.
-4. **Faltan umbrales para V6 y V7.** Ninguna fuente da un valor de corte para ellas. V6 se usa dentro de Z1; V7 se simulará, lo cual se declara como limitación.
-5. **Z1 requiere utilidades retenidas.** El equipo debe decidir entre agregar "Utilidades retenidas" a la plantilla (cambia RF-08) o usar Z1 con X2 = 0 y declararlo.
+4. **Faltan umbrales para V6 y V7.** Ninguna fuente da un valor de corte para ellas, y ninguna de las dos entra en la regla de etiquetado (Z''EM). V7 se simulará, lo cual se declara como limitación.
+5. **Z''EM requiere utilidades retenidas.** Resuelto: se agregó la columna `Utilidades_Retenidas` a la plantilla (RF-08).
 
 ## 4. Fuentes de datos (del Miro, estado verificado)
 
 | Fuente | Uso | Estado |
 |---|---|---|
-| CMF (FECU / IFRS) | Empresas sanas (clase 0) | Ya disponible: `chile_cmf_boletin/chile_dataset_ratios.csv` (821 empresas, 3 quiebras) |
-| Superir (Boletín Concursal) | Etiquetas de quiebra legal | Pendiente: cruzar por RUT con la CMF |
+| CMF (FECU / IFRS) | Base real del entrenamiento | `DatasetSinteticoEntrenamientoML/cmf_empresas_reales.csv`: 5.277 empresa-año de 678 empresas (2012-2024), 236 insolventes según la regla Z''EM |
+| Superir (Boletín Concursal) | Quiebras legales | Cruzado con la CMF por RUT: solo 3 empresas. Se usan como chequeo ilustrativo, no para entrenar |
 | MINVU (Registro de Contratistas) | Balances de PYMES | No se usará por ahora (PDFs escaneados) |
 | Banco Central de Chile | V8 (PIB, tasa, tipo de cambio) | **Disponible** (2009-Q1 a 2026-Q3), desde las tablas públicas de la BDE, sin registro. Se guarda en `AppWeb/datos_macro/indicadores_macro.csv` y se actualiza con `python manage.py actualizar_datos_macro`. Series: (1) "Indicadores macroeconómicos trimestrales, referencia 2018", fila *PIB, volumen (miles de millones $ encadenado)*, variación % respecto del mismo trimestre del año anterior; (2) "Tasas y flujo de captación promedio del sistema financiero, reajustables", fila *90 días a 1 año - tasa* (Zurita usa captación UF de 30 a 365 días; el BDE no publica el tramo UF de 30-89 días); (3) "Índice de tipo de cambio real - TCR (índice promedio 1986=100)" |
 | ERP Facto / Nstock | V7 y validación final | Privada, para la validación posterior que pide el Acta |
@@ -68,6 +69,6 @@ Cuatro de las cinco variables de Z1 ya están en el modelo, así que Z1 sirve co
 ## 5. Pendientes de esta fase
 
 - [x] Tesis de Ringeling (R3) descargada y leída: confirma lo que el Miro le atribuye sobre la volatilidad (V7).
-- [ ] Decidir si se agrega el tipo de cambio real a V8 (hallazgo 2).
-- [ ] Decidir el manejo de X2 en Z1 (hallazgo 5).
+- [x] Tipo de cambio real agregado a V8 (hallazgo 2).
+- [x] X2 resuelto con la columna `Utilidades_Retenidas`; etiquetado con Z''EM en vez de Z1.
 - [x] Series del Banco Central descargadas sin registro (tablas públicas de la BDE).
