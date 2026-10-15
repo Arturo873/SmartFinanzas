@@ -157,3 +157,14 @@ class CargaYPrediccionTests(TestCase):
         self.assertEqual(claves, CLAVES_MODELO)
         self.assertEqual(respuesta.context['contexto_macro']['trimestre_usado'], '2024-Q4')
         self.assertContains(respuesta, 'Variables del Modelo Predictivo')
+
+    def test_prediccion_se_habilita_solo_con_la_carga(self):
+        self._subir([FILA_SANA])
+        respuesta = self.client.get(reverse('home'))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertNotContains(respuesta, 'CAPM')
+
+        self.client.force_login(self.dueno)
+        respuesta = self.client.get(reverse('home'))
+        self.assertContains(respuesta, 'EJECUTAR PREDICCIÓN')
+        self.assertNotContains(respuesta, 'CAPM')

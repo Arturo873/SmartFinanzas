@@ -20,12 +20,6 @@ from .viewsML import (
     obtener_recomendacion_general,
     ruta_cache_modelo,
 )
-from .fetch_capm_data import (
-    get_tasa_libre_riesgo,
-    get_prima_riesgo_mercado,
-    get_sectores_beta,
-    DEFAULT_SECTORES_BETA,
-)
 from .datos_macro import obtener_contexto_macro
 from .variables_modelo import VARIABLES_MODELO, calcular_variables_modelo
 from .models import Empresa, HistorialPrediccion, PerfilUsuario, EstadoCarga
@@ -95,7 +89,6 @@ def home(request: HttpRequest):
     estado = EstadoCarga.actual()
     contexto = {
         'paso_1': bool(estado.ruta_csv and os.path.exists(estado.ruta_csv)),
-        'paso_2': bool(estado.beta_capm is not None),
         'rol': perfil.rol if perfil else None,
     }
     return render(request, 'AppWeb/index.html', contexto)
@@ -190,50 +183,6 @@ def carga_datos(request: HttpRequest):
 
     return render(request, 'AppWeb/cargaDatos.html', _contexto_carga())
 
-@rol_requerido(PerfilUsuario.ROL_CONTADOR)
-def calculo_capm(request: HttpRequest):
-    try:
-        tasa_libre_riesgo, fuente_rf = get_tasa_libre_riesgo()
-        prima_riesgo_mercado, fuente_erp = get_prima_riesgo_mercado()
-        sectores_beta, fuente_betas = get_sectores_beta()
-    except Exception:
-        tasa_libre_riesgo, fuente_rf = 4.5, 'Valor por defecto'
-        prima_riesgo_mercado, fuente_erp = 6.0, 'Valor por defecto'
-        sectores_beta, fuente_betas = DEFAULT_SECTORES_BETA, 'Valor por defecto'
-        messages.warning(request, 'No se pudieron obtener datos actualizados desde internet. Se usaron los valores asignados por defecto.')
-
-    contexto = {
-        'sectores': sectores_beta.keys(),
-        'fuente_rf': fuente_rf,
-        'fuente_erp': fuente_erp,
-        'fuente_betas': fuente_betas,
-        'tasa_libre_riesgo': tasa_libre_riesgo,
-        'prima_riesgo_mercado': prima_riesgo_mercado,
-        'beta_configurado': EstadoCarga.actual().beta_capm,
-    }
-
-    if request.method == 'POST':
-        sector_seleccionado = request.POST.get('sector')
-
-        if sector_seleccionado in sectores_beta:
-            beta_mercado = sectores_beta[sector_seleccionado]
-
-            costo_patrimonio = tasa_libre_riesgo + (beta_mercado * prima_riesgo_mercado)
-
-            estado = EstadoCarga.actual()
-            estado.beta_capm = beta_mercado
-            estado.save()
-
-            contexto['sector_seleccionado'] = sector_seleccionado
-            contexto['beta'] = beta_mercado
-            contexto['costo_patrimonio'] = round(costo_patrimonio, 2)
-
-            messages.success(request, f'Se ha asignado el coeficiente Beta de {beta_mercado} para el sector {sector_seleccionado}.')
-        else:
-            messages.error(request, 'Por favor, seleccione un sector industrial válido.')
-
-    return render(request, 'AppWeb/capm.html', contexto)
-
 def calcular_ratios_liquidez(row: dict):
     activo_circulante = row.get('Activo_Circulante', 0)
     pasivo_circulante = row.get('Pasivo_Circulante',0)
@@ -264,13 +213,13 @@ def calcular_ratios_liquidez(row: dict):
     return {k: round(v, 4) for k, v in ratios.items()}
 
 
-def calcular_tendencia_periodos(df: pd.DataFrame, beta_sector: float) -> list:
+def calcular_tendencia_periodos(df: pd.DataFrame) -> list:
     contextos_macro = {periodo: obtener_contexto_macro(periodo) for periodo in df['Periodo'].unique()}
     variables_por_fila = [
         calcular_variables_modelo(fila, contextos_macro[fila['Periodo']])
         for fila in df.to_dict('records')
     ]
-    scores_por_fila = predecir_probabilidades(variables_por_fila, beta_sector) * 100
+    scores_por_fila = predecir_probabilidades(variables_por_fila) * 100
 
     df_scores = df.assign(_score=scores_por_fila)
     promedio = df_scores.groupby('Periodo')['_score'].mean().round(1)
@@ -315,13 +264,11 @@ def ejecutar_prediccion(request: HttpRequest):
                 for clave, nombre, grupo in VARIABLES_MODELO
             ]
 
-            beta_sector = estado.beta_capm if estado.beta_capm is not None else 0.85
-
-            puntaje_riesgo, riesgo, color = predecir_riesgo(variables_modelo, beta_sector)
+            puntaje_riesgo, riesgo, color = predecir_riesgo(variables_modelo)
 
             metricas_modelo = obtener_metricas_modelo_oficial()
 
-            top_3_riesgo = analizar_contribucion_riesgo(variables_modelo, beta_sector)
+            top_3_riesgo = analizar_contribucion_riesgo(variables_modelo)
             recomendacion_general = obtener_recomendacion_general(color)
 
             empresa, _ = Empresa.objects.get_or_create(
@@ -339,7 +286,7 @@ def ejecutar_prediccion(request: HttpRequest):
                 for h in HistorialPrediccion.objects.filter(empresa=empresa).order_by('fecha_prediccion')
             ]
 
-            tendencia_periodos = calcular_tendencia_periodos(df, beta_sector)
+            tendencia_periodos = calcular_tendencia_periodos(df)
 
             messages.success(request, f'Análisis predictivo completado para {empresa_id}.')
 
@@ -348,7 +295,6 @@ def ejecutar_prediccion(request: HttpRequest):
                 'variables_modelo': tabla_variables_modelo,
                 'contexto_macro': contexto_macro,
                 'periodo': row['Periodo'],
-                'beta': beta_sector,
                 'score': puntaje_riesgo,
                 'riesgo': riesgo,
                 'color': color,
@@ -402,10 +348,9 @@ def limpiar_datos(request: HttpRequest):
                 os.remove(ruta_cache)
             os.remove(estado.ruta_csv)
         estado.ruta_csv = None
-        estado.beta_capm = None
         estado.save()
         request.session.pop('ultimo_resultado', None)
-        messages.success(request, 'Datos y configuración eliminados correctamente.')
+        messages.success(request, 'Datos eliminados correctamente.')
     return redirect('home')
 
 

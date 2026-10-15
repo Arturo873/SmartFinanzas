@@ -79,37 +79,21 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Paso 2: Configurar CAPM -->
-            <div class="col-md-4 mb-4">
-                <div class="card h-100 shadow-sm border-info {% if not paso_1 %}modulo-bloqueado{% else %}modulo-activo{% endif %}">
-                    <div class="card-body">
-                        <h5 class="card-title text-info">
-                            <span class="paso-label {% if paso_2 %}completado{% elif paso_1 %}pendiente{% endif %}">
-                                {% if paso_2 %}&#10003;{% elif paso_1 %}2{% else %}2{% endif %}
-                            </span>
-                            Configurar CAPM
-                        </h5>
-                        <p class="card-text">Define tu sector comercial y asocia el Beta para tu entorno macroeconómico.</p>
-                        <a href="{% url 'capm' %}" class="btn btn-outline-info {% if not paso_1 %}disabled{% endif %}">Ir a CAPM</a>
-                    </div>
-                </div>
-            </div>
             {% endif %}
 
             {% if rol == 'Dueño' %}
-            <!-- Paso 3: Motor Predictivo -->
+            <!-- Paso 2: Motor Predictivo -->
             <div class="col-md-4 mb-4">
-                <div class="card h-100 shadow-sm border-warning {% if not paso_1 or not paso_2 %}modulo-bloqueado{% else %}modulo-activo{% endif %}">
+                <div class="card h-100 shadow-sm border-warning {% if not paso_1 %}modulo-bloqueado{% else %}modulo-activo{% endif %}">
                     <div class="card-body">
                         <h5 class="card-title text-warning">
-                            <span class="paso-label {% if paso_1 and paso_2 %}pendiente{% endif %}">
-                                {% if paso_1 and paso_2 %}3{% else %}3{% endif %}
+                            <span class="paso-label {% if paso_1 %}pendiente{% endif %}">
+                                2
                             </span>
                             Motor Predictivo
                         </h5>
                         <p class="card-text">Analiza liquidez y proyecta alertas (Semáforo de solvencia).</p>
-                        {% if paso_1 and paso_2 %}
+                        {% if paso_1 %}
                         <form action="{% url 'prediccion' %}" method="POST">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-warning fw-bold w-100">EJECUTAR PREDICCIÓN</button>
@@ -125,7 +109,7 @@
 
         {% if rol == 'Dueño' and not paso_1 %}
         <div class="alert alert-info">
-            El Contador aún no ha cargado los datos financieros ni configurado el CAPM. Contáctalo antes de ejecutar la predicción.
+            El Contador aún no ha cargado los datos financieros. Contáctalo antes de ejecutar la predicción.
         </div>
         {% endif %}
 

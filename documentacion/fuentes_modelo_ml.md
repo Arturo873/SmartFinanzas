@@ -55,6 +55,7 @@ Cortes: **Z''EM < 1,10 alta probabilidad de insolvencia**; 1,10-2,60 zona gris; 
 3. **El efecto macro es pequeño por empresa.** R5 p. 29: si todas las variables macro empeoran una desviación estándar, la probabilidad de quiebra de una empresa sube solo 0,33 %. V8 sirve como contexto, pero no va a decidir la predicción por sí sola. Conviene decirlo en el informe.
 4. **Faltan umbrales para V6 y V7.** Ninguna fuente da un valor de corte para ellas, y ninguna de las dos entra en la regla de etiquetado (Z''EM). V7 se simulará, lo cual se declara como limitación.
 5. **Z''EM requiere utilidades retenidas.** Resuelto: se agregó la columna `Utilidades_Retenidas` a la plantilla (RF-08).
+6. **Cita equivocada de V7 en la tabla de Reglas Axiomáticas del Miro** (revisado 2026-10-12). Esa tabla dice "Adaptación de Merton en Riquelme", mientras que la tabla de las 8 variables dice "Adaptación de Merton en Ringeling (2004)". La correcta es **Ringeling (R3)**: es quien desarrolla el modelo de Merton / Black-Scholes y la volatilidad como variable omitida (R3 pp. 75, 78 y 87). Riquelme (R2) solo lo menciona al resumir el trabajo de Ringeling (p. 17 del PDF: "un Modelo basado en la valoración de opciones de Merton y Black & Scholes") y no trabaja la volatilidad como predictor. En el informe se cita Ringeling (2004).
 
 ## 4. Fuentes de datos (del Miro, estado verificado)
 

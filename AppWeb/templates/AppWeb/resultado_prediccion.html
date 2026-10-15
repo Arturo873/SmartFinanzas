@@ -32,12 +32,6 @@
                             </div>
                         </div>
                     </div>
-                    <p class="text-muted mt-2 mb-0">
-                        Beta CAPM: <strong>{{ beta }}</strong>
-                        <span data-bs-toggle="tooltip"
-                              title="Mide la sensibilidad de la empresa frente al riesgo de mercado; se usa como factor de ajuste en el modelo de riesgo."
-                              style="cursor:help;">&#9432;</span>
-                    </p>
                     <p class="text-muted small mb-0">
                         Contexto macro (Banco Central): trimestre <strong>{{ contexto_macro.trimestre_usado }}</strong>
                         {% if not contexto_macro.es_periodo_exacto %}

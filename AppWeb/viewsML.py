@@ -41,29 +41,6 @@ def obtener_metricas_modelo_oficial() -> dict:
     }
 
 
-# Sensibilidad del ajuste CAPM sobre la probabilidad de quiebra: con 0.5,
-# un sector con beta 1.20 (ej. Tecnología) sube el score hasta un 10%
-# relativo, y un beta 0.75 (ej. Telecomunicaciones) lo baja hasta un 12.5%
-# relativo. Los betas del sistema (DEFAULT_SECTORES_BETA en fetch_capm_data.py)
-# van de 0.75 a 1.20, así que este valor mantiene el ajuste como un overlay
-# moderado, no un factor que domine sobre el resultado del modelo.
-SENSIBILIDAD_CAPM = 0.5
-
-
-def ajustar_riesgo_por_capm(probabilidad_base, beta_sector: float,
-                             sensibilidad: float = SENSIBILIDAD_CAPM):
-    """Pondera la probabilidad de insolvencia que entrega el modelo según el
-    riesgo sistemático del sector (RF-01). El dataset de entrenamiento no trae
-    el sector de cada empresa, por eso el Beta se aplica después del modelo.
-
-    Beta = 1.0 (riesgo de mercado promedio) no cambia la probabilidad.
-    Beta > 1.0 (sector más volátil) la sube; Beta < 1.0 la baja. El resultado
-    se recorta a [0, 1] para seguir siendo una probabilidad válida.
-    """
-    factor = 1 + (beta_sector - 1) * sensibilidad
-    return np.clip(np.asarray(probabilidad_base) * factor, 0.0, 1.0)
-
-
 def _vectores(lista_variables: list) -> pd.DataFrame:
     """Matriz de entrada del modelo. V7 sin datos de caja toma el valor neutro
     (mediana de las empresas solventes), para no empujar la predicción hacia
@@ -77,11 +54,10 @@ def _vectores(lista_variables: list) -> pd.DataFrame:
     )
 
 
-def predecir_probabilidades(lista_variables: list, beta_sector: float = 1.0) -> np.ndarray:
-    """Probabilidad de insolvencia (0-1), ajustada por CAPM, para varias empresas a la vez."""
+def predecir_probabilidades(lista_variables: list) -> np.ndarray:
+    """Probabilidad de insolvencia (0-1) para varias empresas a la vez."""
     clf, _ = _cargar_modelo_oficial()
-    probabilidad_base = clf.predict_proba(_vectores(lista_variables))[:, 1]
-    return ajustar_riesgo_por_capm(probabilidad_base, beta_sector)
+    return clf.predict_proba(_vectores(lista_variables))[:, 1]
 
 
 def clasificar_puntaje(puntaje_riesgo: float):
@@ -92,9 +68,9 @@ def clasificar_puntaje(puntaje_riesgo: float):
     return 'Crítico', 'Rojo'
 
 
-def predecir_riesgo(variables: dict, beta_sector: float = 1.0):
+def predecir_riesgo(variables: dict):
     """Devuelve (puntaje_riesgo 0-100, etiqueta 'Bajo'/'Moderado'/'Crítico', color)."""
-    puntaje_riesgo = round(float(predecir_probabilidades([variables], beta_sector)[0]) * 100, 1)
+    puntaje_riesgo = round(float(predecir_probabilidades([variables])[0]) * 100, 1)
     return (puntaje_riesgo, *clasificar_puntaje(puntaje_riesgo))
 
 
@@ -220,7 +196,7 @@ CONSEJOS_POR_GRUPO = {
 }
 
 
-def analizar_contribucion_riesgo(variables: dict, beta_sector: float = 1.0) -> list:
+def analizar_contribucion_riesgo(variables: dict) -> list:
     """Las 3 variables que más suben el riesgo (RF-03): para cada una, cuánto
     baja la probabilidad de insolvencia si toma el valor de una empresa
     solvente típica (mediana de las empresas solventes de la CMF), dejando las
@@ -230,7 +206,7 @@ def analizar_contribucion_riesgo(variables: dict, beta_sector: float = 1.0) -> l
     claves = [c for c in metricas['features_orden'] if variables.get(c) is not None]
 
     escenarios = [variables] + [{**variables, clave: medianas[clave]} for clave in claves]
-    probabilidades = predecir_probabilidades(escenarios, beta_sector)
+    probabilidades = predecir_probabilidades(escenarios)
 
     resultados = []
     for clave, probabilidad_como_sana in zip(claves, probabilidades[1:]):

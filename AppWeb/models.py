@@ -16,10 +16,9 @@ class PerfilUsuario(models.Model):
         return f"{self.user.username} ({self.rol})"
 
 class EstadoCarga(models.Model):
-    """Fila única con los datos que el Contador cargó (CSV + Beta CAPM),
+    """Fila única con los datos que el Contador cargó (CSV),
     visibles para el Dueño al ejecutar la predicción, sin depender de la sesión de cada usuario."""
     ruta_csv = models.CharField(max_length=500, null=True, blank=True)
-    beta_capm = models.FloatField(null=True, blank=True)
     actualizado_en = models.DateTimeField(auto_now=True)
 
     @classmethod
@@ -27,17 +26,9 @@ class EstadoCarga(models.Model):
         estado, _ = cls.objects.get_or_create(pk=1)
         return estado
 
-class SectorIndustrial(models.Model):
-    nombre = models.CharField(max_length=100, unique=True)
-    beta = models.FloatField(help_text="Coeficiente Beta del sector según modelo CAPM")
-
-    def __str__(self):
-        return f"{self.nombre} (Beta: {self.beta})"
-
 class Empresa(models.Model):
     rut = models.CharField(max_length=12, unique=True, help_text="RUT de la empresa")
     nombre = models.CharField(max_length=200)
-    sector = models.ForeignKey(SectorIndustrial, on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
         return self.nombre
