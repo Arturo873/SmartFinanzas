@@ -127,7 +127,6 @@ El modelo detecta a 2 de las 3. La tercera solo tiene datos hasta 2014, probable
 3. **V7 es simulada** y el sistema todavía no la calcula, porque no existe el módulo de caja.
 4. **Las empresas de la CMF son grandes** (sociedades anónimas), no PYMES como Nstock.
 5. **El dato de la plantilla debe ser de 12 meses.** El modelo se entrenó con flujos anuales, así que Ingresos_Netos, EBIT y Utilidad_Neta deben corresponder a los últimos 12 meses.
-6. **El Beta CAPM se aplica después del modelo** (RF-01), porque los datos de la CMF no traen un sector comparable.
 
 ## 5. Cómo reproducirlo
 

@@ -11,8 +11,8 @@ Los detalles están en los documentos enlazados; este archivo es el índice.
 | Documento | Contenido |
 |---|---|
 | [fuentes_modelo_ml.md](fuentes_modelo_ml.md) | Fuentes verificadas, umbrales por variable, regla de etiquetado y fuentes de datos |
-| [requerimientos_v8_propuesta.md](requerimientos_v8_propuesta.md) | Cada requerimiento modificado: texto v7, texto v8 y fundamento |
-| [Requerimientos_funcionales_y_no_funcionales_v8.xlsx](Requerimientos_funcionales_y_no_funcionales_v8.xlsx) | Documento oficial de requerimientos v8 (celdas cambiadas en verde) |
+| [Requerimientos_funcionales_y_no_funcionales_v9.xlsx](Requerimientos_funcionales_y_no_funcionales_v9.xlsx) | Documento oficial de requerimientos vigente (v9, sin CAPM) |
+| [Requerimientos_funcionales_y_no_funcionales_v8.xlsx](Requerimientos_funcionales_y_no_funcionales_v8.xlsx) | Requerimientos v8 (celdas cambiadas en verde); reemplazado por la v9 |
 | [resultados_entrenamiento_v8.md](resultados_entrenamiento_v8.md) | Metodología del entrenamiento, resultados, limitaciones y reproducción |
 | [guia_seccion_metodologia_informe.md](guia_seccion_metodologia_informe.md) | Esqueleto con el contenido de la metodología para el informe final y la defensa |
 | [busqueda_mejora_f1.md](busqueda_mejora_f1.md) | Historia anterior: intentos de mejorar el modelo de Taiwán (reemplazado) |
@@ -66,7 +66,7 @@ Los tres caminos evaluados fueron: (1) mantener los 7 ratios y cambiar solo el e
 **Requerimientos cambiados:** RF-01, RF-03, RF-05, RF-08, RF-09, RF-10, RNF-05, RNF-08, RNF-09 y RNF-10. El resto no cambia.
 
 **Archivos**
-- [requerimientos_v8_propuesta.md](requerimientos_v8_propuesta.md) (creado)
+- `requerimientos_v8_propuesta.md` (creado; eliminado el 2026-10-15, ver [Exclusión del CAPM](#exclusión-del-capm-2026-10-15))
 - [Requerimientos_funcionales_y_no_funcionales_v8.xlsx](Requerimientos_funcionales_y_no_funcionales_v8.xlsx) (13 celdas modificadas)
 
 **Decisiones**
@@ -77,7 +77,7 @@ Los tres caminos evaluados fueron: (1) mantener los 7 ratios y cambiar solo el e
 | **Mínimo de 20 cierres de caja** para calcular V7; con menos, se usa el valor neutro | Usuario, 2026-10-11 |
 | **Proporciones escritas como insolventes/solventes y sumando 100 %:** 50/50, 40/60, 30/70, 20/80 y 10/90. "80/100" del Acta se interpretó como 20/80 (conviene confirmarlo con el profesor) | Usuario, 2026-10-11 |
 | Declarar en el informe que el 90-95 % se mide sobre datos sintéticos | Usuario, 2026-10-11 |
-| Mantener separados el **Beta CAPM** (riesgo del sector) y el **contexto macro** (V8) | Usuario, 2026-10-11 |
+| Mantener separados el **Beta CAPM** (riesgo del sector) y el **contexto macro** (V8). *Revertida el 2026-10-15: el CAPM se eliminó (ver [Exclusión del CAPM](#exclusión-del-capm-2026-10-15)).* | Usuario, 2026-10-11 |
 
 ## Fase 3: Código del sistema (2026-10-11)
 
@@ -164,6 +164,37 @@ Los archivos siguen en el computador local y se pueden regenerar con los scripts
 - Pruebas automáticas: 15, todas pasan.
 
 **Commit:** `e12d983`
+
+## Exclusión del CAPM (2026-10-15)
+
+**Origen:** reunión con la profesora asesora Carolina San Martín (Área de Administración y Negocios). Se acordó quitar el CAPM del núcleo del modelo predictivo de insolvencia, porque el CAPM corresponde a la **tasa exigida por un inversionista** y no es un ratio de solvencia.
+
+**Qué se hizo**
+
+| Cambio | Archivo |
+|---|---|
+| Se quitó la selección de sector y el ajuste por Beta después del modelo. El flujo queda en 2 pasos: el Contador carga el archivo y el Dueño ejecuta la predicción | `AppWeb/views.py`, plantillas, migración `0003_quitar_capm` (commit `f30230b`) |
+| RF-01 se reescribió: solo pide el contexto macroeconómico (PIB, tasa de captación UF y tipo de cambio real). RNF-09 ya no menciona el CAPM | [Requerimientos_funcionales_y_no_funcionales_v9.xlsx](Requerimientos_funcionales_y_no_funcionales_v9.xlsx) |
+| En las dos tablas del Miro, V8 pasó de "Riesgo Sistémico (CAPM)" a **"Contexto Macroeconómico"**, con los 3 indicadores de Zurita | Tablero Miro `uXjVEdfTbh4=` |
+| Se quitó la mención del Beta CAPM de la metodología y de las limitaciones | [guia_seccion_metodologia_informe.md](guia_seccion_metodologia_informe.md) |
+| Se eliminó `requerimientos_v8_propuesta.md`. Era el borrador del paso de v7 a v8: su contenido ya está en el Excel oficial y su RF-01 seguía basado en el CAPM. Se puede recuperar desde git (commit `b250245`) | — |
+
+**Decisiones**
+
+| Decisión | Aprobó |
+|---|---|
+| Excluir el CAPM del modelo y de los requerimientos | Profesora Carolina San Martín y equipo, 2026-10-15 |
+| V8 mantiene los **3 indicadores** de Zurita (no se reduce solo al PIB): ya están implementados y entrenados, y así se conserva el respaldo bibliográfico completo | Usuario, 2026-10-15 |
+
+El modelo v8 no cambia: el Beta se aplicaba después de la predicción, así que no era una de sus variables.
+
+**Revisión posterior (mismo día)**
+
+| Hallazgo | Decisión | Archivo |
+|---|---|---|
+| El Random Forest recibe **10 columnas**: V8 entra como 3 indicadores separados. La tabla de RF-10 mostraba 10 filas y el top 3 de RF-03 podía listar indicadores de V8 por separado | **8 variables = 10 entradas.** Se aclara en RF-01 y RF-10, y en pantalla V8 se muestra y evalúa como una sola variable (sus 3 indicadores cambian juntos al calcular el impacto). El modelo no se reentrena | `AppWeb/variables_modelo.py`, `AppWeb/viewsML.py`, `AppWeb/views.py`, `resultado_prediccion.html`, `AppWeb/tests.py` (17 pruebas, todas pasan), Excel v9, Miro |
+| RF-03 hablaba de "mayor peso estadístico" sin definirlo ni decir qué pasa con V8 | La validación describe el método real: impacto si la variable toma el valor típico de una empresa solvente; en V8 cambian sus 3 indicadores a la vez | Excel v9, [guia_seccion_metodologia_informe.md](guia_seccion_metodologia_informe.md) |
+| RNF-08 no decía que el 90 % se mide sobre la prueba sintética | Se agrega "sobre esa prueba sintética" y el reporte aparte con el 20 % de empresas reales de la CMF (F1 = 69,7 %) | Excel v9 |
 
 ## Pendientes
 

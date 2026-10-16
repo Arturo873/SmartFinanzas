@@ -305,7 +305,9 @@
                                     <td class="ps-3">{{ variable.nombre }}</td>
                                     <td class="text-capitalize">{{ variable.grupo }}</td>
                                     <td class="text-end pe-3 fw-semibold">
-                                        {% if variable.valor is None %}
+                                        {% if variable.detalle %}
+                                        {{ variable.detalle }}
+                                        {% elif variable.valor is None %}
                                         <span class="text-muted fw-normal">Sin cierres de caja suficientes (valor neutro)</span>
                                         {% else %}
                                         {{ variable.valor|format_decimal:2 }}

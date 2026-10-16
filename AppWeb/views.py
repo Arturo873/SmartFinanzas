@@ -19,9 +19,10 @@ from .viewsML import (
     analizar_contribucion_riesgo,
     obtener_recomendacion_general,
     ruta_cache_modelo,
+    tabla_variables_modelo,
 )
 from .datos_macro import obtener_contexto_macro
-from .variables_modelo import VARIABLES_MODELO, calcular_variables_modelo
+from .variables_modelo import calcular_variables_modelo
 from .models import Empresa, HistorialPrediccion, PerfilUsuario, EstadoCarga
 from .decorators import rol_requerido
 
@@ -259,10 +260,7 @@ def ejecutar_prediccion(request: HttpRequest):
             # implementado.
             contexto_macro = obtener_contexto_macro(row['Periodo'])
             variables_modelo = calcular_variables_modelo(row.to_dict(), contexto_macro)
-            tabla_variables_modelo = [
-                {'clave': clave, 'nombre': nombre, 'grupo': grupo, 'valor': variables_modelo[clave]}
-                for clave, nombre, grupo in VARIABLES_MODELO
-            ]
+            filas_variables_modelo = tabla_variables_modelo(variables_modelo)
 
             puntaje_riesgo, riesgo, color = predecir_riesgo(variables_modelo)
 
@@ -292,7 +290,7 @@ def ejecutar_prediccion(request: HttpRequest):
 
             contexto = {
                 'ratios': ratios_empresa,
-                'variables_modelo': tabla_variables_modelo,
+                'variables_modelo': filas_variables_modelo,
                 'contexto_macro': contexto_macro,
                 'periodo': row['Periodo'],
                 'score': puntaje_riesgo,

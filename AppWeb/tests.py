@@ -9,7 +9,9 @@ from django.urls import reverse
 from .datos_macro import _encabezado_a_trimestre, obtener_contexto_macro
 from .models import EstadoCarga, PerfilUsuario
 from .variables_modelo import (
+    CLAVE_V8,
     CLAVES_MODELO,
+    INDICADORES_V8,
     LEVERAGE_MAXIMO,
     MINIMO_CIERRES_VOLATILIDAD,
     calcular_variables_financieras,
@@ -110,6 +112,13 @@ class ModeloV8Tests(TestCase):
         self.assertTrue(all(f['impacto'] > 0 for f in factores))
         self.assertNotIn('volatilidad_flujo_caja', [f['key'] for f in factores])
 
+    def test_explicabilidad_trata_v8_como_una_sola_variable(self):
+        # Escenario de recesión para que V8 suba el riesgo.
+        recesion = {'var_pib': -5.0, 'tasa_captacion_uf': 6.0, 'tipo_cambio_real': 120.0}
+        crisis = calcular_variables_modelo(FILA_EN_CRISIS, recesion)
+        claves = [f['key'] for f in analizar_contribucion_riesgo(crisis)]
+        self.assertFalse(set(claves) & set(INDICADORES_V8))
+
     def test_metricas_cumplen_meta_minima_de_rnf08(self):
         metricas = obtener_metricas_modelo_oficial()
         self.assertGreaterEqual(metricas['accuracy'], 90)
@@ -154,7 +163,10 @@ class CargaYPrediccionTests(TestCase):
         respuesta = self.client.post(reverse('prediccion'), {'empresa_id': 'EMP-1'})
         self.assertEqual(respuesta.status_code, 200)
         claves = [v['clave'] for v in respuesta.context['variables_modelo']]
-        self.assertEqual(claves, CLAVES_MODELO)
+        self.assertEqual(len(claves), 8)
+        self.assertEqual(claves[:7], [c for c in CLAVES_MODELO if c not in INDICADORES_V8])
+        self.assertEqual(claves[7], CLAVE_V8)
+        self.assertContains(respuesta, '% · Tasa UF ')
         self.assertEqual(respuesta.context['contexto_macro']['trimestre_usado'], '2024-Q4')
         self.assertContains(respuesta, 'Variables del Modelo Predictivo')
 

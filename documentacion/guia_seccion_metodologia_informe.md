@@ -52,7 +52,9 @@ RNF-08 indica que "los detalles metodológicos [...] se documentan en el **marco
 **Puntos clave a desarrollar:**
 - **V7 es el aporte propio del proyecto.** Ringeling dice que la volatilidad es "una importante variable omitida en los modelos de Altman (1968) y Ohlson (1980)". El proyecto la adapta desde la volatilidad de los activos (mercado) a la del flujo de caja de una PYME.
 - **V8 viene de Zurita:** la probabilidad de quiebra baja con el crecimiento y sube con la tasa de interés y el tipo de cambio real. Hay que aclarar que su efecto individual es pequeño (+0,33 % ante un deterioro de una desviación estándar).
-- **Beta CAPM (RF-01):** es distinto de V8. El Beta mide el riesgo del **sector** y se aplica después del modelo. V8 es el **contexto económico** y entra al modelo.
+- **8 variables = 10 entradas:** V8 es una sola variable, pero se mide con 3 indicadores, y el Random Forest recibe cada uno como una columna. En la explicabilidad (RF-03) y en la tabla (RF-10) los 3 se muestran juntos como V8.
+- **Cómo se elige el top 3 de RF-03:** no se usa la importancia global del Random Forest (es la misma para todas las empresas). Para cada empresa se calcula cuánto bajaría su probabilidad de insolvencia si una variable tomara el valor típico de una empresa solvente (mediana de las solventes de la CMF), dejando las demás iguales. En V8 se cambian sus 3 indicadores a la vez, así que su impacto es uno solo.
+- **Sin CAPM:** el modelo no usa el Beta CAPM. En reunión con la profesora asesora Carolina San Martín (Área de Administración y Negocios) se acordó excluirlo, porque el CAPM entrega la **tasa de retorno exigida por un inversionista** y no es un ratio de solvencia. El riesgo sistémico queda cubierto solo por V8 (contexto económico).
 
 ## 3. Fundamentos matemáticos
 
@@ -123,6 +125,8 @@ Conviene adelantarse a las preguntas del profesor:
 - **"¿Por qué 98,7 % y no la cifra real?"** Las dos se reportan. El 98,7 % mide al modelo con datos generados desde las mismas reglas, así que es optimista. El 69,7 % mide con empresas reales nunca vistas, y es la cifra honesta.
 - **"¿No es circular etiquetar con Altman y después predecir?"** Sí, en parte, y se declara. El modelo aprende a reconocer la zona de riesgo de Altman a partir de 8 variables, de las cuales 4 no están en Z''EM. Sin quiebras reales suficientes, es la alternativa con respaldo bibliográfico.
 - **"¿Por qué no comparar con el 46,8 % del modelo anterior?"** Porque miden cosas distintas: antes se medía contra quiebras legales de Taiwán y ahora contra la zona de riesgo de Altman en Chile.
+- **"¿Son 8 o 10 variables?"** Son 8 variables. V8 (contexto macroeconómico) se mide con 3 indicadores de Zurita (2008), así que el modelo recibe 10 entradas numéricas. Se mantienen separados para no inventar un índice sin respaldo bibliográfico, y ante el usuario se muestran como una sola variable.
+- **"¿Por qué no ajustan por sector con el CAPM?"** Porque el CAPM calcula la rentabilidad que exige un inversionista, no la capacidad de la empresa de pagar sus deudas. Así se acordó con la profesora asesora Carolina San Martín. El riesgo de la economía se incluye con V8 (PIB, tasa de interés y tipo de cambio real, según Zurita, 2008).
 
 ## 7. Limitaciones y trabajo futuro
 
@@ -131,7 +135,6 @@ Conviene adelantarse a las preguntas del profesor:
 2. V7 es simulada, y el módulo de caja (RF-19 a RF-22) aún no existe.
 3. Las empresas de la CMF son grandes, no PYMES como Nstock.
 4. Los datos de la plantilla deben ser de los últimos 12 meses, porque el modelo se entrenó con estados anuales.
-5. El Beta CAPM se aplica después del modelo.
 
 **Trabajo futuro:**
 1. Validación con los datos de Nstock (segunda etapa del Acta).

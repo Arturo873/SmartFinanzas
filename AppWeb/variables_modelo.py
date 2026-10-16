@@ -43,6 +43,15 @@ VARIABLES_MODELO = [
 
 CLAVES_MODELO = [clave for clave, _, _ in VARIABLES_MODELO]
 
+# V8 es una sola variable (contexto macroeconómico) medida con los 3
+# indicadores de Zurita (2008). El Random Forest recibe cada indicador como
+# una entrada propia: 8 variables = 10 entradas. Ante el usuario (RF-03,
+# RF-10) los 3 se muestran juntos como V8.
+INDICADORES_V8 = ('var_pib', 'tasa_captacion_uf', 'tipo_cambio_real')
+CLAVE_V8 = 'contexto_macroeconomico'
+NOMBRE_V8 = 'Contexto Macroeconómico'
+GRUPO_V8 = 'contexto económico'
+
 
 def _dividir(numerador, denominador):
     return numerador / denominador if denominador > 0 else None
@@ -119,11 +128,11 @@ def calcular_zem_altman(fila: dict) -> float:
 
 
 def calcular_variables_modelo(fila: dict, contexto_macro: dict, volatilidad_flujo_caja=None) -> dict:
-    """Las 8 variables (V8 se compone de 3 indicadores) en el orden de CLAVES_MODELO."""
+    """Las 10 entradas del modelo (8 variables; V8 son 3 indicadores) en el orden de CLAVES_MODELO."""
     variables = calcular_variables_financieras(fila)
     variables['volatilidad_flujo_caja'] = (
         volatilidad_flujo_caja if volatilidad_flujo_caja is not None else VOLATILIDAD_NEUTRA
     )
-    for clave in ('var_pib', 'tasa_captacion_uf', 'tipo_cambio_real'):
+    for clave in INDICADORES_V8:
         variables[clave] = contexto_macro[clave]
     return {clave: variables[clave] for clave in CLAVES_MODELO}

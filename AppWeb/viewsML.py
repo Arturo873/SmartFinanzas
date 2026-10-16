@@ -4,13 +4,15 @@ import numpy as np
 import pandas as pd
 import joblib
 
+from .variables_modelo import CLAVE_V8, GRUPO_V8, INDICADORES_V8, NOMBRE_V8, VARIABLES_MODELO
+
 MODELOS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'modelos')
 os.makedirs(MODELOS_DIR, exist_ok=True)
 
 # Random Forest entrenado desde cero con datos sintéticos generados a partir de
 # empresas chilenas reales de la CMF (Requerimientos v8, RNF-08), por
 # DatasetSinteticoEntrenamientoML/paso3_entrenar_evaluar.py. Recibe las 8
-# variables de AppWeb/variables_modelo.py.
+# variables de AppWeb/variables_modelo.py como 10 entradas (V8 son 3 indicadores).
 MODELO_OFICIAL_DIR = os.path.join(os.path.dirname(__file__), 'modelo_oficial')
 _modelo_oficial_cache = {}
 
@@ -133,28 +135,17 @@ EXPLICACIONES = {
             'Más volatilidad aumenta la probabilidad de quiebra (Ringeling, 2004).'
         ),
     },
-    'var_pib': {
-        'label': 'Crecimiento del PIB',
-        'formato': lambda v: f'{v:.1f}%',
-        'explicacion': lambda v: (
-            f'La economía chilena creció {v:.1f}% respecto del mismo trimestre del año anterior. '
-            'La probabilidad de quiebra baja con el crecimiento económico (Zurita, 2008).'
+    # V8: sus 3 indicadores se explican juntos, como una sola variable.
+    CLAVE_V8: {
+        'label': NOMBRE_V8,
+        'formato': lambda v: (
+            f"PIB {v['var_pib']:.1f}% · Tasa UF {v['tasa_captacion_uf']:.2f}% · TCR {v['tipo_cambio_real']:.1f}"
         ),
-    },
-    'tasa_captacion_uf': {
-        'label': 'Tasa de Interés (UF)',
-        'formato': lambda v: f'{v:.2f}%',
         'explicacion': lambda v: (
-            f'La tasa de captación en UF a 90 días-1 año fue {v:.2f}% anual. '
-            'La probabilidad de quiebra aumenta con la tasa de interés (Zurita, 2008).'
-        ),
-    },
-    'tipo_cambio_real': {
-        'label': 'Tipo de Cambio Real',
-        'formato': lambda v: f'{v:.1f}',
-        'explicacion': lambda v: (
-            f'El índice de tipo de cambio real fue {v:.1f} (1986 = 100). '
-            'La probabilidad de quiebra aumenta con el tipo de cambio real (Zurita, 2008).'
+            f"Respecto del mismo trimestre del año anterior la economía chilena creció {v['var_pib']:.1f}%, "
+            f"la tasa de captación en UF a 90 días-1 año fue {v['tasa_captacion_uf']:.2f}% anual y el índice "
+            f"de tipo de cambio real fue {v['tipo_cambio_real']:.1f} (1986 = 100). La probabilidad de quiebra "
+            'baja con el crecimiento y sube con la tasa de interés y el tipo de cambio real (Zurita, 2008).'
         ),
     },
 }
@@ -165,7 +156,7 @@ GRUPO_VARIABLE = {
     'roa_operacional': 'rentabilidad', 'margen_operacional': 'rentabilidad',
     'rotacion_activos': 'eficiencia',
     'volatilidad_flujo_caja': 'flujo de caja',
-    'var_pib': 'contexto económico', 'tasa_captacion_uf': 'contexto económico', 'tipo_cambio_real': 'contexto económico',
+    CLAVE_V8: GRUPO_V8,
 }
 
 CONSEJOS_POR_GRUPO = {
@@ -196,30 +187,51 @@ CONSEJOS_POR_GRUPO = {
 }
 
 
+def tabla_variables_modelo(variables: dict) -> list:
+    """Las 8 variables para la tabla de RF-10, con V8 en una sola fila."""
+    filas = [
+        {'clave': clave, 'nombre': nombre, 'grupo': grupo, 'valor': variables[clave]}
+        for clave, nombre, grupo in VARIABLES_MODELO if clave not in INDICADORES_V8
+    ]
+    filas.append({
+        'clave': CLAVE_V8, 'nombre': NOMBRE_V8, 'grupo': GRUPO_V8,
+        'detalle': EXPLICACIONES[CLAVE_V8]['formato'](variables),
+    })
+    return filas
+
+
 def analizar_contribucion_riesgo(variables: dict) -> list:
     """Las 3 variables que más suben el riesgo (RF-03): para cada una, cuánto
     baja la probabilidad de insolvencia si toma el valor de una empresa
     solvente típica (mediana de las empresas solventes de la CMF), dejando las
-    demás iguales. V7 sin datos de caja no se considera."""
+    demás iguales. V8 se evalúa como una sola variable, cambiando sus 3
+    indicadores a la vez. V7 sin datos de caja no se considera."""
     _, metricas = _cargar_modelo_oficial()
     medianas = metricas['medianas_solventes']
-    claves = [c for c in metricas['features_orden'] if variables.get(c) is not None]
+    claves = [
+        c for c in metricas['features_orden']
+        if variables.get(c) is not None and c not in INDICADORES_V8
+    ]
+    entradas_por_variable = {clave: (clave,) for clave in claves}
+    entradas_por_variable[CLAVE_V8] = INDICADORES_V8
 
-    escenarios = [variables] + [{**variables, clave: medianas[clave]} for clave in claves]
+    escenarios = [variables] + [
+        {**variables, **{e: medianas[e] for e in entradas}} for entradas in entradas_por_variable.values()
+    ]
     probabilidades = predecir_probabilidades(escenarios)
 
     resultados = []
-    for clave, probabilidad_como_sana in zip(claves, probabilidades[1:]):
+    for (clave, entradas), probabilidad_como_sana in zip(entradas_por_variable.items(), probabilidades[1:]):
         impacto = round(float(probabilidades[0] - probabilidad_como_sana) * 100, 1)
         if impacto <= 0:
             continue
-        texto, valor = EXPLICACIONES[clave], variables[clave]
+        texto = EXPLICACIONES[clave]
+        valor = variables[clave] if clave in variables else {e: variables[e] for e in entradas}
         resultados.append({
             'key': clave,
             'label': texto['label'],
             'grupo': GRUPO_VARIABLE[clave],
             'valor': texto['formato'](valor),
-            'valor_raw': round(valor, 4),
             'impacto': impacto,
             'explicacion': texto['explicacion'](valor),
             'consejo': CONSEJOS_POR_GRUPO[GRUPO_VARIABLE[clave]],
