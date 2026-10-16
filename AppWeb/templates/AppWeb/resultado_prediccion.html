@@ -243,15 +243,6 @@
                                         {% if f1_score is not None %}{{ f1_score }}%{% else %}<span class="text-muted">—</span>{% endif %}
                                     </td>
                                 </tr>
-                                <tr>
-                                    <td class="ps-3">
-                                        F1-Score con empresas reales
-                                        <span data-bs-toggle="tooltip"
-                                              title="F1 sobre empresas chilenas de la CMF que el modelo nunca vio al entrenar, sin datos de caja (V7 neutra). Accuracy: {{ accuracy_real }}%, Recall: {{ recall_real }}%."
-                                              style="cursor:help;">&#9432;</span>
-                                    </td>
-                                    <td class="text-end pe-3 fw-semibold">{{ f1_score_real }}%</td>
-                                </tr>
                                 <!--
                                 <tr>
                                     <td class="ps-3">Empresas analizadas</td>

@@ -5,36 +5,30 @@ import joblib
 
 from .variables_modelo import VARIABLES_MODELO
 
-# Random Forest entrenado desde cero con datos sintéticos generados a partir de
-# empresas chilenas reales de la CMF (Requerimientos v10, RNF-08), por
-# DatasetSinteticoEntrenamientoML/paso3_entrenar_evaluar.py. Recibe las 7
-# variables de AppWeb/variables_modelo.py.
+# Random Forest entrenado desde cero solo con empresas chilenas reales de la
+# CMF (RNF-08), por DatasetSinteticoEntrenamientoML/paso3_entrenar_evaluar.py.
+# Recibe las 7 variables de AppWeb/variables_modelo.py.
 MODELO_OFICIAL_DIR = os.path.join(os.path.dirname(__file__), 'modelo_oficial')
 _modelo_oficial_cache = {}
 
 
 def _cargar_modelo_oficial():
     if not _modelo_oficial_cache:
-        _modelo_oficial_cache['clf'] = joblib.load(os.path.join(MODELO_OFICIAL_DIR, 'modelo_riesgo_v10.joblib'))
-        _modelo_oficial_cache['metricas'] = joblib.load(os.path.join(MODELO_OFICIAL_DIR, 'metricas_v10.joblib'))
+        _modelo_oficial_cache['clf'] = joblib.load(os.path.join(MODELO_OFICIAL_DIR, 'modelo_riesgo_v11.joblib'))
+        _modelo_oficial_cache['metricas'] = joblib.load(os.path.join(MODELO_OFICIAL_DIR, 'metricas_v11.joblib'))
     return _modelo_oficial_cache['clf'], _modelo_oficial_cache['metricas']
 
 
 def obtener_metricas_modelo_oficial() -> dict:
-    """Métricas fijas del modelo entrenado (RNF-08): las de la prueba sintética,
-    que es lo que exige el requerimiento, y las de la prueba con empresas
-    reales de la CMF sin datos de caja, que es la situación actual del sistema."""
+    """Métricas fijas del modelo entrenado (RNF-08), medidas en empresas reales
+    de la CMF que el modelo nunca vio y sin datos de caja (V7 neutra), que es
+    la situación actual del sistema."""
     _, metricas = _cargar_modelo_oficial()
-    sintetica = metricas['metricas_prueba_sintetica']
     real = metricas['metricas_prueba_real_sin_caja']
     return {
-        'accuracy': round(sintetica['accuracy'] * 100, 1),
-        'recall': round(sintetica['recall_insolvente'] * 100, 1),
-        'f1_score': round(sintetica['f1'] * 100, 1),
-        'accuracy_real': round(real['accuracy'] * 100, 1),
-        'recall_real': round(real['recall_insolvente'] * 100, 1),
-        'f1_score_real': round(real['f1'] * 100, 1),
-        'proporcion_entrenamiento': metricas['proporcion_entrenamiento'],
+        'accuracy': round(real['accuracy'] * 100, 1),
+        'recall': round(real['recall_insolvente'] * 100, 1),
+        'f1_score': round(real['f1'] * 100, 1),
         'total_empresas': metricas['total_empresas_entrenamiento'],
     }
 

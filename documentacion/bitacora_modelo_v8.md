@@ -3,7 +3,7 @@
 Registro de cómo se pasó del modelo de Taiwán al modelo v8 de 8 variables, en orden. Para cada fase indica qué se hizo, qué archivos se crearon o cambiaron, las decisiones tomadas y los hallazgos.
 Los detalles están en los documentos enlazados; este archivo es el índice.
 
-**Periodo:** 5 al 11 de octubre de 2026.
+**Periodo:** 5 al 16 de octubre de 2026 (al final se agregan los modelos v10 y v11; el v11, vigente, se entrena solo con datos reales).
 **Punto de partida:** modelo Random Forest entrenado con quiebras reales de Taiwán, F1 = 46,8 % (lejos del 80 % que pedía RNF-08 v7). Ver [busqueda_mejora_f1.md](busqueda_mejora_f1.md).
 
 ## Documentos relacionados
@@ -14,7 +14,7 @@ Los detalles están en los documentos enlazados; este archivo es el índice.
 | [Requerimientos_funcionales_y_no_funcionales_v10.xlsx](Requerimientos_funcionales_y_no_funcionales_v10.xlsx) | Documento oficial de requerimientos vigente (v10, 7 variables, sin RF-01) |
 | [Requerimientos_funcionales_y_no_funcionales_v9.xlsx](Requerimientos_funcionales_y_no_funcionales_v9.xlsx) | Requerimientos v9 (sin CAPM, 8 variables); reemplazado por la v10 |
 | [Requerimientos_funcionales_y_no_funcionales_v8.xlsx](Requerimientos_funcionales_y_no_funcionales_v8.xlsx) | Requerimientos v8 (celdas cambiadas en verde); reemplazado por la v9 |
-| [resultados_entrenamiento_v10.md](resultados_entrenamiento_v10.md) | Metodología del entrenamiento, resultados, limitaciones y reproducción |
+| [resultados_entrenamiento_v11.md](resultados_entrenamiento_v11.md) | Metodología del entrenamiento, resultados, limitaciones y reproducción |
 | [guia_seccion_metodologia_informe.md](guia_seccion_metodologia_informe.md) | Esqueleto con el contenido de la metodología para el informe final y la defensa |
 | [busqueda_mejora_f1.md](busqueda_mejora_f1.md) | Historia anterior: intentos de mejorar el modelo de Taiwán (reemplazado) |
 | [correo_profesor_rnf08.md](correo_profesor_rnf08.md) | Correo al profesor sobre la meta de RNF-08 |
@@ -137,7 +137,7 @@ Los archivos siguen en el computador local y se pueden regenerar con los scripts
 | `AppWeb/views.py` | La predicción y la tendencia por período usan el modelo v8 |
 | `AppWeb/templates/AppWeb/resultado_prediccion.html`, `resultado_prediccion_pdf.html` | Panel de explicabilidad en "puntos de riesgo" y F1 con empresas reales |
 | `requirements.txt` | Se agrega `imbalanced-learn` (lo usan los scripts de entrenamiento) |
-| [resultados_entrenamiento_v10.md](resultados_entrenamiento_v10.md) | Metodología y resultados completos |
+| [resultados_entrenamiento_v11.md](resultados_entrenamiento_v11.md) | Metodología y resultados completos |
 
 **Decisiones**
 
@@ -212,7 +212,7 @@ El modelo v8 no cambia: el Beta se aplicaba después de la predicción, así que
 | Reentrenamiento con los mismos datos de la CMF (5.277 empresa-año) y la misma semilla | `paso3_entrenar_evaluar.py`, `AppWeb/modelo_oficial/modelo_riesgo_v10.joblib`, `metricas_v10.joblib` (reemplazan a los archivos v8) |
 | Se quitan `requests`, `beautifulsoup4` y `lxml`, que solo usaban el CAPM y los datos macro | `requirements.txt` |
 | Pruebas actualizadas: 13, todas pasan | `AppWeb/tests.py` |
-| Resultados, guía de metodología y fuentes actualizados | [resultados_entrenamiento_v10.md](resultados_entrenamiento_v10.md), [guia_seccion_metodologia_informe.md](guia_seccion_metodologia_informe.md), [fuentes_modelo_ml.md](fuentes_modelo_ml.md) |
+| Resultados, guía de metodología y fuentes actualizados | [resultados_entrenamiento_v11.md](resultados_entrenamiento_v11.md), [guia_seccion_metodologia_informe.md](guia_seccion_metodologia_informe.md), [fuentes_modelo_ml.md](fuentes_modelo_ml.md) |
 
 **Resultados (modelo elegido 50/50)**
 
@@ -225,12 +225,47 @@ El modelo v8 no cambia: el Beta se aplicaba después de la predicción, así que
 
 Quitar V8 no empeoró el modelo: la prueba sintética queda prácticamente igual y la prueba con empresas reales mejora. Esto coincide con Zurita (2008, p. 29), que muestra que el efecto macro sobre una empresa individual es pequeño.
 
+## Modelo v11: entrenamiento solo con datos reales (2026-10-16)
+
+**Origen:** el profesor del curso pidió una propuesta formal (plazo: 2026-10-19) y aclaró que los datos sintéticos **no se aceptan como evidencia** de precisión ni de generalización. Se probó entrenar el mismo Random Forest solo con las empresas reales de la CMF, y el resultado con empresas nunca vistas fue igual o mejor que con los sintéticos. El equipo decidió usar ese modelo como oficial.
+
+**Qué se hizo**
+
+| Cambio | Archivo |
+|---|---|
+| El modelo oficial se entrena con las 542 empresas reales de entrenamiento (4.211 empresa-año), sin sintéticos. Los 5 datasets sintéticos del Acta se siguen entrenando, solo como comparación | `paso3_entrenar_evaluar.py`, `resultados_entrenamiento.csv` |
+| Nuevos archivos del modelo (reemplazan a los v10) | `AppWeb/modelo_oficial/modelo_riesgo_v11.joblib`, `metricas_v11.joblib` |
+| La app muestra Accuracy, Recall y F1 de la prueba con empresas reales (antes, de la prueba sintética) y describe el modelo como "Empresas chilenas reales de la CMF (2012-2024)" | `AppWeb/viewsML.py`, `AppWeb/views.py`, `resultado_prediccion.html`, `resultado_prediccion_pdf.html` |
+| El test de RNF-08 exige Recall y F1 ≥ 70 % en la prueba real (meta propuesta para RNF-08 v11; antes 90 % en la prueba sintética). 13 pruebas, todas pasan | `AppWeb/tests.py` |
+| Análisis por tamaño de empresa (Ley 20.416) | `paso4_analisis_tamano.py` (nuevo) |
+| Resultados y guía de metodología actualizados | [resultados_entrenamiento_v11.md](resultados_entrenamiento_v11.md), [guia_seccion_metodologia_informe.md](guia_seccion_metodologia_informe.md) |
+
+**Resultados (prueba con 136 empresas reales nunca vistas, sin datos de caja)**
+
+| Medición | Modelo v10 (sintético 50/50) | Modelo v11 (solo reales) |
+|---|---|---|
+| F1 | 73,6 % | 76,8 % |
+| Recall | 76,5 % | 74,5 % |
+| Precisión | 70,9 % | 79,2 % |
+| PR-AUC | 74,3 % | 85,8 % |
+
+**Decisiones y hallazgos**
+
+| Tema | Decisión o hallazgo |
+|---|---|
+| Quiebra legal contra insolvencia | Al principio no había casos reales porque se buscaban quiebras legales (solo 3 en la CMF). Con la etiqueta de zona de riesgo de Altman hay 236 casos reales, suficientes para entrenar |
+| ¿Las empresas de la CMF son PYMEs? | No son PYMEs típicas. Los sintéticos tampoco lo eran, porque se generaban desde las mismas empresas. El 22 % de las empresa-año es micro, pequeña o mediana por ventas; en ellas el modelo rinde mejor que en las grandes (F1 94,4 % contra 66,7 %, con 18 insolventes PYME) |
+| ¿Entrenar solo con PYMEs? | No: un modelo entrenado solo con empresa-año PYME (57 insolventes) rinde un poco peor en todos los conjuntos. Se entrena con todas las empresas |
+| V7 como coeficiente de variación | Se propuso cambiar V7 a desviación estándar / promedio del flujo neto. Se mantiene la fórmula actual (desviación estándar / ingreso promedio diario, RNF-10), que ya es adimensional y no se dispara cuando el flujo neto promedio es cercano a cero o negativo |
+| Años 2009-2011 | Los archivos de la CMF los traen, pero 2010-2011 no tienen "Total de pasivos" y 2009 usa nombres de cuenta antiguos. Se mantiene 2012-2024; recuperarlos queda pendiente |
+
 ## Pendientes
 
 | Pendiente | Responsable |
 |---|---|
 | Fase 5: sección de metodología para el informe | Equipo + Claude |
-| Confirmar con el profesor que "80/100" del Acta quería decir 20/80 | Equipo |
 | Implementar el módulo de caja (RF-19 a RF-22) para que V7 use datos reales | Por definir |
 | Validación con datos reales de Nstock (segunda etapa, según el Acta) | Equipo |
+| RNF-08 v11 en el Excel y el informe: meta medida en la prueba con empresas reales (propuesta: Recall y F1 ≥ 70 %) | Equipo |
+| Recuperar los años 2009-2011 de la CMF (pasivo = activo − patrimonio; nombres de cuenta de 2009) | Por definir |
 | Quitar el resaltado verde del Excel cuando se apruebe la v8 | Equipo |

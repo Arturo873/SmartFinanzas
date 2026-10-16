@@ -244,7 +244,7 @@ def ejecutar_prediccion(request: HttpRequest):
             row = df_empresa.iloc[0]
             ratios_empresa = calcular_ratios_liquidez(row)
 
-            # Las 7 variables del modelo v10 (RF-10). V7 queda en el valor
+            # Las 7 variables del modelo v11 (RF-10). V7 queda en el valor
             # neutro porque el módulo de caja (RF-19 a RF-22) aún no está
             # implementado.
             variables_modelo = calcular_variables_modelo(row.to_dict())
@@ -289,9 +289,9 @@ def ejecutar_prediccion(request: HttpRequest):
                 'historial_empresa': historial_empresa,
                 'tendencia_periodos': tendencia_periodos,
                 'modelo_info': {
-                    'dataset': 'Datos sintéticos generados desde empresas chilenas reales (CMF)',
-                    'split': 'Prueba: 20% del dataset sintético y empresas CMF no usadas al entrenar',
-                    'version': 'v10',
+                    'dataset': 'Empresas chilenas reales de la CMF (2012-2024)',
+                    'split': 'Prueba: empresas CMF no usadas al entrenar',
+                    'version': 'v11',
                 },
             }
             contexto.update(metricas_modelo)

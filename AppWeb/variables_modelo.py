@@ -22,9 +22,10 @@ ROTACION_ACTIVOS_MAXIMA = 10.0
 
 # V7 (RNF-10): cierres de caja confirmados mínimos para calcular la volatilidad.
 MINIMO_CIERRES_VOLATILIDAD = 20
-# Valor que toma V7 cuando no hay cierres suficientes. Se fija en la Fase 4
-# con la mediana de la clase solvente del dataset sintético, para que "sin
-# datos" no empuje la predicción hacia ninguna clase.
+# Valor que toma V7 cuando no hay cierres suficientes. El paso 3 lo guarda en
+# las métricas del modelo: la mediana de las empresas solventes de
+# entrenamiento, para que "sin datos" no empuje la predicción hacia ninguna
+# clase.
 VOLATILIDAD_NEUTRA = None
 
 VARIABLES_MODELO = [

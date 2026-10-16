@@ -52,7 +52,7 @@ Cortes: **Z''EM < 1,10 alta probabilidad de insolvencia**; 1,10-2,60 zona gris; 
 
 ## 3. Hallazgos importantes para el equipo
 
-1. **La quiebra legal es muy rara en Chile.** R5 p. 30: la probabilidad promedio de quiebra en su muestra fue de solo 0,64 %. Esto confirma por qué no hay suficientes quiebras reales y justifica los datos sintéticos.
+1. **La quiebra legal es muy rara en Chile.** R5 p. 30: la probabilidad promedio de quiebra en su muestra fue de solo 0,64 %. Esto confirma por qué no hay suficientes quiebras reales y por qué la etiqueta es la zona de riesgo de Altman (236 casos reales en la CMF), no la quiebra legal. *Desde el modelo v11 se entrena solo con esos casos reales, sin datos sintéticos.*
 2. **Al Miro le falta una variable macro.** R5 usa tres variables: PIB, tasa de interés y **tipo de cambio real**. El Miro solo menciona PIB y tasa.
 3. **El efecto macro es pequeño por empresa.** R5 p. 29: si todas las variables macro empeoran una desviación estándar, la probabilidad de quiebra de una empresa sube solo 0,33 %. V8 sirve como contexto, pero no va a decidir la predicción por sí sola. Conviene decirlo en el informe. *Confirmado al entrenar: en el modelo v8 los 3 indicadores sumaron un 6 % de la importancia; por eso V8 se retiró en los Requerimientos v10.*
 4. **Faltan umbrales para V6 y V7.** Ninguna fuente da un valor de corte para ellas, y ninguna de las dos entra en la regla de etiquetado (Z''EM). V7 se simulará, lo cual se declara como limitación.
