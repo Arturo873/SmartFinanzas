@@ -1,6 +1,6 @@
 # Búsqueda de mejora de F1 del motor predictivo — registro de evidencia
 
-> **Documento histórico (actualizado 2026-10-11).** El modelo de Taiwán descrito aquí fue reemplazado por el modelo v8: 8 variables, entrenado con datos sintéticos generados desde empresas reales de la CMF (commit `e12d983`). Los archivos del modelo de Taiwán se eliminaron de `AppWeb/modelo_oficial/`, aunque siguen en el historial de git. Ver [bitacora_modelo_v8.md](bitacora_modelo_v8.md) y [resultados_entrenamiento_v8.md](resultados_entrenamiento_v8.md).
+> **Documento histórico (actualizado 2026-10-11).** El modelo de Taiwán descrito aquí fue reemplazado por el modelo v8: 8 variables, entrenado con datos sintéticos generados desde empresas reales de la CMF (commit `e12d983`). Los archivos del modelo de Taiwán se eliminaron de `AppWeb/modelo_oficial/`, aunque siguen en el historial de git. Ver [bitacora_modelo_v8.md](bitacora_modelo_v8.md) y [resultados_entrenamiento_v10.md](resultados_entrenamiento_v10.md).
 
 Este documento consolida los intentos realizados para acercar el F1-score del
 modelo predictivo (`entrenar_modelo_oficial.py`) al 80% exigido por el RNF-08,

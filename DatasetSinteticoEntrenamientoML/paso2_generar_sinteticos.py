@@ -64,7 +64,7 @@ def separar_entrenamiento_prueba(df: pd.DataFrame):
     return entrenamiento, prueba
 
 
-def cumple_reglas_axiomaticas(df: pd.DataFrame, roa_maximo_recesion: float) -> pd.Series:
+def cumple_reglas_axiomaticas(df: pd.DataFrame) -> pd.Series:
     """Reglas axiomáticas del Miro sobre los casos sintéticos."""
     rc, cta = df['razon_corriente'], df['capital_trabajo_sobre_activos']
     return (
@@ -75,12 +75,10 @@ def cumple_reglas_axiomaticas(df: pd.DataFrame, roa_maximo_recesion: float) -> p
         & df['rotacion_activos'].between(0, ROTACION_ACTIVOS_MAXIMA)
         & df['margen_operacional'].between(-MARGEN_OPERACIONAL_LIMITE, MARGEN_OPERACIONAL_LIMITE)
         & (df['volatilidad_flujo_caja'] >= 0)
-        # En recesión no hay rentabilidades extremas.
-        & ~((df['var_pib'] < 0) & (df['roa_operacional'] > roa_maximo_recesion))
     )
 
 
-def generar_dataset(reales: pd.DataFrame, prop_insolventes: float, rng, roa_maximo_recesion: float) -> pd.DataFrame:
+def generar_dataset(reales: pd.DataFrame, prop_insolventes: float) -> pd.DataFrame:
     objetivo = {1: int(round(TOTAL_POR_DATASET * prop_insolventes))}
     objetivo[0] = TOTAL_POR_DATASET - objetivo[1]
 
@@ -107,7 +105,7 @@ def generar_dataset(reales: pd.DataFrame, prop_insolventes: float, rng, roa_maxi
     generado.loc[sinteticos, 'roa_operacional'] = (
         generado.loc[sinteticos, 'margen_operacional'] * generado.loc[sinteticos, 'rotacion_activos']
     )
-    validos = ~sinteticos | cumple_reglas_axiomaticas(generado, roa_maximo_recesion)
+    validos = ~sinteticos | cumple_reglas_axiomaticas(generado)
     descartados = int((~validos).sum())
     generado = generado[validos]
 
@@ -135,9 +133,8 @@ def main():
     print(f'Reales de prueba:        {len(prueba)} filas, {prueba["rut"].nunique()} empresas, '
           f'{prueba["insolvente"].sum()} insolventes')
 
-    roa_maximo_recesion = entrenamiento['roa_operacional'].quantile(0.99)
     for prop in PROPORCIONES_INSOLVENTES:
-        dataset, descartados = generar_dataset(entrenamiento, prop, rng, roa_maximo_recesion)
+        dataset, descartados = generar_dataset(entrenamiento, prop)
         nombre = f'sintetico_{round(prop * 100)}_{round((1 - prop) * 100)}.csv'
         dataset.to_csv(os.path.join(AQUI, nombre), index=False, float_format='%.6f')
         conteo = dataset.groupby(['insolvente', 'origen']).size().to_dict()

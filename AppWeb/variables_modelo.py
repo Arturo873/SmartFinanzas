@@ -1,5 +1,5 @@
-"""Las 8 variables del modelo predictivo (tablero Miro "SmartFinanzas",
-Requerimientos v8). Fuentes y umbrales: documentacion/fuentes_modelo_ml.md.
+"""Las 7 variables del modelo predictivo (tablero Miro "SmartFinanzas",
+Requerimientos v10). Fuentes y umbrales: documentacion/fuentes_modelo_ml.md.
 
 Este módulo es la única definición de las fórmulas: lo usan tanto el ETL de
 Django (RF-10) como los scripts de entrenamiento sintético
@@ -36,21 +36,9 @@ VARIABLES_MODELO = [
     ('margen_operacional', 'Margen Operacional', 'rentabilidad'),
     ('rotacion_activos', 'Rotación de Activos', 'eficiencia'),
     ('volatilidad_flujo_caja', 'Volatilidad del Flujo de Caja', 'flujo de caja'),
-    ('var_pib', 'Variación anual del PIB (%)', 'contexto económico'),
-    ('tasa_captacion_uf', 'Tasa de captación UF 90 días-1 año (%)', 'contexto económico'),
-    ('tipo_cambio_real', 'Índice de Tipo de Cambio Real', 'contexto económico'),
 ]
 
 CLAVES_MODELO = [clave for clave, _, _ in VARIABLES_MODELO]
-
-# V8 es una sola variable (contexto macroeconómico) medida con los 3
-# indicadores de Zurita (2008). El Random Forest recibe cada indicador como
-# una entrada propia: 8 variables = 10 entradas. Ante el usuario (RF-03,
-# RF-10) los 3 se muestran juntos como V8.
-INDICADORES_V8 = ('var_pib', 'tasa_captacion_uf', 'tipo_cambio_real')
-CLAVE_V8 = 'contexto_macroeconomico'
-NOMBRE_V8 = 'Contexto Macroeconómico'
-GRUPO_V8 = 'contexto económico'
 
 
 def _dividir(numerador, denominador):
@@ -127,12 +115,10 @@ def calcular_zem_altman(fila: dict) -> float:
     return 3.25 + 6.56 * x1 + 3.26 * x2 + 6.72 * x3 + 1.05 * x4
 
 
-def calcular_variables_modelo(fila: dict, contexto_macro: dict, volatilidad_flujo_caja=None) -> dict:
-    """Las 10 entradas del modelo (8 variables; V8 son 3 indicadores) en el orden de CLAVES_MODELO."""
+def calcular_variables_modelo(fila: dict, volatilidad_flujo_caja=None) -> dict:
+    """Las 7 variables del modelo en el orden de CLAVES_MODELO."""
     variables = calcular_variables_financieras(fila)
     variables['volatilidad_flujo_caja'] = (
         volatilidad_flujo_caja if volatilidad_flujo_caja is not None else VOLATILIDAD_NEUTRA
     )
-    for clave in INDICADORES_V8:
-        variables[clave] = contexto_macro[clave]
     return {clave: variables[clave] for clave in CLAVES_MODELO}

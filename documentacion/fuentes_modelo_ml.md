@@ -1,7 +1,9 @@
-# Fuentes del modelo ML (8 variables del Miro)
+# Fuentes del modelo ML (7 variables)
 
 Fase 1 del plan "camino 3". Cada dato indica de dónde sale y en qué página, para poder citarlo en el informe.
 Fecha de revisión: 2026-10-11.
+
+> **Actualización 2026-10-16 (Requerimientos v10):** el modelo pasó de 8 a 7 variables. Se quitó V8 (contexto macroeconómico) y ya no se usan las series del Banco Central. Lo que este documento dice de V8 se conserva como respaldo de esa decisión: Zurita (R5) muestra que el efecto macro sobre una empresa individual es pequeño (hallazgo 3).
 
 ## 1. Referencias verificadas (formato APA 7)
 
@@ -29,7 +31,7 @@ Fecha de revisión: 2026-10-11.
 | V5 Margen Operacional | EBIT / Ingresos | R2 p. 107: margen negativo por EBIT negativo; margen que "no supera el 8%" refleja "baja capacidad de la empresa para generar ingresos". | **< 0 riesgo; < 8 % alerta** |
 | V6 Rotación de Activos | Ingresos / AT | Variable X5 del Z-score (R1). R4 p. 33-36: en PYMES constructoras los anticipos de clientes inflan este ratio y pueden ocultar la insolvencia. | **Sin umbral fijo en las fuentes**; se usa dentro del Z-score |
 | V7 Volatilidad del flujo | Desv. estándar del flujo de caja diario | R3 p. 75: los modelos contables no capturan la volatilidad; "un aumento en la volatilidad incrementa la probabilidad de quiebra" y es "una importante variable omitida en los modelos de Altman (1968) y Ohlson (1980)". R3 p. 78: es el componente clave del modelo Black-Scholes-Merton. R3 p. 87 (Moody's): volatilidad de activos 21 % → prob. de quiebra 0,03 %; 39 % → 1,97 %. También R5 sección 2.1. | **Sin umbral contable en las fuentes.** Dirección confirmada: más volatilidad = más riesgo. Adaptar la volatilidad de activos (mercado) a la del flujo de caja es el aporte propio del proyecto |
-| V8 Contexto macro | Variación PIB, tasa de interés | R5 p. 7 y 29: la variación del PIB, la tasa de interés y el **tipo de cambio real** explican la tasa agregada de quiebras. La probabilidad de quiebra baja con el crecimiento y sube con la tasa y el tipo de cambio. R5 p. 24: PIB trimestral a 4 trimestres; tasa de captación UF de 30 a 365 días. | Dirección del efecto; **efecto individual pequeño** (ver hallazgo 3) |
+| ~~V8 Contexto macro~~ (retirada en v10) | Variación PIB, tasa de interés | R5 p. 7 y 29: la variación del PIB, la tasa de interés y el **tipo de cambio real** explican la tasa agregada de quiebras. La probabilidad de quiebra baja con el crecimiento y sube con la tasa y el tipo de cambio. R5 p. 24: PIB trimestral a 4 trimestres; tasa de captación UF de 30 a 365 días. | Dirección del efecto; **efecto individual pequeño** (ver hallazgo 3) |
 
 ### Regla de etiquetado: Z-score de Altman para mercados emergentes (Z''EM)
 
@@ -52,7 +54,7 @@ Cortes: **Z''EM < 1,10 alta probabilidad de insolvencia**; 1,10-2,60 zona gris; 
 
 1. **La quiebra legal es muy rara en Chile.** R5 p. 30: la probabilidad promedio de quiebra en su muestra fue de solo 0,64 %. Esto confirma por qué no hay suficientes quiebras reales y justifica los datos sintéticos.
 2. **Al Miro le falta una variable macro.** R5 usa tres variables: PIB, tasa de interés y **tipo de cambio real**. El Miro solo menciona PIB y tasa.
-3. **El efecto macro es pequeño por empresa.** R5 p. 29: si todas las variables macro empeoran una desviación estándar, la probabilidad de quiebra de una empresa sube solo 0,33 %. V8 sirve como contexto, pero no va a decidir la predicción por sí sola. Conviene decirlo en el informe.
+3. **El efecto macro es pequeño por empresa.** R5 p. 29: si todas las variables macro empeoran una desviación estándar, la probabilidad de quiebra de una empresa sube solo 0,33 %. V8 sirve como contexto, pero no va a decidir la predicción por sí sola. Conviene decirlo en el informe. *Confirmado al entrenar: en el modelo v8 los 3 indicadores sumaron un 6 % de la importancia; por eso V8 se retiró en los Requerimientos v10.*
 4. **Faltan umbrales para V6 y V7.** Ninguna fuente da un valor de corte para ellas, y ninguna de las dos entra en la regla de etiquetado (Z''EM). V7 se simulará, lo cual se declara como limitación.
 5. **Z''EM requiere utilidades retenidas.** Resuelto: se agregó la columna `Utilidades_Retenidas` a la plantilla (RF-08).
 6. **Cita equivocada de V7 en la tabla de Reglas Axiomáticas del Miro** (revisado 2026-10-12). Esa tabla dice "Adaptación de Merton en Riquelme", mientras que la tabla de las 8 variables dice "Adaptación de Merton en Ringeling (2004)". La correcta es **Ringeling (R3)**: es quien desarrolla el modelo de Merton / Black-Scholes y la volatilidad como variable omitida (R3 pp. 75, 78 y 87). Riquelme (R2) solo lo menciona al resumir el trabajo de Ringeling (p. 17 del PDF: "un Modelo basado en la valoración de opciones de Merton y Black & Scholes") y no trabaja la volatilidad como predictor. En el informe se cita Ringeling (2004).
@@ -64,7 +66,7 @@ Cortes: **Z''EM < 1,10 alta probabilidad de insolvencia**; 1,10-2,60 zona gris; 
 | CMF (FECU / IFRS) | Base real del entrenamiento | `DatasetSinteticoEntrenamientoML/cmf_empresas_reales.csv`: 5.277 empresa-año de 678 empresas (2012-2024), 236 insolventes según la regla Z''EM |
 | Superir (Boletín Concursal) | Quiebras legales | Cruzado con la CMF por RUT: solo 3 empresas. Se usan como chequeo ilustrativo, no para entrenar |
 | MINVU (Registro de Contratistas) | Balances de PYMES | No se usará por ahora (PDFs escaneados) |
-| Banco Central de Chile | V8 (PIB, tasa, tipo de cambio) | **Disponible** (2009-Q1 a 2026-Q3), desde las tablas públicas de la BDE, sin registro. Se guarda en `AppWeb/datos_macro/indicadores_macro.csv` y se actualiza con `python manage.py actualizar_datos_macro`. Series: (1) "Indicadores macroeconómicos trimestrales, referencia 2018", fila *PIB, volumen (miles de millones $ encadenado)*, variación % respecto del mismo trimestre del año anterior; (2) "Tasas y flujo de captación promedio del sistema financiero, reajustables", fila *90 días a 1 año - tasa* (Zurita usa captación UF de 30 a 365 días; el BDE no publica el tramo UF de 30-89 días); (3) "Índice de tipo de cambio real - TCR (índice promedio 1986=100)" |
+| Banco Central de Chile | V8 (PIB, tasa, tipo de cambio) | **Ya no se usa** (V8 retirada en v10; el código que la descargaba se eliminó y queda en el historial de git, commit `e95d014`). Estaba disponible (2009-Q1 a 2026-Q3) desde las tablas públicas de la BDE, sin registro. Series: (1) "Indicadores macroeconómicos trimestrales, referencia 2018", fila *PIB, volumen (miles de millones $ encadenado)*, variación % respecto del mismo trimestre del año anterior; (2) "Tasas y flujo de captación promedio del sistema financiero, reajustables", fila *90 días a 1 año - tasa* (Zurita usa captación UF de 30 a 365 días; el BDE no publica el tramo UF de 30-89 días); (3) "Índice de tipo de cambio real - TCR (índice promedio 1986=100)" |
 | ERP Facto / Nstock | V7 y validación final | Privada, para la validación posterior que pide el Acta |
 
 ## 5. Pendientes de esta fase

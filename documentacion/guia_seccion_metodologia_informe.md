@@ -2,7 +2,7 @@
 
 ## Para qué sirve este documento
 
-Es el **esqueleto con todo el contenido** que necesita el informe final para explicar el modelo predictivo v8: qué escribir en cada parte, con las cifras exactas, las fórmulas y las citas. No es el texto final: hay que redactarlo en lenguaje académico dentro del informe.
+Es el **esqueleto con todo el contenido** que necesita el informe final para explicar el modelo predictivo v10 (7 variables): qué escribir en cada parte, con las cifras exactas, las fórmulas y las citas. No es el texto final: hay que redactarlo en lenguaje académico dentro del informe.
 
 También sirve para **preparar la defensa**: el Acta del 05-10-2026 exige "rigurosidad teórica con citas bibliográficas sólidas" y "dominio absoluto de los fundamentos matemáticos, las variables seleccionadas y la lógica de los algoritmos". Las secciones 3 y 6 cubren justo eso.
 
@@ -21,7 +21,7 @@ RNF-08 indica que "los detalles metodológicos [...] se documentan en el **marco
 | 7. Limitaciones y trabajo futuro | Conclusiones |
 | 8. Referencias | Bibliografía |
 
-**Material de respaldo:** [fuentes_modelo_ml.md](fuentes_modelo_ml.md) (fuentes y páginas), [resultados_entrenamiento_v8.md](resultados_entrenamiento_v8.md) (detalle técnico) y [bitacora_modelo_v8.md](bitacora_modelo_v8.md) (decisiones con fecha).
+**Material de respaldo:** [fuentes_modelo_ml.md](fuentes_modelo_ml.md) (fuentes y páginas), [resultados_entrenamiento_v10.md](resultados_entrenamiento_v10.md) (detalle técnico) y [bitacora_modelo_v8.md](bitacora_modelo_v8.md) (decisiones con fecha).
 
 ---
 
@@ -34,7 +34,7 @@ RNF-08 indica que "los detalles metodológicos [...] se documentan en el **marco
 - **Decisión metodológica (Acta del 05-10-2026):** entrenar con datos sintéticos en múltiples proporciones y reservar los datos reales de Nstock para una validación posterior.
 - **Enfoque de ciencia aplicada:** a diferencia de Excel o Power BI, que describen el pasado, el sistema **predice**.
 
-## 2. Marco teórico: las 8 variables
+## 2. Marco teórico: las 7 variables
 
 **Qué escribir:** una tabla con cada variable, su fórmula, qué mide y su fuente, más un párrafo por variable.
 
@@ -47,14 +47,12 @@ RNF-08 indica que "los detalles metodológicos [...] se documentan en el **marco
 | V5 Margen Operacional | EBIT / Ingresos | Riquelme (2018, p. 107) | < 8 % alerta |
 | V6 Rotación de Activos | Ingresos / AT | Altman (1968) | sin umbral en las fuentes |
 | V7 Volatilidad del flujo | desv. est. del flujo diario / ingreso promedio diario | Ringeling (2004, p. 75) | sin umbral (aporte propio) |
-| V8 Contexto macro | Variación del PIB, tasa UF, tipo de cambio real | Zurita (2008, pp. 7 y 29) | dirección del efecto |
 
 **Puntos clave a desarrollar:**
 - **V7 es el aporte propio del proyecto.** Ringeling dice que la volatilidad es "una importante variable omitida en los modelos de Altman (1968) y Ohlson (1980)". El proyecto la adapta desde la volatilidad de los activos (mercado) a la del flujo de caja de una PYME.
-- **V8 viene de Zurita:** la probabilidad de quiebra baja con el crecimiento y sube con la tasa de interés y el tipo de cambio real. Hay que aclarar que su efecto individual es pequeño (+0,33 % ante un deterioro de una desviación estándar).
-- **8 variables = 10 entradas:** V8 es una sola variable, pero se mide con 3 indicadores, y el Random Forest recibe cada uno como una columna. En la explicabilidad (RF-03) y en la tabla (RF-10) los 3 se muestran juntos como V8.
-- **Cómo se elige el top 3 de RF-03:** no se usa la importancia global del Random Forest (es la misma para todas las empresas). Para cada empresa se calcula cuánto bajaría su probabilidad de insolvencia si una variable tomara el valor típico de una empresa solvente (mediana de las solventes de la CMF), dejando las demás iguales. En V8 se cambian sus 3 indicadores a la vez, así que su impacto es uno solo.
-- **Sin CAPM:** el modelo no usa el Beta CAPM. En reunión con la profesora asesora Carolina San Martín (Área de Administración y Negocios) se acordó excluirlo, porque el CAPM entrega la **tasa de retorno exigida por un inversionista** y no es un ratio de solvencia. El riesgo sistémico queda cubierto solo por V8 (contexto económico).
+- **Cómo se elige el top 3 de RF-03:** no se usa la importancia global del Random Forest (es la misma para todas las empresas). Para cada empresa se calcula cuánto bajaría su probabilidad de insolvencia si una variable tomara el valor típico de una empresa solvente (mediana de las solventes de la CMF), dejando las demás iguales.
+- **Sin CAPM:** el modelo no usa el Beta CAPM. En reunión con la profesora asesora Carolina San Martín (Área de Administración y Negocios) se acordó excluirlo, porque el CAPM entrega la **tasa de retorno exigida por un inversionista** y no es un ratio de solvencia.
+- **Sin contexto macroeconómico:** una versión anterior tenía una V8 medida con 3 indicadores de Zurita (2008): variación del PIB, tasa de captación UF y tipo de cambio real. Se quitó para simplificar el modelo a 7 variables (Requerimientos v10). La misma fuente lo respalda: Zurita (2008, p. 29) muestra que el efecto macro sobre una empresa individual es pequeño (+0,33 % ante un deterioro de una desviación estándar), y en el modelo v8 esos 3 indicadores sumaban solo un 6 % de la importancia.
 
 ## 3. Fundamentos matemáticos
 
@@ -86,18 +84,17 @@ RNF-08 indica que "los detalles metodológicos [...] se documentan en el **marco
 ### 3.4 Reglas axiomáticas e identidad DuPont
 
 - La interpolación lineal rompe una igualdad contable: `ROA = Margen × Rotación` (identidad DuPont). Por eso, en los casos sintéticos el ROA se recalcula con esa fórmula.
-- Se descartan los casos sintéticos imposibles en la contabilidad. Por ejemplo: razón corriente > 1 si y solo si el capital de trabajo es positivo; en recesión no hay rentabilidades extremas. Se descartaron entre 367 y 486 casos por dataset.
+- Se descartan los casos sintéticos imposibles en la contabilidad. Por ejemplo: razón corriente > 1 si y solo si el capital de trabajo es positivo; el leverage, la rotación y el margen deben quedar dentro de sus topes. Se descartaron entre 54 y 152 casos por dataset.
 
 ## 4. Metodología de datos
 
 **Qué escribir:** el flujo completo, idealmente con un diagrama.
 
 1. **Fuente real:** 5.277 empresa-año de 678 empresas chilenas no financieras de la CMF (estados IFRS, balance a diciembre, 2012-2024).
-2. **Contexto macro:** series oficiales del Banco Central de Chile (BDE), 2009-2026.
-3. **Etiquetado:** insolvente si Z''EM < 1,10 o patrimonio ≤ 0. Resultan **236 casos (4,5 %)**.
-4. **Separación antes de generar** (punto clave de rigor): el 20 % de las empresas se aparta **por empresa** para una prueba real que el modelo nunca ve. Así se evita la *fuga de datos* (*data leakage*), es decir, que el modelo sea evaluado con información que ya vio al entrenar.
-5. **Generación:** 5 datasets de 10.000 filas en proporciones insolventes/solventes de 50/50, 40/60, 30/70, 20/80 y 10/90.
-6. **V7 simulada:** `log(V7) = log(0,30) + 0,10·leverage + ruido`. La dirección (más deuda, más volatilidad) sigue a Ringeling (2004, p. 87); los parámetros son supuestos de diseño.
+2. **Etiquetado:** insolvente si Z''EM < 1,10 o patrimonio ≤ 0. Resultan **236 casos (4,5 %)**.
+3. **Separación antes de generar** (punto clave de rigor): el 20 % de las empresas se aparta **por empresa** para una prueba real que el modelo nunca ve. Así se evita la *fuga de datos* (*data leakage*), es decir, que el modelo sea evaluado con información que ya vio al entrenar.
+4. **Generación:** 5 datasets de 10.000 filas en proporciones insolventes/solventes de 50/50, 40/60, 30/70, 20/80 y 10/90.
+5. **V7 simulada:** `log(V7) = log(0,30) + 0,10·leverage + ruido`. La dirección (más deuda, más volatilidad) sigue a Ringeling (2004, p. 87); los parámetros son supuestos de diseño.
 
 ## 5. Resultados
 
@@ -105,28 +102,28 @@ RNF-08 indica que "los detalles metodológicos [...] se documentan en el **marco
 
 | Proporción | Accuracy sint. | F1 sint. | F1 real | Recall real |
 |---|---|---|---|---|
-| **50/50 (elegido)** | **98,7 %** | **98,7 %** | **71,3 %** | 80,4 % |
-| 40/60 | 99,1 % | 98,9 % | 70,2 % | 78,4 % |
-| 30/70 | 98,7 % | 97,8 % | 68,9 % | 80,4 % |
-| 20/80 | 98,6 % | 96,6 % | 70,2 % | 78,4 % |
-| 10/90 | 98,0 % | 89,9 % | 75,9 % | 80,4 % |
+| **50/50 (elegido)** | **98,4 %** | **98,4 %** | **76,2 %** | 78,4 % |
+| 40/60 | 99,0 % | 98,7 % | 74,5 % | 74,5 % |
+| 30/70 | 98,9 % | 98,1 % | 75,5 % | 78,4 % |
+| 20/80 | 98,9 % | 97,1 % | 71,2 % | 72,5 % |
+| 10/90 | 98,6 % | 92,7 % | 72,0 % | 70,6 % |
 
-- **Cumplimiento del Acta:** 4 de 5 proporciones superan el 90 %, y el modelo elegido supera el 95 % ideal.
-- **Fluctuación por proporción** (lo que pide el Acta observar): con menos insolventes en el entrenamiento, el F1 sintético baja de 98,7 % a 89,9 %.
+- **Cumplimiento del Acta:** las 5 proporciones superan el 90 %, y el modelo elegido supera el 95 % ideal.
+- **Fluctuación por proporción** (lo que pide el Acta observar): con menos insolventes en el entrenamiento, el F1 sintético baja de 98,4 % a 92,7 %.
 - **Criterio de elección:** el mejor F1 con empresas reales entre los que cumplen la meta.
-- **Cifra en el sistema actual,** sin datos de caja: F1 de **69,7 %** con empresas reales.
-- **Importancia de las variables:** el leverage es la más importante (31 %) y las variables macro pesan poco (≈ 6 % entre las tres), lo que coincide con Zurita.
-- **Chequeo con quiebras legales reales:** el modelo detecta 2 de 3 (Sartor con 100 % y Telecom. Internacionales con 98 %). Son solo 3 casos, así que es evidencia cualitativa, no una métrica.
+- **Cifra en el sistema actual,** sin datos de caja: F1 de **73,6 %** con empresas reales.
+- **Importancia de las variables:** el leverage es la más importante (26 %), seguida del ROA operacional y el margen operacional (≈ 17 % cada uno).
+- **Chequeo con quiebras legales reales:** el modelo detecta 2 de 3 (Sartor con 93 % y Telecom. Internacionales con 88 %). Son solo 3 casos, así que es evidencia cualitativa, no una métrica.
 
 ## 6. Discusión (lo más importante para la defensa)
 
 Conviene adelantarse a las preguntas del profesor:
 
-- **"¿Por qué 98,7 % y no la cifra real?"** Las dos se reportan. El 98,7 % mide al modelo con datos generados desde las mismas reglas, así que es optimista. El 69,7 % mide con empresas reales nunca vistas, y es la cifra honesta.
-- **"¿No es circular etiquetar con Altman y después predecir?"** Sí, en parte, y se declara. El modelo aprende a reconocer la zona de riesgo de Altman a partir de 8 variables, de las cuales 4 no están en Z''EM. Sin quiebras reales suficientes, es la alternativa con respaldo bibliográfico.
+- **"¿Por qué 98,4 % y no la cifra real?"** Las dos se reportan. El 98,4 % mide al modelo con datos generados desde las mismas reglas, así que es optimista. El 73,6 % mide con empresas reales nunca vistas, y es la cifra honesta.
+- **"¿No es circular etiquetar con Altman y después predecir?"** Sí, en parte, y se declara. El modelo aprende a reconocer la zona de riesgo de Altman a partir de 7 variables, de las cuales 4 no están en Z''EM. Sin quiebras reales suficientes, es la alternativa con respaldo bibliográfico.
 - **"¿Por qué no comparar con el 46,8 % del modelo anterior?"** Porque miden cosas distintas: antes se medía contra quiebras legales de Taiwán y ahora contra la zona de riesgo de Altman en Chile.
-- **"¿Son 8 o 10 variables?"** Son 8 variables. V8 (contexto macroeconómico) se mide con 3 indicadores de Zurita (2008), así que el modelo recibe 10 entradas numéricas. Se mantienen separados para no inventar un índice sin respaldo bibliográfico, y ante el usuario se muestran como una sola variable.
-- **"¿Por qué no ajustan por sector con el CAPM?"** Porque el CAPM calcula la rentabilidad que exige un inversionista, no la capacidad de la empresa de pagar sus deudas. Así se acordó con la profesora asesora Carolina San Martín. El riesgo de la economía se incluye con V8 (PIB, tasa de interés y tipo de cambio real, según Zurita, 2008).
+- **"¿Por qué no incluyen el contexto macroeconómico?"** Porque su efecto sobre una empresa individual es pequeño (Zurita, 2008, p. 29) y no mejoraba el modelo: con él, los 3 indicadores sumaban un 6 % de la importancia y el F1 con empresas reales sin datos de caja era menor (69,7 % contra 73,6 % sin él). Además, el sistema ya no depende de las series del Banco Central.
+- **"¿Por qué no ajustan por sector con el CAPM?"** Porque el CAPM calcula la rentabilidad que exige un inversionista, no la capacidad de la empresa de pagar sus deudas. Así se acordó con la profesora asesora Carolina San Martín.
 
 ## 7. Limitaciones y trabajo futuro
 

@@ -1,10 +1,10 @@
-"""Paso 1: empresas chilenas reales (CMF, IFRS 2009-2024) con las 8 variables.
+"""Paso 1: empresas chilenas reales (CMF, IFRS 2009-2024) con V1-V6.
 
 Lee los estados financieros crudos de la CMF (solo locales, no están en git:
 DatasetEntrenamientoML/chile_cmf_boletin/cmf_raw/) y, por cada empresa y año,
 toma el balance a diciembre (flujos de 12 meses). Calcula V1-V6 y el Z''EM de
-Altman con AppWeb/variables_modelo.py (las mismas fórmulas que usa el sistema)
-y V8 con el dato macro real del cuarto trimestre de ese año.
+Altman con AppWeb/variables_modelo.py (las mismas fórmulas que usa el sistema).
+V7 se simula en el paso 2.
 
 Etiqueta (insolvente = 1), según fuentes de documentacion/fuentes_modelo_ml.md:
   - Z''EM de Altman < 1,10 (Altman et al., 2017; Riquelme, 2018, pp. 54-55), o
@@ -23,7 +23,6 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, RAIZ)
 
-from AppWeb.datos_macro import cargar_indicadores_macro  # noqa: E402
 from AppWeb.variables_modelo import UMBRAL_ZEM_INSOLVENCIA, calcular_variables_financieras, calcular_zem_altman  # noqa: E402
 
 CMF_DIR = os.path.join(RAIZ, 'DatasetEntrenamientoML', 'chile_cmf_boletin', 'cmf_raw')
@@ -94,7 +93,6 @@ def ebit(registro: dict):
 
 def main():
     datos = leer_cuentas_diciembre()
-    macro = cargar_indicadores_macro()
     with open(QUIEBRAS_REALES_CSV, encoding='utf-8') as f:
         quiebras_reales = {normalizar_rut(r['rut_normalizado']) for r in csv.DictReader(f)}
 
@@ -109,9 +107,6 @@ def main():
         if registro['Activo_Total'] <= 0 or registro['Ingresos_Netos'] < 0:
             continue
 
-        trimestre = f'{anio}-Q4'
-        if trimestre not in macro.index:
-            continue
         variables = calcular_variables_financieras(registro)
         zem = calcular_zem_altman(registro)
         filas.append({
@@ -119,7 +114,6 @@ def main():
             'razon_social': registro['razon_social'],
             'anio': anio,
             **variables,
-            **macro.loc[trimestre].to_dict(),
             'utilidades_retenidas_sobre_activos': registro['Utilidades_Retenidas'] / registro['Activo_Total'],
             'patrimonio_negativo': int(registro['Patrimonio_Neto'] <= 0),
             'zem_altman': zem,

@@ -11,9 +11,10 @@ Los detalles están en los documentos enlazados; este archivo es el índice.
 | Documento | Contenido |
 |---|---|
 | [fuentes_modelo_ml.md](fuentes_modelo_ml.md) | Fuentes verificadas, umbrales por variable, regla de etiquetado y fuentes de datos |
-| [Requerimientos_funcionales_y_no_funcionales_v9.xlsx](Requerimientos_funcionales_y_no_funcionales_v9.xlsx) | Documento oficial de requerimientos vigente (v9, sin CAPM) |
+| [Requerimientos_funcionales_y_no_funcionales_v10.xlsx](Requerimientos_funcionales_y_no_funcionales_v10.xlsx) | Documento oficial de requerimientos vigente (v10, 7 variables, sin RF-01) |
+| [Requerimientos_funcionales_y_no_funcionales_v9.xlsx](Requerimientos_funcionales_y_no_funcionales_v9.xlsx) | Requerimientos v9 (sin CAPM, 8 variables); reemplazado por la v10 |
 | [Requerimientos_funcionales_y_no_funcionales_v8.xlsx](Requerimientos_funcionales_y_no_funcionales_v8.xlsx) | Requerimientos v8 (celdas cambiadas en verde); reemplazado por la v9 |
-| [resultados_entrenamiento_v8.md](resultados_entrenamiento_v8.md) | Metodología del entrenamiento, resultados, limitaciones y reproducción |
+| [resultados_entrenamiento_v10.md](resultados_entrenamiento_v10.md) | Metodología del entrenamiento, resultados, limitaciones y reproducción |
 | [guia_seccion_metodologia_informe.md](guia_seccion_metodologia_informe.md) | Esqueleto con el contenido de la metodología para el informe final y la defensa |
 | [busqueda_mejora_f1.md](busqueda_mejora_f1.md) | Historia anterior: intentos de mejorar el modelo de Taiwán (reemplazado) |
 | [correo_profesor_rnf08.md](correo_profesor_rnf08.md) | Correo al profesor sobre la meta de RNF-08 |
@@ -136,7 +137,7 @@ Los archivos siguen en el computador local y se pueden regenerar con los scripts
 | `AppWeb/views.py` | La predicción y la tendencia por período usan el modelo v8 |
 | `AppWeb/templates/AppWeb/resultado_prediccion.html`, `resultado_prediccion_pdf.html` | Panel de explicabilidad en "puntos de riesgo" y F1 con empresas reales |
 | `requirements.txt` | Se agrega `imbalanced-learn` (lo usan los scripts de entrenamiento) |
-| [resultados_entrenamiento_v8.md](resultados_entrenamiento_v8.md) | Metodología y resultados completos |
+| [resultados_entrenamiento_v10.md](resultados_entrenamiento_v10.md) | Metodología y resultados completos |
 
 **Decisiones**
 
@@ -195,6 +196,34 @@ El modelo v8 no cambia: el Beta se aplicaba después de la predicción, así que
 | El Random Forest recibe **10 columnas**: V8 entra como 3 indicadores separados. La tabla de RF-10 mostraba 10 filas y el top 3 de RF-03 podía listar indicadores de V8 por separado | **8 variables = 10 entradas.** Se aclara en RF-01 y RF-10, y en pantalla V8 se muestra y evalúa como una sola variable (sus 3 indicadores cambian juntos al calcular el impacto). El modelo no se reentrena | `AppWeb/variables_modelo.py`, `AppWeb/viewsML.py`, `AppWeb/views.py`, `resultado_prediccion.html`, `AppWeb/tests.py` (17 pruebas, todas pasan), Excel v9, Miro |
 | RF-03 hablaba de "mayor peso estadístico" sin definirlo ni decir qué pasa con V8 | La validación describe el método real: impacto si la variable toma el valor típico de una empresa solvente; en V8 cambian sus 3 indicadores a la vez | Excel v9, [guia_seccion_metodologia_informe.md](guia_seccion_metodologia_informe.md) |
 | RNF-08 no decía que el 90 % se mide sobre la prueba sintética | Se agrega "sobre esa prueba sintética" y el reporte aparte con el 20 % de empresas reales de la CMF (F1 = 69,7 %) | Excel v9 |
+
+## Modelo v10: de 8 a 7 variables (2026-10-16)
+
+**Origen:** el equipo decidió simplificar el modelo a 7 variables y quitar V8 (contexto macroeconómico). En el tablero Miro, V8 había sido primero el CAPM y después el contexto macro; con este cambio ya no queda una octava variable. RF-01 se retiró en los Requerimientos v10.
+
+**Qué se hizo**
+
+| Cambio | Archivo |
+|---|---|
+| El modelo usa solo V1 a V7: se quitaron los 3 indicadores macro y la agrupación de V8 | `AppWeb/variables_modelo.py`, `AppWeb/viewsML.py` |
+| Se eliminó la descarga de datos del Banco Central y su comando | `AppWeb/datos_macro.py`, `AppWeb/datos_macro/`, `actualizar_datos_macro.py` (eliminados) |
+| La predicción ya no busca el trimestre macro, y la pantalla de resultados ya no lo muestra | `AppWeb/views.py`, `resultado_prediccion.html` |
+| El paso 1 ya no agrega datos macro; el paso 2 quita la regla axiomática "en recesión no hay rentabilidades extremas", que dependía del PIB | `paso1_extraer_cmf.py`, `paso2_generar_sinteticos.py` |
+| Reentrenamiento con los mismos datos de la CMF (5.277 empresa-año) y la misma semilla | `paso3_entrenar_evaluar.py`, `AppWeb/modelo_oficial/modelo_riesgo_v10.joblib`, `metricas_v10.joblib` (reemplazan a los archivos v8) |
+| Se quitan `requests`, `beautifulsoup4` y `lxml`, que solo usaban el CAPM y los datos macro | `requirements.txt` |
+| Pruebas actualizadas: 13, todas pasan | `AppWeb/tests.py` |
+| Resultados, guía de metodología y fuentes actualizados | [resultados_entrenamiento_v10.md](resultados_entrenamiento_v10.md), [guia_seccion_metodologia_informe.md](guia_seccion_metodologia_informe.md), [fuentes_modelo_ml.md](fuentes_modelo_ml.md) |
+
+**Resultados (modelo elegido 50/50)**
+
+| Medición | Modelo v8 (8 variables) | Modelo v10 (7 variables) |
+|---|---|---|
+| Prueba sintética: Accuracy / F1 | 98,7 % / 98,7 % | 98,4 % / 98,4 % |
+| Empresas reales, con V7 simulada: F1 | 71,3 % | 76,2 % |
+| Empresas reales, sin datos de caja (situación actual): F1 | 69,7 % | 73,6 % |
+| Proporciones que cumplen el 90 % | 4 de 5 | 5 de 5 |
+
+Quitar V8 no empeoró el modelo: la prueba sintética queda prácticamente igual y la prueba con empresas reales mejora. Esto coincide con Zurita (2008, p. 29), que muestra que el efecto macro sobre una empresa individual es pequeño.
 
 ## Pendientes
 

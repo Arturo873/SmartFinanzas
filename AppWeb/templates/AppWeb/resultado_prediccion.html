@@ -32,14 +32,6 @@
                             </div>
                         </div>
                     </div>
-                    <p class="text-muted small mb-0">
-                        Contexto macro (Banco Central): trimestre <strong>{{ contexto_macro.trimestre_usado }}</strong>
-                        {% if not contexto_macro.es_periodo_exacto %}
-                        <span data-bs-toggle="tooltip"
-                              title="El trimestre {{ periodo }} aún no está publicado por el Banco Central; se usa el último disponible."
-                              style="cursor:help;">&#9432;</span>
-                        {% endif %}
-                    </p>
                 </div>
             </div>
         </div>
@@ -109,7 +101,7 @@
                     <h5 class="mb-0">
                         Tabla Resumen — Indicadores de Referencia
                         <span data-bs-toggle="tooltip"
-                              title="Indicadores complementarios para el Contador; no son las variables del modelo predictivo v8 (RF-10)."
+                              title="Indicadores complementarios para el Contador; no son las variables del modelo predictivo v10 (RF-10)."
                               style="cursor:help;">&#9432;</span>
                     </h5>
                 </div>
@@ -285,7 +277,7 @@
                     <h5 class="mb-0">
                         Variables del Modelo Predictivo ({{ periodo }})
                         <span data-bs-toggle="tooltip"
-                              title="Las 8 variables definidas en los Requerimientos v8. Fórmulas y fuentes en documentacion/fuentes_modelo_ml.md."
+                              title="Las 7 variables definidas en los Requerimientos v10. Fórmulas y fuentes en documentacion/fuentes_modelo_ml.md."
                               style="cursor:help;">&#9432;</span>
                     </h5>
                 </div>
@@ -305,9 +297,7 @@
                                     <td class="ps-3">{{ variable.nombre }}</td>
                                     <td class="text-capitalize">{{ variable.grupo }}</td>
                                     <td class="text-end pe-3 fw-semibold">
-                                        {% if variable.detalle %}
-                                        {{ variable.detalle }}
-                                        {% elif variable.valor is None %}
+                                        {% if variable.valor is None %}
                                         <span class="text-muted fw-normal">Sin cierres de caja suficientes (valor neutro)</span>
                                         {% else %}
                                         {{ variable.valor|format_decimal:2 }}

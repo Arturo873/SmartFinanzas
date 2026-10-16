@@ -6,12 +6,9 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 
-from .datos_macro import _encabezado_a_trimestre, obtener_contexto_macro
 from .models import EstadoCarga, PerfilUsuario
 from .variables_modelo import (
-    CLAVE_V8,
     CLAVES_MODELO,
-    INDICADORES_V8,
     LEVERAGE_MAXIMO,
     MINIMO_CIERRES_VOLATILIDAD,
     calcular_variables_financieras,
@@ -63,30 +60,11 @@ class VariablesModeloTests(TestCase):
         self.assertAlmostEqual(calcular_zem_altman(FILA_SANA), 7.7218, places=4)
 
     def test_variables_modelo_en_orden_y_completas(self):
-        macro = {'var_pib': 2.0, 'tasa_captacion_uf': 1.5, 'tipo_cambio_real': 100.0}
-        variables = calcular_variables_modelo(FILA_SANA, macro)
+        variables = calcular_variables_modelo(FILA_SANA)
         self.assertEqual(list(variables), CLAVES_MODELO)
-        self.assertEqual(variables['var_pib'], 2.0)
+        self.assertEqual(len(variables), 7)
 
 
-class DatosMacroTests(TestCase):
-    def test_encabezado_bde_a_periodo_de_plantilla(self):
-        self.assertEqual(_encabezado_a_trimestre('III.2026'), '2026-Q3')
-        self.assertEqual(_encabezado_a_trimestre('IV.2009'), '2009-Q4')
-        self.assertIsNone(_encabezado_a_trimestre('Serie'))
-
-    def test_trimestre_publicado(self):
-        contexto = obtener_contexto_macro('2024-Q4')
-        self.assertEqual(contexto['trimestre_usado'], '2024-Q4')
-        self.assertTrue(contexto['es_periodo_exacto'])
-
-    def test_trimestre_futuro_usa_el_ultimo_disponible(self):
-        contexto = obtener_contexto_macro('2099-Q1')
-        self.assertFalse(contexto['es_periodo_exacto'])
-        self.assertLess(contexto['trimestre_usado'], '2099-Q1')
-
-
-MACRO_2024_Q4 = {'var_pib': 2.0, 'tasa_captacion_uf': 1.5, 'tipo_cambio_real': 100.0}
 # Pasivos mayores que activos y pérdida operacional: insolvente según Z''EM.
 FILA_EN_CRISIS = {
     **FILA_SANA, 'Activo_Circulante': 200.0, 'Pasivo_Circulante': 700.0,
@@ -95,10 +73,10 @@ FILA_EN_CRISIS = {
 }
 
 
-class ModeloV8Tests(TestCase):
+class ModeloV10Tests(TestCase):
     def test_puntaje_en_rango_y_empresa_en_crisis_mas_riesgosa(self):
-        sana = calcular_variables_modelo(FILA_SANA, MACRO_2024_Q4)
-        crisis = calcular_variables_modelo(FILA_EN_CRISIS, MACRO_2024_Q4)
+        sana = calcular_variables_modelo(FILA_SANA)
+        crisis = calcular_variables_modelo(FILA_EN_CRISIS)
         puntaje_sana, _, _ = predecir_riesgo(sana)
         puntaje_crisis, _, color_crisis = predecir_riesgo(crisis)
         self.assertTrue(0 <= puntaje_sana <= 100 and 0 <= puntaje_crisis <= 100)
@@ -106,18 +84,11 @@ class ModeloV8Tests(TestCase):
         self.assertEqual(color_crisis, 'Rojo')
 
     def test_explicabilidad_muestra_hasta_3_variables_que_suben_el_riesgo(self):
-        crisis = calcular_variables_modelo(FILA_EN_CRISIS, MACRO_2024_Q4)
+        crisis = calcular_variables_modelo(FILA_EN_CRISIS)
         factores = analizar_contribucion_riesgo(crisis)
         self.assertTrue(1 <= len(factores) <= 3)
         self.assertTrue(all(f['impacto'] > 0 for f in factores))
         self.assertNotIn('volatilidad_flujo_caja', [f['key'] for f in factores])
-
-    def test_explicabilidad_trata_v8_como_una_sola_variable(self):
-        # Escenario de recesión para que V8 suba el riesgo.
-        recesion = {'var_pib': -5.0, 'tasa_captacion_uf': 6.0, 'tipo_cambio_real': 120.0}
-        crisis = calcular_variables_modelo(FILA_EN_CRISIS, recesion)
-        claves = [f['key'] for f in analizar_contribucion_riesgo(crisis)]
-        self.assertFalse(set(claves) & set(INDICADORES_V8))
 
     def test_metricas_cumplen_meta_minima_de_rnf08(self):
         metricas = obtener_metricas_modelo_oficial()
@@ -163,11 +134,8 @@ class CargaYPrediccionTests(TestCase):
         respuesta = self.client.post(reverse('prediccion'), {'empresa_id': 'EMP-1'})
         self.assertEqual(respuesta.status_code, 200)
         claves = [v['clave'] for v in respuesta.context['variables_modelo']]
-        self.assertEqual(len(claves), 8)
-        self.assertEqual(claves[:7], [c for c in CLAVES_MODELO if c not in INDICADORES_V8])
-        self.assertEqual(claves[7], CLAVE_V8)
-        self.assertContains(respuesta, '% · Tasa UF ')
-        self.assertEqual(respuesta.context['contexto_macro']['trimestre_usado'], '2024-Q4')
+        self.assertEqual(claves, CLAVES_MODELO)
+        self.assertNotContains(respuesta, 'Banco Central')
         self.assertContains(respuesta, 'Variables del Modelo Predictivo')
 
     def test_prediccion_se_habilita_solo_con_la_carga(self):

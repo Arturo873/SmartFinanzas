@@ -18,10 +18,8 @@ from .viewsML import (
     predecir_riesgo,
     analizar_contribucion_riesgo,
     obtener_recomendacion_general,
-    ruta_cache_modelo,
     tabla_variables_modelo,
 )
-from .datos_macro import obtener_contexto_macro
 from .variables_modelo import calcular_variables_modelo
 from .models import Empresa, HistorialPrediccion, PerfilUsuario, EstadoCarga
 from .decorators import rol_requerido
@@ -195,7 +193,6 @@ def calcular_ratios_liquidez(row: dict):
 
     eps = 1e-6
     denom = pasivo_circulante if pasivo_circulante > 0 else eps
-    denom_activo = activo_total if activo_total > 0 else eps
 
     ratios = {
         'razon_corriente': activo_circulante / denom,
@@ -205,21 +202,13 @@ def calcular_ratios_liquidez(row: dict):
         'capital_trabajo': activo_circulante - pasivo_circulante,
         'endeudamiento_corto_plazo': pasivo_circulante / (pasivo_total if pasivo_total > 0 else eps),
         'solvencia_general': activo_total / (pasivo_total if pasivo_total > 0 else eps),
-        # Alimentan al modelo real (modelo_oficial); ver
-        # DatasetEntrenamientoML/entrenar_modelo_oficial.py -> RATIOS_MODELO.
-        'rentabilidad_activos': flujo_caja_operativo / denom_activo,
-        'capital_trabajo_sobre_activos': (activo_circulante - pasivo_circulante) / denom_activo,
     }
 
     return {k: round(v, 4) for k, v in ratios.items()}
 
 
 def calcular_tendencia_periodos(df: pd.DataFrame) -> list:
-    contextos_macro = {periodo: obtener_contexto_macro(periodo) for periodo in df['Periodo'].unique()}
-    variables_por_fila = [
-        calcular_variables_modelo(fila, contextos_macro[fila['Periodo']])
-        for fila in df.to_dict('records')
-    ]
+    variables_por_fila = [calcular_variables_modelo(fila) for fila in df.to_dict('records')]
     scores_por_fila = predecir_probabilidades(variables_por_fila) * 100
 
     df_scores = df.assign(_score=scores_por_fila)
@@ -255,11 +244,10 @@ def ejecutar_prediccion(request: HttpRequest):
             row = df_empresa.iloc[0]
             ratios_empresa = calcular_ratios_liquidez(row)
 
-            # Las 8 variables del modelo v8 (RF-10). V7 queda en el valor
+            # Las 7 variables del modelo v10 (RF-10). V7 queda en el valor
             # neutro porque el módulo de caja (RF-19 a RF-22) aún no está
             # implementado.
-            contexto_macro = obtener_contexto_macro(row['Periodo'])
-            variables_modelo = calcular_variables_modelo(row.to_dict(), contexto_macro)
+            variables_modelo = calcular_variables_modelo(row.to_dict())
             filas_variables_modelo = tabla_variables_modelo(variables_modelo)
 
             puntaje_riesgo, riesgo, color = predecir_riesgo(variables_modelo)
@@ -291,7 +279,6 @@ def ejecutar_prediccion(request: HttpRequest):
             contexto = {
                 'ratios': ratios_empresa,
                 'variables_modelo': filas_variables_modelo,
-                'contexto_macro': contexto_macro,
                 'periodo': row['Periodo'],
                 'score': puntaje_riesgo,
                 'riesgo': riesgo,
@@ -304,7 +291,7 @@ def ejecutar_prediccion(request: HttpRequest):
                 'modelo_info': {
                     'dataset': 'Datos sintéticos generados desde empresas chilenas reales (CMF)',
                     'split': 'Prueba: 20% del dataset sintético y empresas CMF no usadas al entrenar',
-                    'version': 'v8',
+                    'version': 'v10',
                 },
             }
             contexto.update(metricas_modelo)
@@ -341,9 +328,6 @@ def limpiar_datos(request: HttpRequest):
     if request.method == 'POST':
         estado = EstadoCarga.actual()
         if estado.ruta_csv and os.path.exists(estado.ruta_csv):
-            ruta_cache = ruta_cache_modelo(estado.ruta_csv)
-            if os.path.exists(ruta_cache):
-                os.remove(ruta_cache)
             os.remove(estado.ruta_csv)
         estado.ruta_csv = None
         estado.save()

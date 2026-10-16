@@ -3,8 +3,5 @@ pandas
 openpyxl
 joblib
 scikit-learn
-requests
-beautifulsoup4
-lxml
 xhtml2pdf
 imbalanced-learn

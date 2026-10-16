@@ -105,9 +105,9 @@ def main():
     importancias = dict(zip(CLAVES_MODELO, modelo.feature_importances_.round(4)))
     print('\nImportancia de cada variable:', dict(sorted(importancias.items(), key=lambda kv: -kv[1])))
 
-    joblib.dump(modelo, os.path.join(DIR_MODELO, 'modelo_riesgo_v8.joblib'), compress=3)
+    joblib.dump(modelo, os.path.join(DIR_MODELO, 'modelo_riesgo_v10.joblib'), compress=3)
     joblib.dump({
-        'version': 'v8',
+        'version': 'v10',
         'fecha_entrenamiento': date.today().isoformat(),
         'features_orden': CLAVES_MODELO,
         'proporcion_entrenamiento': nombre_elegido,
@@ -121,7 +121,7 @@ def main():
         'volatilidad_neutra': volatilidad_neutra,
         'medianas_solventes': {k: float(solventes[k].median()) for k in CLAVES_MODELO},
         'total_empresas_entrenamiento': int(entrenamiento_real['rut'].nunique()),
-    }, os.path.join(DIR_MODELO, 'metricas_v8.joblib'))
+    }, os.path.join(DIR_MODELO, 'metricas_v10.joblib'))
     print(f'\nModelo guardado en {DIR_MODELO}')
 
 

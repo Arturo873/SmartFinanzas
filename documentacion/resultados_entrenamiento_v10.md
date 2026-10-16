@@ -1,6 +1,6 @@
-# Resultados del entrenamiento del modelo v8 (RNF-08)
+# Resultados del entrenamiento del modelo v10 (RNF-08)
 
-Fase 4 del plan "camino 3". Fecha: 2026-10-11.
+Modelo de 7 variables (Requerimientos v10). Fecha: 2026-10-16. Reemplaza al modelo v8 de 8 variables (Fase 4 del plan "camino 3", 2026-10-11), que además usaba el contexto macroeconómico (V8). Las cifras del modelo v8 quedan en la [bitácora](bitacora_modelo_v8.md).
 Scripts en `DatasetSinteticoEntrenamientoML/`. Fuentes citadas (R1-R10) en [fuentes_modelo_ml.md](fuentes_modelo_ml.md).
 
 ## 1. Resumen
@@ -9,11 +9,11 @@ Scripts en `DatasetSinteticoEntrenamientoML/`. Fuentes citadas (R1-R10) en [fuen
 |---|---|
 | Random Forest entrenado desde cero | Sí (Breiman, 2001), 300 árboles |
 | Datos sintéticos en varias proporciones | 5 datasets de 10.000 filas: 50/50, 40/60, 30/70, 20/80 y 10/90 (insolventes/solventes) |
-| Meta mínima de 90 % en Accuracy y F1 | **Cumplen 4 de 5** proporciones; el 10/90 queda en F1 = 89,9 % |
-| Meta ideal de 95 % | **Modelo elegido (50/50): Accuracy 98,7 %, F1 98,7 %, Recall 99,1 %** |
+| Meta mínima de 90 % en Accuracy y F1 | **Cumplen las 5** proporciones; la más baja es 10/90, con F1 = 92,7 % |
+| Meta ideal de 95 % | **Modelo elegido (50/50): Accuracy 98,4 %, F1 98,4 %, Recall 99,5 %** |
 | Nstock reservado para validación posterior | Sí, no se usó |
 
-**Cifra realista con empresas reales:** sobre empresas chilenas de la CMF que el modelo nunca vio, y sin datos de caja (como funciona hoy el sistema), el modelo elegido logra **Accuracy 96,9 %, F1 69,7 % y Recall 74,5 %**.
+**Cifra realista con empresas reales:** sobre empresas chilenas de la CMF que el modelo nunca vio, y sin datos de caja (como funciona hoy el sistema), el modelo elegido logra **Accuracy 97,4 %, F1 73,6 % y Recall 76,5 %**.
 
 ## 2. Metodología
 
@@ -21,7 +21,7 @@ Scripts en `DatasetSinteticoEntrenamientoML/`. Fuentes citadas (R1-R10) en [fuen
 
 - **Origen:** estados financieros IFRS que las empresas reportan a la CMF, balance a diciembre (flujos de 12 meses), 2012-2024.
 - **Muestra:** 5.277 empresa-año de 678 empresas no financieras (con balance clasificado en corriente y no corriente).
-- **Variables:** las 8 del modelo, calculadas con `AppWeb/variables_modelo.py`, el mismo código que usa el sistema. V8 corresponde al dato real del Banco Central del cuarto trimestre de cada año.
+- **Variables:** V1 a V6, calculadas con `AppWeb/variables_modelo.py`, el mismo código que usa el sistema. V7 se simula en el paso 2.
 - **EBIT:** se usa el resultado de actividades operacionales; si la empresa no lo informa, ganancia antes de impuestos + costos financieros (definición de Altman, 1968).
 
 ### 2.2 Etiqueta: zona de insolvencia según Altman
@@ -54,10 +54,9 @@ Las 3 empresas con quiebra legal según el Boletín Concursal se dejaron siempre
    - razón corriente entre 0 y 10;
    - razón corriente > 1 si y solo si el capital de trabajo es positivo;
    - leverage, rotación y margen dentro de sus topes;
-   - V7 ≥ 0;
-   - en recesión (PIB < 0), ROA no mayor al percentil 99 real.
+   - V7 ≥ 0.
 
-   Se descartaron entre 367 y 486 casos por dataset.
+   Se descartaron entre 54 y 152 casos por dataset. El modelo v8 tenía además la regla "en recesión (PIB < 0), ROA no mayor al percentil 99 real", que se quitó junto con el contexto macroeconómico.
 5. Cada dataset conserva **todas las empresas reales** de entrenamiento y se completa con sintéticos.
 
 ### 2.5 Entrenamiento y evaluación
@@ -71,16 +70,16 @@ Las 3 empresas con quiebra legal según el Boletín Concursal se dejaron siempre
 
 | Proporción | Accuracy sint. | F1 sint. | Recall sint. | Accuracy real | F1 real | Recall real | Precisión real | PR-AUC real |
 |---|---|---|---|---|---|---|---|---|
-| **50/50 (elegido)** | **98,7 %** | **98,7 %** | **99,1 %** | 96,9 % | **71,3 %** | 80,4 % | 64,1 % | 84,3 % |
-| 40/60 | 99,1 % | 98,9 % | 98,9 % | 96,8 % | 70,2 % | 78,4 % | 63,5 % | 84,3 % |
-| 30/70 | 98,7 % | 97,8 % | 97,8 % | 96,5 % | 68,9 % | 80,4 % | 60,3 % | 84,0 % |
-| 20/80 | 98,6 % | 96,6 % | 96,2 % | 96,8 % | 70,2 % | 78,4 % | 63,5 % | 83,2 % |
-| 10/90 | 98,0 % | 89,9 % | 86,5 % | 97,6 % | 75,9 % | 80,4 % | 71,9 % | 85,2 % |
+| **50/50 (elegido)** | **98,4 %** | **98,4 %** | **99,5 %** | 97,7 % | **76,2 %** | 78,4 % | 74,1 % | 81,6 % |
+| 40/60 | 99,0 % | 98,7 % | 99,4 % | 97,6 % | 74,5 % | 74,5 % | 74,5 % | 79,5 % |
+| 30/70 | 98,9 % | 98,1 % | 98,2 % | 97,6 % | 75,5 % | 78,4 % | 72,7 % | 81,8 % |
+| 20/80 | 98,9 % | 97,1 % | 97,2 % | 97,2 % | 71,2 % | 72,5 % | 69,8 % | 80,7 % |
+| 10/90 | 98,6 % | 92,7 % | 88,5 % | 97,4 % | 72,0 % | 70,6 % | 73,5 % | 81,7 % |
 
 **Lectura (fluctuaciones de error y confianza que pide el Acta):**
-- **En la prueba sintética,** el F1 baja a medida que las insolventes son minoría: 98,7 % con 50/50 y 89,9 % con 10/90. Hay menos ejemplos de la clase difícil.
-- **En la prueba real,** el comportamiento es casi estable (F1 de 69-76 %). La proporción de entrenamiento cambia poco la capacidad de generalizar a empresas nuevas.
-- **La diferencia entre ambas pruebas (≈ 98 % contra ≈ 71 %)** es la brecha esperable entre datos generados desde las mismas reglas y empresas reales que el modelo nunca vio.
+- **En la prueba sintética,** el F1 baja a medida que las insolventes son minoría: 98,4 % con 50/50 y 92,7 % con 10/90. Hay menos ejemplos de la clase difícil.
+- **En la prueba real,** el comportamiento es casi estable (F1 de 71-76 %). La proporción de entrenamiento cambia poco la capacidad de generalizar a empresas nuevas.
+- **La diferencia entre ambas pruebas (≈ 98 % contra ≈ 76 %)** es la brecha esperable entre datos generados desde las mismas reglas y empresas reales que el modelo nunca vio.
 
 ### 3.1 Sin datos de caja (situación actual del sistema)
 
@@ -88,25 +87,22 @@ El módulo de caja (RF-19 a RF-22) no está implementado, así que el sistema us
 
 | | Accuracy | F1 | Recall | Precisión | PR-AUC |
 |---|---|---|---|---|---|
-| Con V7 simulada | 96,9 % | 71,3 % | 80,4 % | 64,1 % | 84,3 % |
-| **Con V7 neutra (hoy)** | **96,9 %** | **69,7 %** | **74,5 %** | **65,5 %** | **77,3 %** |
+| Con V7 simulada | 97,7 % | 76,2 % | 78,4 % | 74,1 % | 81,6 % |
+| **Con V7 neutra (hoy)** | **97,4 %** | **73,6 %** | **76,5 %** | **70,9 %** | **74,3 %** |
 
 ### 3.2 Importancia de las variables (modelo 50/50)
 
 | Variable | Importancia |
 |---|---|
-| Leverage total (V3) | 31,1 % |
-| Volatilidad del flujo de caja (V7, simulada) | 14,1 % |
-| ROA operacional (V4) | 11,2 % |
-| Capital de trabajo sobre activos (V2) | 10,6 % |
-| Margen operacional (V5) | 10,4 % |
-| Razón corriente (V1) | 8,3 % |
-| Rotación de activos (V6) | 8,0 % |
-| Tasa de captación UF (V8) | 2,4 % |
-| Tipo de cambio real (V8) | 2,3 % |
-| Variación del PIB (V8) | 1,5 % |
+| Leverage total (V3) | 25,7 % |
+| ROA operacional (V4) | 17,7 % |
+| Margen operacional (V5) | 17,4 % |
+| Capital de trabajo sobre activos (V2) | 11,7 % |
+| Razón corriente (V1) | 10,3 % |
+| Rotación de activos (V6) | 8,7 % |
+| Volatilidad del flujo de caja (V7, simulada) | 8,5 % |
 
-Las variables macro (V8) pesan poco, en línea con Zurita (2008, p. 29): su efecto sobre la probabilidad de quiebra individual es pequeño.
+En el modelo v8, los 3 indicadores macroeconómicos sumaban solo un 6,1 % de la importancia, en línea con Zurita (2008, p. 29): su efecto sobre la probabilidad de quiebra individual es pequeño. Al quitarlos, el F1 con empresas reales sin datos de caja subió de 69,7 % a 73,6 %.
 
 ### 3.3 Chequeo ilustrativo con quiebras legales reales
 
@@ -114,9 +110,9 @@ Son solo 3 casos, así que **no permiten calcular métricas**; se muestran como 
 
 | Empresa (último año con datos) | Z''EM | Etiqueta | Probabilidad del modelo |
 |---|---|---|---|
-| Sartor Administradora General de Fondos (2024) | −15,4 | Insolvente | 1,00 |
-| Telecomunicaciones Internacionales (2014) | −15,5 | Insolvente | 0,98 |
-| Claro, Vicuña, Valenzuela (2014) | 4,5 | Solvente | 0,08 |
+| Sartor Administradora General de Fondos (2024) | −15,4 | Insolvente | 0,93 |
+| Telecomunicaciones Internacionales (2014) | −15,5 | Insolvente | 0,88 |
+| Claro, Vicuña, Valenzuela (2014) | 4,5 | Solvente | 0,09 |
 
 El modelo detecta a 2 de las 3. La tercera solo tiene datos hasta 2014, probablemente varios años antes de su quiebra, cuando sus cifras todavía eran sanas.
 
@@ -131,7 +127,6 @@ El modelo detecta a 2 de las 3. La tercera solo tiene datos hasta 2014, probable
 ## 5. Cómo reproducirlo
 
 ```
-venv\Scripts\python.exe manage.py actualizar_datos_macro                  (opcional: actualiza V8)
 venv\Scripts\python.exe DatasetSinteticoEntrenamientoML\paso1_extraer_cmf.py         (requiere cmf_raw local)
 venv\Scripts\python.exe DatasetSinteticoEntrenamientoML\paso2_generar_sinteticos.py
 venv\Scripts\python.exe DatasetSinteticoEntrenamientoML\paso3_entrenar_evaluar.py
