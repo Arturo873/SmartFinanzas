@@ -29,6 +29,7 @@ def obtener_metricas_modelo_oficial() -> dict:
         'accuracy': round(real['accuracy'] * 100, 1),
         'recall': round(real['recall_insolvente'] * 100, 1),
         'f1_score': round(real['f1'] * 100, 1),
+        'pr_auc': round(real['pr_auc'] * 100, 1),
         'total_empresas': metricas['total_empresas_entrenamiento'],
     }
 

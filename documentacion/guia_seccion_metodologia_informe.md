@@ -100,7 +100,7 @@ Solo como comparación; el modelo oficial no los usa.
 3. **Separación por empresa** (punto clave de rigor): el 20 % de las empresas (136, con 1.066 empresa-año y 51 insolventes) se aparta para una prueba real que el modelo nunca ve. Se separa **por empresa**, no por fila, para que los años de una misma empresa no queden a la vez en entrenamiento y prueba. Así se evita la *fuga de datos* (*data leakage*), es decir, que el modelo sea evaluado con información que ya vio al entrenar.
 4. **Entrenamiento:** Random Forest con las 542 empresas restantes (4.211 empresa-año, 185 insolventes), con su proporción natural de insolventes y sin balanceo.
 5. **V7 simulada:** `log(V7) = log(0,30) + 0,10·leverage + ruido`. La dirección (más deuda, más volatilidad) sigue a Ringeling (2004, p. 87); los parámetros son supuestos de diseño. En el sistema actual V7 toma un valor neutro (mediana de las solventes), porque el módulo de caja no existe todavía; la cifra principal se mide así.
-6. **Comparación:** los 5 datasets sintéticos del Acta (50/50, 40/60, 30/70, 20/80 y 10/90) se entrenan con los mismos parámetros y se evalúan en la misma prueba real.
+6. **Comparación:** los 5 datasets sintéticos del Acta (50/50, 40/60, 30/70, 20/80 y 10/90) se entrenan con los mismos parámetros y se evalúan en la misma prueba real. Además, una Regresión Logística (Ohlson, 1980) se entrena con los mismos datos reales como modelo de contraste.
 7. **Análisis por tamaño:** cada empresa-año se clasifica por ventas según la Ley 20.416 (micro, pequeña, mediana, grande) para medir el modelo por separado en empresas pequeñas y medianas.
 
 ## 5. Resultados
@@ -112,6 +112,17 @@ Solo como comparación; el modelo oficial no los usa.
 | Accuracy | F1 | Recall | Precisión | PR-AUC |
 |---|---|---|---|---|
 | 97,8 % | **76,8 %** | 74,5 % | 79,2 % | 85,8 % |
+
+**Meta del RNF-08 v11:** PR-AUC ≥ 80 % y Recall y F1 de la clase insolvente ≥ 70 % en esta prueba. El modelo la cumple. El 80 % del acta de constitución se conserva en el PR-AUC; el accuracy se informa solo como referencia.
+
+**Random Forest contra Regresión Logística** (mismos datos reales, misma prueba, sin datos de caja):
+
+| Modelo | F1 | Recall | PR-AUC | Accuracy |
+|---|---|---|---|---|
+| **Random Forest (oficial)** | **76,8 %** | **74,5 %** | **85,8 %** | 97,8 % |
+| Regresión Logística | 69,2 % | 70,6 % | 75,8 % | 97,0 % |
+
+La Regresión Logística no alcanza la meta (F1 bajo 70 % y PR-AUC bajo 80 %), y el accuracy casi no distingue a los dos modelos.
 
 **Datos reales contra sintéticos** (misma prueba real, V7 simulada):
 

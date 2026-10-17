@@ -91,8 +91,9 @@ class ModeloV10Tests(TestCase):
         self.assertNotIn('volatilidad_flujo_caja', [f['key'] for f in factores])
 
     def test_metricas_cumplen_meta_minima_de_rnf08(self):
-        # Meta propuesta para RNF-08 v11, medida en empresas reales no vistas.
+        # Meta de RNF-08 v11, medida en empresas reales no vistas.
         metricas = obtener_metricas_modelo_oficial()
+        self.assertGreaterEqual(metricas['pr_auc'], 80)
         self.assertGreaterEqual(metricas['recall'], 70)
         self.assertGreaterEqual(metricas['f1_score'], 70)
 

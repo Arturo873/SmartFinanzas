@@ -3,7 +3,7 @@
 Registro de cómo se pasó del modelo de Taiwán al modelo v8 de 8 variables, en orden. Para cada fase indica qué se hizo, qué archivos se crearon o cambiaron, las decisiones tomadas y los hallazgos.
 Los detalles están en los documentos enlazados; este archivo es el índice.
 
-**Periodo:** 5 al 16 de octubre de 2026 (al final se agregan los modelos v10 y v11; el v11, vigente, se entrena solo con datos reales).
+**Periodo:** 5 al 16 de octubre de 2026 (al final se agregan los modelos v10 y v11 y la propuesta formal al profesor; el v11, vigente, se entrena solo con datos reales).
 **Punto de partida:** modelo Random Forest entrenado con quiebras reales de Taiwán, F1 = 46,8 % (lejos del 80 % que pedía RNF-08 v7). Ver [busqueda_mejora_f1.md](busqueda_mejora_f1.md).
 
 ## Documentos relacionados
@@ -11,13 +11,19 @@ Los detalles están en los documentos enlazados; este archivo es el índice.
 | Documento | Contenido |
 |---|---|
 | [fuentes_modelo_ml.md](fuentes_modelo_ml.md) | Fuentes verificadas, umbrales por variable, regla de etiquetado y fuentes de datos |
-| [Requerimientos_funcionales_y_no_funcionales_v10.xlsx](Requerimientos_funcionales_y_no_funcionales_v10.xlsx) | Documento oficial de requerimientos vigente (v10, 7 variables, sin RF-01) |
+| [Requerimientos_funcionales_y_no_funcionales_v11.xlsx](Requerimientos_funcionales_y_no_funcionales_v11.xlsx) | Documento oficial de requerimientos vigente (v11: RNF-08 con datos reales, PR-AUC ≥ 80 % y Recall y F1 ≥ 70 %) |
+| [Requerimientos_funcionales_y_no_funcionales_v10.xlsx](Requerimientos_funcionales_y_no_funcionales_v10.xlsx) | Requerimientos v10 (7 variables, sin RF-01, RNF-08 sintético); reemplazado por la v11 |
 | [Requerimientos_funcionales_y_no_funcionales_v9.xlsx](Requerimientos_funcionales_y_no_funcionales_v9.xlsx) | Requerimientos v9 (sin CAPM, 8 variables); reemplazado por la v10 |
 | [Requerimientos_funcionales_y_no_funcionales_v8.xlsx](Requerimientos_funcionales_y_no_funcionales_v8.xlsx) | Requerimientos v8 (celdas cambiadas en verde); reemplazado por la v9 |
 | [resultados_entrenamiento_v11.md](resultados_entrenamiento_v11.md) | Metodología del entrenamiento, resultados, limitaciones y reproducción |
 | [guia_seccion_metodologia_informe.md](guia_seccion_metodologia_informe.md) | Esqueleto con el contenido de la metodología para el informe final y la defensa |
 | [busqueda_mejora_f1.md](busqueda_mejora_f1.md) | Historia anterior: intentos de mejorar el modelo de Taiwán (reemplazado) |
-| [correo_profesor_rnf08.md](correo_profesor_rnf08.md) | Correo al profesor sobre la meta de RNF-08 |
+| [correo_profesor_rnf08.md](correo_profesor_rnf08.md) | Correo al profesor sobre la meta de RNF-08 (anterior, modelo de Taiwán) |
+| [Correo (lo que dijo el profe)](<Correo (lo que dijo el profe)>) | Solicitud del profesor Covarrubias: propuesta formal antes del 19-10-2026 |
+| [CorreoAlprofe_v2.docx](CorreoAlprofe_v2.docx) / [.md](CorreoAlprofe_v2.md) | Respuesta al profesor: alcance, ML, datos reales, validación y cambios respecto del acta |
+| [EvaluacionFuentesDatos.docx](EvaluacionFuentesDatos.docx) / [.md](EvaluacionFuentesDatos.md) | Anexo del correo: fuentes aceptadas y descartadas (reemplaza a DatosDescartados.docx) |
+| [Informe_SmartFinanzas_v14.docx](Informe_SmartFinanzas_v14.docx) | Informe con la primera parte alineada al modelo v11, en control de cambios |
+| [Lostics_Acta-de-Constitucion_FINAL.docx](Lostics_Acta-de-Constitucion_FINAL.docx) | Proyecto originalmente aprobado (objetivos, alcance y meta de 80 %) |
 
 ## Origen del cambio
 
@@ -236,7 +242,7 @@ Quitar V8 no empeoró el modelo: la prueba sintética queda prácticamente igual
 | El modelo oficial se entrena con las 542 empresas reales de entrenamiento (4.211 empresa-año), sin sintéticos. Los 5 datasets sintéticos del Acta se siguen entrenando, solo como comparación | `paso3_entrenar_evaluar.py`, `resultados_entrenamiento.csv` |
 | Nuevos archivos del modelo (reemplazan a los v10) | `AppWeb/modelo_oficial/modelo_riesgo_v11.joblib`, `metricas_v11.joblib` |
 | La app muestra Accuracy, Recall y F1 de la prueba con empresas reales (antes, de la prueba sintética) y describe el modelo como "Empresas chilenas reales de la CMF (2012-2024)" | `AppWeb/viewsML.py`, `AppWeb/views.py`, `resultado_prediccion.html`, `resultado_prediccion_pdf.html` |
-| El test de RNF-08 exige Recall y F1 ≥ 70 % en la prueba real (meta propuesta para RNF-08 v11; antes 90 % en la prueba sintética). 13 pruebas, todas pasan | `AppWeb/tests.py` |
+| El test de RNF-08 exige Recall y F1 ≥ 70 % en la prueba real (antes 90 % en la prueba sintética); más tarde ese día se agregó PR-AUC ≥ 80 % (ver la sección siguiente). 13 pruebas, todas pasan | `AppWeb/tests.py` |
 | Análisis por tamaño de empresa (Ley 20.416) | `paso4_analisis_tamano.py` (nuevo) |
 | Resultados y guía de metodología actualizados | [resultados_entrenamiento_v11.md](resultados_entrenamiento_v11.md), [guia_seccion_metodologia_informe.md](guia_seccion_metodologia_informe.md) |
 
@@ -259,13 +265,48 @@ Quitar V8 no empeoró el modelo: la prueba sintética queda prácticamente igual
 | V7 como coeficiente de variación | Se propuso cambiar V7 a desviación estándar / promedio del flujo neto. Se mantiene la fórmula actual (desviación estándar / ingreso promedio diario, RNF-10), que ya es adimensional y no se dispara cuando el flujo neto promedio es cercano a cero o negativo |
 | Años 2009-2011 | Los archivos de la CMF los traen, pero 2010-2011 no tienen "Total de pasivos" y 2009 usa nombres de cuenta antiguos. Se mantiene 2012-2024; recuperarlos queda pendiente |
 
+## Propuesta formal al profesor (2026-10-16)
+
+**Origen:** el profesor Carlos Covarrubias pidió por correo una propuesta formal antes del 19-10-2026, con los cambios respecto del proyecto aprobado y su justificación. Puso como no negociables que el Machine Learning siga siendo el eje, que los datos sintéticos no son evidencia de precisión y que la compra de un ERP no justifica reducir el alcance.
+
+**Qué se hizo**
+
+| Cambio | Archivo |
+|---|---|
+| Respuesta al profesor: 5 puntos de datos, 5 del proyecto, tabla de objetivos del acta, cambios con justificación y limitaciones | [CorreoAlprofe_v2.docx](CorreoAlprofe_v2.docx) |
+| `DatosDescartados.docx` convertido en evaluación de fuentes: CMF aceptada; septiembre 2025, Nstock y Boletín con alcance limitado; SII, datasets extranjeros y sintéticos descartados | [EvaluacionFuentesDatos.docx](EvaluacionFuentesDatos.docx) |
+| RNF-08 v11: entrenamiento con datos reales; meta PR-AUC ≥ 80 % y Recall y F1 ≥ 70 % en la prueba real (solo cambia la celda C47) | [Requerimientos v11](Requerimientos_funcionales_y_no_funcionales_v11.xlsx) |
+| Informe: 30 cambios en control de cambios, solo en la primera parte (entrenamiento con la CMF, meta, V7 citada a Ringeling, citas sin verificar quitadas, comparación propia con Regresión Logística, bibliografía) | [Informe_SmartFinanzas_v14.docx](Informe_SmartFinanzas_v14.docx) |
+| Regresión Logística implementada como contraste (mismos datos reales, misma prueba) | `paso3_entrenar_evaluar.py`, `resultados_entrenamiento.csv`, [resultados_entrenamiento_v11.md](resultados_entrenamiento_v11.md) §3.2b |
+| La app expone el PR-AUC y el test de RNF-08 revisa PR-AUC ≥ 80 % además de Recall y F1 ≥ 70 %. 13 pruebas, todas pasan | `AppWeb/viewsML.py`, `AppWeb/tests.py` |
+| Barboza, Kimura y Altman (2017) agregada como R11 | [fuentes_modelo_ml.md](fuentes_modelo_ml.md) |
+
+**Decisiones y hallazgos**
+
+| Tema | Decisión o hallazgo |
+|---|---|
+| Meta del RNF-08 | Se evaluaron 70 % (cumple), 80 % en Recall y F1 (no cumple: 74,5 % y 76,8 %) y una meta mixta. El equipo eligió la mixta: **PR-AUC ≥ 80 % y Recall y F1 ≥ 70 %**, que conserva el 80 % del acta en una métrica robusta al desbalance (Saito y Rehmsmeier, 2015). El modelo cumple las tres (85,8 %, 74,5 % y 76,8 %) |
+| Accuracy | Se informa (97,8 %) pero no es meta: con 5 % de insolventes, declarar todo solvente da 95 % de accuracy. El acta de constitución lo tenía como factor crítico (≥ 80 %), así que se explica en vez de omitirlo |
+| Regresión Logística | El informe la nombraba como contraste sin estar implementada. Ahora sí: F1 69,2 %, PR-AUC 75,8 %; queda bajo el Random Forest y no cumple la meta. Reemplaza las cifras de Samara y Shinde y de Gabrielli que citaba el informe |
+| Comparación con el acta de constitución | La meta original era "precisión mínima de 80 %" (accuracy en los factores críticos). El CAPM y los "indicadores económicos" estaban en los objetivos. Inventario y módulo de caja **no** estaban en el alcance: retirar RF-12 a RF-18 vuelve al alcance aprobado, y el módulo de caja se declara como agregado. El acta permitía validar con escenarios simulados; se cambia por indicación del profesor |
+| Retiro de RF-12 a RF-18 | No se justifica con el ERP Facto (el profesor lo descartó como razón), sino porque esos módulos no alimentan al modelo y no estaban en el acta |
+| Años 2009-2011 de la CMF | Se declaran como trabajo de la fase final, una vez terminado el sistema |
+| Otras empresas | No hay ninguna comprometida; el equipo gestionará con CreaEmpresas el contacto con otra empresa |
+| Acta del 14-10-2026 (Carolina San Martín) | Validó las 7 variables y el retiro del CAPM; revisará a mano los cálculos de una empresa de la CMF y de las quiebras legales. El acta escribe "Caracuña": corresponde a Claro, Vicuña, Valenzuela |
+| Citas | Se quitaron del correo y del informe las no verificadas (Wang, Samara y Shinde, Gabrielli, ELE 5/INE, Kokczyński) y las metas inventadas (Recall 90 %, F1 0,88). Barboza et al. (2017) se verificó por DOI y una fuente secundaria |
+
 ## Pendientes
 
 | Pendiente | Responsable |
 |---|---|
+| Revisión de Arturo del correo, la evaluación de fuentes, el informe v14 y el Excel v11 | Arturo |
+| Enviar el correo y la evaluación de fuentes al profesor (plazo 19-10-2026) | Equipo |
+| Corregir "Caracuña" por "Claro, Vicuña, Valenzuela" en el acta del 14-10 | Equipo |
+| Aceptar el control de cambios del informe v14 cuando se apruebe | Equipo |
+| Actualizar la segunda parte del informe (Desarrollo e implementación) | Equipo + Claude |
+| Conseguir otra empresa que aporte datos, a través de CreaEmpresas | Equipo |
 | Fase 5: sección de metodología para el informe | Equipo + Claude |
 | Implementar el módulo de caja (RF-19 a RF-22) para que V7 use datos reales | Por definir |
 | Validación con datos reales de Nstock (segunda etapa, según el Acta) | Equipo |
-| RNF-08 v11 en el Excel y el informe: meta medida en la prueba con empresas reales (propuesta: Recall y F1 ≥ 70 %) | Equipo |
-| Recuperar los años 2009-2011 de la CMF (pasivo = activo − patrimonio; nombres de cuenta de 2009) | Por definir |
+| Recuperar los años 2009-2011 de la CMF (pasivo = activo − patrimonio; nombres de cuenta de 2009); fase final | Por definir |
 | Quitar el resaltado verde del Excel cuando se apruebe la v8 | Equipo |

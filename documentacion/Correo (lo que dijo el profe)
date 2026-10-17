@@ -1,0 +1,46 @@
+correo ; carlos.covarrubias02@inacapmail.cl
+Nombre : CARLOS IGNACIO COVARRUBIAS ASTUDILLO
+
+Buenas tardes estimados.
+
+Junto con saludarles, luego de observar los avances presentados y las aclaraciones realizadas durante las últimas exposiciones, considero necesario solicitarles formalmente una definición más precisa respecto del alcance y naturaleza final del proyecto.
+
+A la fecha, puedo valorar el esfuerzo en avanzar, mantener la continuidad y la consistencia del proyecto; pero también he observado que han surgido cambios relevantes en la interpretación del problema, en las fuentes de datos consideradas y en el alcance funcional de la solución. Sin embargo, dichos ajustes no han sido formalizados mediante una propuesta oficial que permita analizar su impacto respecto del proyecto originalmente aprobado.
+
+Por esta razón, les solicito responder a este correo describiendo claramente cualquier modificación que estimen necesaria en requerimientos, alcance o implementación, indicando además su justificación técnica y metodológica.
+
+No obstante lo anterior, considero importante precisar algunos aspectos que, desde el punto de vista académico, no son negociables porque corresponden al núcleo del proyecto originalmente aprobado.
+
+El proyecto fue presentado y validado como una solución de analítica predictiva basada en técnicas de Machine Learning aplicadas al ámbito financiero. En consecuencia, la componente de Machine Learning no puede ser eliminada, reducida a un elemento accesorio ni reemplazada por un simple sistema transaccional o de visualización de información. Si el componente predictivo desaparece o deja de ser el eje central de la propuesta, el proyecto deja de ser el proyecto que originalmente fue aprobado.
+
+Asimismo, las decisiones posteriores adoptadas por la empresa patrocinadora, incluyendo la adquisición de nuevas herramientas o ERP, no modifican los objetivos académicos comprometidos por el equipo. La evolución tecnológica de la organización puede requerir ajustes en la implementación, pero no constituye fundamento suficiente para alterar la esencia del proyecto ni para reducir su alcance académico.
+
+En este contexto, observo y reitero una preocupación importante respecto de la escala del caso de estudio y de la disponibilidad de datos para sustentar adecuadamente un modelo predictivo.  Durante las exposiciones se ha mencionado el uso de información proveniente de organismos como la CMF, lo cual puede constituir una fuente válida y metodológicamente defendible. Sin embargo, aún no se ha presentado una descripción detallada de:
+
+Qué conjuntos de datos serán utilizados.
+Qué empresas o sectores representan dichos datos.
+Cómo serán procesados.
+Cómo se justifica su pertinencia respecto del problema abordado.
+Cómo se realizará el entrenamiento, validación y prueba del modelo.
+
+Esta definición debe quedar claramente documentada.
+
+Por otra parte, quiero expresar formalmente mi preocupación respecto de la eventual utilización de datos sintéticos como mecanismo de validación principal del componente de Machine Learning. Los datos sintéticos pueden ser útiles para pruebas técnicas, simulaciones o validaciones funcionales del software. Sin embargo, no constituyen evidencia suficiente para demostrar la capacidad predictiva de un modelo orientado a resolver un problema real. Un modelo entrenado o validado principalmente sobre datos artificialmente generados no permite demostrar que sus resultados sean representativos del comportamiento de empresas reales. En consecuencia, los datos sintéticos no serán considerados una base aceptable para respaldar conclusiones sobre precisión predictiva, capacidad de generalización o efectividad práctica de la solución.
+
+Por lo anterior, si el volumen, calidad o representatividad de los datos disponibles en la empresa patrocinadora resulta insuficiente para sustentar el componente de Machine Learning comprometido, la solución no consiste en reemplazar dichos datos por datos sintéticos, sino en fortalecer la obtención de fuentes de datos reales, ampliar la base de validación o incorporar organizaciones adicionales que permitan sustentar metodológicamente el modelo.
+
+En síntesis, necesito que definan formalmente:
+
+Cuál es el alcance real que tendrá el proyecto.
+Qué componente de Machine Learning implementarán.
+Qué fuentes de datos reales utilizarán.
+Cómo validarán el modelo y que otras empresas has logrado comprometer para aportar datos.
+Cómo garantizan que el proyecto mantiene los objetivos originalmente comprometidos.
+
+El propósito de esta solicitud es asegurar la coherencia entre la propuesta aprobada, los objetivos declarados y la evidencia que se utilizará para validar los resultados obtenidos.
+
+Quedo atento a la recepción de la propuesta formal para su revisión a mas tardar el lunes 19 de octubre de 2026.
+
+Atte.
+
+     CCA

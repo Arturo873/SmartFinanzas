@@ -19,6 +19,7 @@ Fecha de revisión: 2026-10-11.
 | R8 | Grinsztajn, L., Oyallon, E., & Varoquaux, G. (2022). Why do tree-based models still outperform deep learning on typical tabular data? *NeurIPS 2022, Datasets and Benchmarks Track*. | https://arxiv.org/abs/2207.08815 | Verificada |
 | R9 | Borisov, V., Leemann, T., Seßler, K., Haug, J., Pawelczyk, M., & Kasneci, G. (2022). Deep neural networks and tabular data: A survey. *IEEE Transactions on Neural Networks and Learning Systems*. | https://doi.org/10.1109/TNNLS.2022.3229161 | Verificada (publicada en línea 2022; versión impresa 2024, vol. 35(6), 7499-7519) |
 | R10 | Goodfellow, I., Bengio, Y., & Courville, A. (2016). *Deep learning*. MIT Press. | https://www.deeplearningbook.org | Libro de referencia |
+| R11 | Barboza, F., Kimura, H., & Altman, E. (2017). Machine learning models and bankruptcy prediction. *Expert Systems with Applications, 83*, 405-417. | https://doi.org/10.1016/j.eswa.2017.04.006 | Verificada (DOI) y conclusión confirmada por fuente secundaria (revisión de MDPI, *JRFM* 15(1), 35, 2022): los modelos de ML mejoran la predicción de quiebra frente a análisis discriminante y regresión logística. No se leyó el texto completo (pago). Se cita en el informe v14 |
 
 ## 2. Respaldo y umbrales por variable
 

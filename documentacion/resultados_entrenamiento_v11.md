@@ -12,6 +12,8 @@ Scripts en `DatasetSinteticoEntrenamientoML/`. Fuentes citadas (R1-R10) en [fuen
 | Resultado en el sistema actual (sin datos de caja) | **Accuracy 97,8 %, F1 76,8 %, Recall 74,5 %, Precisión 79,2 %, PR-AUC 85,8 %** |
 | ¿Los sintéticos mejoran el resultado? | No: en la misma prueba real, el F1 queda igual (71-76 %) y el PR-AUC baja (80-82 % contra 85,5 %) |
 | ¿Sirve con empresas pequeñas y medianas? | En las PYMEs por ventas de la prueba, F1 = 94,4 % (contra 66,7 % en las grandes) |
+| ¿Cumple la meta del RNF-08 v11? | Sí. La meta es PR-AUC ≥ 80 % y Recall y F1 ≥ 70 % en la prueba real; el modelo obtiene 85,8 %, 74,5 % y 76,8 % |
+| ¿Y una Regresión Logística? | Queda bajo el Random Forest y no cumple la meta: F1 69,2 %, PR-AUC 75,8 % (sección 3.2b) |
 | Nstock | Reservado para validar el sistema con una PYME real; no se usó |
 
 **Por qué se dejaron los sintéticos:** el profesor del curso pidió que la evidencia de precisión y generalización salga de datos reales, no sintéticos. Al entrenar solo con datos reales, el resultado con empresas nunca vistas es igual o mejor que con cualquier proporción sintética. Los datasets sintéticos del Acta CreaEmpresas (05-10-2026) se conservan como comparación (sección 3.2).
@@ -58,6 +60,7 @@ Como el módulo de caja (RF-19 a RF-22) no está implementado, el sistema usa **
 - Random Forest (Breiman, 2001) de 300 árboles con `min_samples_leaf = 2`; umbral de clasificación 0,5. Se entrena con la proporción natural de insolventes (4,4 %), sin balanceo.
 - **Prueba real:** las 136 empresas reservadas, con su proporción natural de insolventes (4,8 %).
 - **Comparación con sintéticos:** con los mismos parámetros, un modelo por cada dataset sintético del Acta (50/50, 40/60, 30/70, 20/80 y 10/90; Borderline-SMOTE + reglas axiomáticas, generados en `paso2_generar_sinteticos.py`). Cada uno se evalúa en su 20 % sintético y en la misma prueba real.
+- **Contraste con Regresión Logística:** entrenada con los mismos datos reales, con variables estandarizadas, sin balanceo y con umbral 0,5 (sección 3.2b).
 
 ## 3. Resultados
 
@@ -88,6 +91,19 @@ Todos se evalúan en la misma prueba real, con V7 simulada.
 - **El PR-AUC es mejor con solo reales** (85,5 % contra 79-82 %). El PR-AUC mide qué tan bien el modelo ordena a las empresas de más a menos riesgo, sin depender del umbral; los sintéticos empeoran esa calidad.
 - **La prueba sintética es optimista** (92-99 %): mide al modelo con datos generados desde las mismas empresas y reglas que el entrenamiento. Por eso no se usa como evidencia.
 - **Lo que pedía el Acta** (fluctuación por proporción): en la prueba sintética el F1 baja de 98,4 % a 92,7 % con menos insolventes; en la prueba real casi no cambia (71-76 %).
+
+### 3.2b Contraste con Regresión Logística
+
+Regresión Logística (Ohlson, 1980) entrenada con los mismos datos reales, con variables estandarizadas, sin balanceo y con umbral 0,5, igual que el Random Forest. Se evalúa en la misma prueba real.
+
+| Modelo | Accuracy | F1 | Recall | Precisión | PR-AUC |
+|---|---|---|---|---|---|
+| **Random Forest (oficial), V7 neutra** | **97,8 %** | **76,8 %** | **74,5 %** | **79,2 %** | **85,8 %** |
+| Regresión Logística, V7 neutra | 97,0 % | 69,2 % | 70,6 % | 67,9 % | 75,8 % |
+| Random Forest (oficial), V7 simulada | 97,7 % | 75,7 % | 76,5 % | 75,0 % | 85,5 % |
+| Regresión Logística, V7 simulada | 97,1 % | 68,7 % | 66,7 % | 70,8 % | 76,2 % |
+
+**Lectura:** el Random Forest supera a la Regresión Logística en F1 (unos 7 puntos) y en PR-AUC (unos 10 puntos), y la Regresión Logística no alcanza la meta del RNF-08 (F1 ≥ 70 % y PR-AUC ≥ 80 %). El accuracy casi no distingue a los dos modelos (97-98 %), otro ejemplo de por qué no se usa como meta.
 
 ### 3.3 Por tamaño de empresa
 

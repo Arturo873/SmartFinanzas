@@ -12,6 +12,9 @@ cada dataset sintético y lo evalúa en dos conjuntos:
 Los sintéticos no mejoraron la prueba real, por eso el modelo oficial usa solo
 datos reales.
 
+También entrena una Regresión Logística (Ohlson, 1980) con los mismos datos
+reales, como modelo de contraste del Random Forest en la misma prueba real.
+
 Además informa, solo como chequeo ilustrativo, la probabilidad que asigna el
 modelo a las 3 empresas con quiebra real del Boletín Concursal.
 
@@ -27,8 +30,11 @@ import joblib
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, average_precision_score, f1_score, precision_score, recall_score
 from sklearn.model_selection import train_test_split
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
@@ -43,6 +49,12 @@ NOMBRE_SOLO_REALES = 'solo reales'
 
 def nuevo_random_forest() -> RandomForestClassifier:
     return RandomForestClassifier(n_estimators=300, min_samples_leaf=2, n_jobs=-1, random_state=SEMILLA)
+
+
+def nueva_regresion_logistica():
+    # Las variables tienen escalas muy distintas (razones vs. rotación), por eso
+    # se estandarizan antes; sin balanceo y con umbral 0,5, igual que el Random Forest.
+    return make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000))
 
 
 def metricas(y_real, probabilidad, umbral=0.5) -> dict:
@@ -65,6 +77,12 @@ def main():
     modelo.fit(entrenamiento_real[CLAVES_MODELO], entrenamiento_real['insolvente'])
     real = metricas(prueba_real['insolvente'], modelo.predict_proba(prueba_real[CLAVES_MODELO])[:, 1])
     filas = [{'datos_entrenamiento': NOMBRE_SOLO_REALES, **{f'real_{k}': v for k, v in real.items()}}]
+
+    # Contraste: Regresión Logística con los mismos datos reales.
+    logistica = nueva_regresion_logistica()
+    logistica.fit(entrenamiento_real[CLAVES_MODELO], entrenamiento_real['insolvente'])
+    real_logistica = metricas(prueba_real['insolvente'], logistica.predict_proba(prueba_real[CLAVES_MODELO])[:, 1])
+    filas.append({'datos_entrenamiento': 'regresion logistica (solo reales)', **{f'real_{k}': v for k, v in real_logistica.items()}})
 
     # Comparación con los datasets sintéticos del Acta.
     for prop in PROPORCIONES_INSOLVENTES:
@@ -103,6 +121,8 @@ def main():
     sin_caja = prueba_real.assign(volatilidad_flujo_caja=volatilidad_neutra)
     real_sin_caja = metricas(sin_caja['insolvente'], modelo.predict_proba(sin_caja[CLAVES_MODELO])[:, 1])
     print('\nPrueba real con V7 neutra (sin módulo de caja):', {k: round(v * 100, 1) for k, v in real_sin_caja.items()})
+    logistica_sin_caja = metricas(sin_caja['insolvente'], logistica.predict_proba(sin_caja[CLAVES_MODELO])[:, 1])
+    print('Regresión Logística, prueba real con V7 neutra:', {k: round(v * 100, 1) for k, v in logistica_sin_caja.items()})
 
     importancias = dict(zip(CLAVES_MODELO, modelo.feature_importances_.round(4)))
     print('\nImportancia de cada variable:', dict(sorted(importancias.items(), key=lambda kv: -kv[1])))
