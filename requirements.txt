@@ -6,3 +6,4 @@ scikit-learn
 xhtml2pdf
 imbalanced-learn
 mysqlclient
+python-dotenv
