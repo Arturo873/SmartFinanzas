@@ -1,7 +1,0 @@
-experimento,umbral_optimizado_para,accuracy,precision,recall,f1_test,f2_test,pr_auc_test,umbral
-"baseline: RandomForest class_weight=balanced (produccion, umbral->F1)",F1,95.2,36.2,65.9,46.8,56.6,43.3,0.68
-baseline: RandomForest class_weight=balanced (umbral->F2),F2,92.8,27.1,72.7,39.5,54.4,43.3,0.39
-BalancedRandomForest (umbral->F1),F1,94.6,32.9,63.6,43.4,53.6,39.1,0.76
-BalancedRandomForest (umbral->F2),F2,93.1,28.1,72.7,40.5,55.2,39.1,0.63
-EasyEnsemble (umbral->F1),F1,96.0,41.5,61.4,49.5,56.0,43.5,0.6
-EasyEnsemble (umbral->F2),F2,93.0,27.8,72.7,40.3,55.0,43.5,0.56

@@ -1,6 +1,0 @@
-experimento,filas_train,quiebras_train,accuracy,precision,recall,f1_test,f1_cv_train,umbral
-"baseline (class_weight=balanced, produccion actual)",5455,176,95.2,36.2,65.9,46.8,41.7,0.68
-undersampling 1:1 (220/220),352,176,89.1,19.7,77.3,31.3,85.6,0.59
-undersampling 1:4 (220/~880),880,176,91.2,23.2,75.0,35.5,75.3,0.34
-SMOTE 1:1,10558,5279,90.8,22.3,75.0,34.4,93.9,0.53
-SMOTEENN,9689,5088,90.5,22.2,77.3,34.5,96.8,0.58

@@ -1,8 +1,0 @@
-datos_entrenamiento,real_accuracy,real_f1,real_recall_insolvente,real_precision_insolvente,real_pr_auc,sintetica_accuracy,sintetica_f1,sintetica_recall_insolvente,sintetica_precision_insolvente,sintetica_pr_auc
-solo reales,0.9765,0.7573,0.7647,0.7500,0.8553,,,,,
-regresion logistica (solo reales),0.9709,0.6869,0.6667,0.7083,0.7620,,,,,
-sintetico 50/50,0.9765,0.7619,0.7843,0.7407,0.8158,0.9840,0.9842,0.9950,0.9736,0.9996
-sintetico 40/60,0.9756,0.7451,0.7451,0.7451,0.7952,0.9895,0.9870,0.9938,0.9803,0.9996
-sintetico 30/70,0.9756,0.7547,0.7843,0.7273,0.8177,0.9885,0.9808,0.9817,0.9800,0.9968
-sintetico 20/80,0.9719,0.7115,0.7255,0.6981,0.8071,0.9885,0.9713,0.9725,0.9701,0.9964
-sintetico 10/90,0.9737,0.7200,0.7059,0.7347,0.8165,0.9860,0.9267,0.8850,0.9725,0.9813

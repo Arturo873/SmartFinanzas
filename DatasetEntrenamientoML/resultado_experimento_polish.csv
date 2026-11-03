@@ -1,6 +1,0 @@
-experimento,filas_train,quiebras_train,accuracy,precision,recall,f1_test,f1_cv_train,umbral
-baseline: solo Taiwan (produccion actual),5455,176,94.3,32.3,70.5,44.3,41.4,0.54
-Taiwan train + Polish (todos los horizontes) combinados,48720,2259,95.1,34.7,59.1,43.7,23.4,0.7
-Taiwan+Polish combinado + undersampling 1:1,4518,2259,81.4,13.3,86.4,23.0,73.5,0.38
-Taiwan+Polish combinado + SMOTE 1:1,92922,46461,89.4,20.1,77.3,31.9,76.5,0.41
-Taiwan+Polish combinado + SMOTEENN,77449,42478,90.8,22.7,77.3,35.1,82.5,0.45

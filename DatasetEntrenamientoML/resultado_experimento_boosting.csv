@@ -1,5 +1,0 @@
-experimento,accuracy,precision,recall,f1_test,f1_cv_train,umbral
-baseline: RandomForest class_weight=balanced (produccion actual),95.2,36.2,65.9,46.8,41.7,0.68
-HistGradientBoosting class_weight=balanced,94.9,32.4,52.3,40.0,40.2,0.17
-XGBoost scale_pos_weight=30.0,94.3,31.1,63.6,41.8,39.4,0.34
-XGBoost sin scale_pos_weight (baseline sin ajuste),95.7,39.1,56.8,46.3,40.7,0.2
