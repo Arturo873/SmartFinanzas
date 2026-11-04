@@ -1,8 +1,10 @@
-Django
+#Django
+django>=4.2,<4.3
 pandas
 openpyxl
 joblib
-scikit-learn
+#scikit-learn
+scikit-learn==1.9.0
 xhtml2pdf
 imbalanced-learn
 mysqlclient

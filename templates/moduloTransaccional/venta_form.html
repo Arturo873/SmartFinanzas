@@ -1,0 +1,237 @@
+{% extends "Principal.html" %}
+
+{% block title %}Registro de Venta - SmartFinanzas{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-wrap align-items-center justify-content-between pb-3 mb-4 border-bottom">
+    <div>
+        <h1 class="h3 fw-bold text-dark mb-1">
+            <i class="bi bi-cart-plus text-primary me-2"></i>Punto de Venta Operativo
+        </h1>
+        <p class="text-muted mb-0 small">
+            Registro diario con deducción automática de comisiones adquirentes y control de liquidez real.
+        </p>
+    </div>
+    <div class="mt-2 mt-md-0">
+        <span class="badge bg-secondary py-2 px-3 fs-6">
+            <i class="bi bi-calendar-event me-1"></i>{{ fecha_hoy|date:"d/m/Y" }}
+        </span>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Formulario de Venta -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h5 class="card-title fw-bold mb-0 text-dark">
+                    <i class="bi bi-receipt me-2 text-primary"></i>Nueva Transacción
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" id="formVenta" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger shadow-sm">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            {% for error in form.non_field_errors %}
+                                <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <!-- Método de Pago -->
+                    <div class="mb-3">
+                        <label for="{{ form.metodo_pago.id_for_label }}" class="form-label fw-semibold">
+                            {{ form.metodo_pago.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.metodo_pago }}
+                        {% if form.metodo_pago.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ form.metodo_pago.errors|striptags }}
+                            </div>
+                        {% endif %}
+                        <div class="form-text small">
+                            Selecciona el canal de pago para descontar la tasa de adquirencia correspondiente.
+                        </div>
+                    </div>
+
+                    <!-- Total Bruto -->
+                    <div class="mb-3">
+                        <label for="{{ form.total_bruto.id_for_label }}" class="form-label fw-semibold">
+                            {{ form.total_bruto.label }} <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            {{ form.total_bruto }}
+                        </div>
+                        {% if form.total_bruto.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ form.total_bruto.errors|striptags }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Descuento Monto -->
+                    <div class="mb-3">
+                        <label for="{{ form.descuento_monto.id_for_label }}" class="form-label fw-semibold">
+                            {{ form.descuento_monto.label }}
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            {{ form.descuento_monto }}
+                        </div>
+                        {% if form.descuento_monto.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ form.descuento_monto.errors|striptags }}
+                            </div>
+                        {% endif %}
+                        <div class="form-text small">
+                            Descuento puntual aplicado al cliente (debe ser menor al total bruto).
+                        </div>
+                    </div>
+
+                    <!-- Panel Reactivo de Liquidez Real Estimada (Vanilla JS) -->
+                    <div id="panelLiquidez" class="alert alert-info shadow-sm d-flex align-items-center gap-3 py-3 px-3 my-4">
+                        <div class="fs-2 text-info">
+                            <i class="bi bi-wallet2"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="fw-bold fs-6" id="textoIngresoReal">
+                                Ingreso Real Estimado: $0
+                            </div>
+                            <small class="text-muted" id="textoComision">
+                                (Comisión deducida: $0)
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg fw-semibold shadow-sm">
+                            <i class="bi bi-check2-circle me-1"></i>Registrar Venta
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historial de Ventas Recientes de la Jornada -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="card-title fw-bold mb-0 text-dark">
+                    <i class="bi bi-clock-history me-2 text-secondary"></i>Últimas Ventas de Hoy
+                </h5>
+                <span class="badge bg-light text-dark border">
+                    {{ ventas_hoy.count }} registradas
+                </span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light small text-uppercase">
+                            <tr>
+                                <th>Hora</th>
+                                <th>Método</th>
+                                <th class="text-end">Bruto</th>
+                                <th class="text-end">Comisión</th>
+                                <th class="text-end fw-bold">Ingreso Real</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for v in ventas_hoy %}
+                            <tr>
+                                <td class="small text-muted">{{ v.fecha|date:"H:i" }}</td>
+                                <td>
+                                    <span class="badge bg-dark-subtle text-dark border">
+                                        {{ v.metodo_pago.nombre }}
+                                    </span>
+                                </td>
+                                <td class="text-end small">${{ v.total_bruto|floatformat:0 }}</td>
+                                <td class="text-end small text-danger">-${{ v.comision_aplicada|floatformat:0 }}</td>
+                                <td class="text-end fw-bold text-success">${{ v.ingreso_real|floatformat:0 }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">
+                                    <i class="bi bi-inbox fs-3 d-block mb-1"></i>
+                                    Aún no hay ventas registradas en la jornada de hoy.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Reactividad pura en Vanilla JS para mitigar la ceguera de liquidez -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const inputBruto = document.getElementById('id_total_bruto');
+    const inputDescuento = document.getElementById('id_descuento_monto');
+    const selectMetodo = document.getElementById('id_metodo_pago');
+    const textoIngresoReal = document.getElementById('textoIngresoReal');
+    const textoComision = document.getElementById('textoComision');
+    const panelLiquidez = document.getElementById('panelLiquidez');
+
+    function formatearDinero(valor) {
+        return new Intl.NumberFormat('es-CL', {
+            style: 'currency',
+            currency: 'CLP',
+            maximumFractionDigits: 0
+        }).format(valor);
+    }
+
+    function recalcularLiquidez() {
+        const bruto = parseFloat(inputBruto.value) || 0;
+        const descuento = parseFloat(inputDescuento.value) || 0;
+
+        // Leer la opción seleccionada y su atributo data-comision
+        const opcionSeleccionada = selectMetodo.options[selectMetodo.selectedIndex];
+        const porcentajeComision = opcionSeleccionada ? parseFloat(opcionSeleccionada.getAttribute('data-comision')) || 0 : 0;
+
+        // Validaciones en caliente
+        if (bruto <= 0) {
+            textoIngresoReal.textContent = 'Ingreso Real Estimado: $0';
+            textoComision.textContent = '(Comisión deducida: $0)';
+            panelLiquidez.className = 'alert alert-info shadow-sm d-flex align-items-center gap-3 py-3 px-3 my-4';
+            return;
+        }
+
+        if (descuento >= bruto) {
+            textoIngresoReal.innerHTML = '<span class="text-danger fw-bold">El descuento no puede superar o igualar el total bruto.</span>';
+            textoComision.textContent = '(Operación Inválida)';
+            panelLiquidez.className = 'alert alert-warning shadow-sm d-flex align-items-center gap-3 py-3 px-3 my-4';
+            return;
+        }
+
+        const totalCobrado = bruto - descuento;
+        const comisionDeducida = totalCobrado * (porcentajeComision / 100);
+        const ingresoReal = totalCobrado - comisionDeducida;
+
+        textoIngresoReal.textContent = `Ingreso Real Estimado: ${formatearDinero(ingresoReal)}`;
+        textoComision.textContent = `(Comisión deducida: ${formatearDinero(comisionDeducida)} [${porcentajeComision}% adquirencia])`;
+
+        panelLiquidez.className = 'alert alert-success shadow-sm d-flex align-items-center gap-3 py-3 px-3 my-4';
+    }
+
+    // Escuchar eventos
+    if (inputBruto) inputBruto.addEventListener('input', recalcularLiquidez);
+    if (inputDescuento) inputDescuento.addEventListener('input', recalcularLiquidez);
+    if (selectMetodo) selectMetodo.addEventListener('change', recalcularLiquidez);
+
+    // Ejecutar al cargar la página
+    recalcularLiquidez();
+});
+</script>
+{% endblock %}
+

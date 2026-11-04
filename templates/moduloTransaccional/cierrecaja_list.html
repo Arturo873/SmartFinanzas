@@ -1,0 +1,135 @@
+{% extends "Principal.html" %}
+
+{% block title %}Historial de Cierres de Caja - SmartFinanzas{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-wrap align-items-center justify-content-between pb-3 mb-4 border-bottom">
+    <div>
+        <h1 class="h3 fw-bold text-dark mb-1">
+            <i class="bi bi-journal-check text-primary me-2"></i>Historial de Cierres y Arqueos
+        </h1>
+        <p class="text-muted mb-0 small">
+            Registro cronológico auditable de cuadratura de caja diaria (Roles Dueño y Contador).
+        </p>
+    </div>
+    <div class="mt-2 mt-md-0 d-flex gap-2">
+        {% if user.perfil.rol == 'Dueño' or user.is_superuser %}
+            {% if not cierre_hoy_existe %}
+                <a href="{% url 'moduloTransaccional:cierre_caja' %}" class="btn btn-primary btn-sm shadow-sm">
+                    <i class="bi bi-plus-circle me-1"></i>Efectuar Cierre de Hoy
+                </a>
+            {% else %}
+                <span class="badge bg-success-subtle text-success border border-success-subtle py-2 px-3">
+                    <i class="bi bi-check-all me-1"></i>Cierre de hoy completado
+                </span>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold mb-0 text-dark">
+            <i class="bi bi-list-check me-2 text-secondary"></i>Auditoría de Cierres Diarios
+        </h5>
+        <span class="badge bg-light text-dark border">
+            {{ paginator.count|default:cierres.count }} registros totales
+        </span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small text-uppercase">
+                    <tr>
+                        <th class="ps-4">Fecha Cierre</th>
+                        <th>Estado</th>
+                        <th class="text-end">Total Sistema</th>
+                        <th class="text-end">Retiros Caja</th>
+                        <th class="text-end">Arqueo Físico</th>
+                        <th class="text-end">Descuadre</th>
+                        <th>Cerrado Por</th>
+                        <th class="pe-4 text-end">Confirmación</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in cierres %}
+                    <tr>
+                        <td class="ps-4 fw-semibold text-dark">
+                            <i class="bi bi-calendar3 me-2 text-muted"></i>{{ c.fecha|date:"d/m/Y" }}
+                        </td>
+                        <td>
+                            {% if c.estado == 'Cuadrado' %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                    <i class="bi bi-check-circle me-1"></i>Cuadrado
+                                </span>
+                            {% else %}
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>Descuadrado
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end font-monospace">${{ c.total_sistema|floatformat:0 }}</td>
+                        <td class="text-end font-monospace text-danger">-${{ c.total_retiros|floatformat:0 }}</td>
+                        <td class="text-end font-monospace fw-bold">${{ c.total_arqueo|floatformat:0 }}</td>
+                        <td class="text-end font-monospace {% if c.descuadre_total != 0 %}text-danger fw-bold{% else %}text-muted{% endif %}">
+                            {% if c.descuadre_total > 0 %}+{% endif %}${{ c.descuadre_total|floatformat:0 }}
+                        </td>
+                        <td>
+                            <small class="text-muted">
+                                <i class="bi bi-person me-1"></i>{{ c.cerrado_por_usuario.username|default:"Sistema" }}
+                            </small>
+                        </td>
+                        <td class="pe-4 text-end small text-muted">
+                            {{ c.fecha_confirmacion|date:"d/m/Y H:i" }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="bi bi-journal-x fs-1 d-block mb-2"></i>
+                            No se han registrado cierres de caja en el sistema.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Paginación -->
+    {% if is_paginated %}
+    <div class="card-footer bg-white border-top py-3">
+        <nav aria-label="Navegación de historial">
+            <ul class="pagination pagination-sm justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">Anterior</span></li>
+                {% endif %}
+
+                {% for num in paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% else %}
+                        <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">Siguiente</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">Siguiente</span></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

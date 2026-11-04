@@ -1,0 +1,250 @@
+{% extends "Principal.html" %}
+
+{% block title %}Cierre y Arqueo Diario - SmartFinanzas{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-wrap align-items-center justify-content-between pb-3 mb-4 border-bottom">
+    <div>
+        <h1 class="h3 fw-bold text-dark mb-1">
+            <i class="bi bi-safe2 text-primary me-2"></i>Cierre y Arqueo Diario de Caja
+        </h1>
+        <p class="text-muted mb-0 small">
+            Consolidación transaccional de ventas netas, retiros de caja chica y cuadratura física (Rol Dueño).
+        </p>
+    </div>
+    <div class="mt-2 mt-md-0 d-flex gap-2">
+        <a href="{% url 'moduloTransaccional:historial_cierres' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-journal-text me-1"></i>Ver Historial
+        </a>
+        <span class="badge bg-primary py-2 px-3 fs-6">
+            <i class="bi bi-calendar-check me-1"></i>{{ fecha_hoy|date:"d/m/Y" }}
+        </span>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- PANEL DESTACADO: Resumen de Liquidez del Sistema (Card) -->
+    <div class="col-lg-5">
+        <div class="card shadow-sm border-0 mb-4 bg-primary text-white">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-white-50 text-uppercase fw-bold small">Saldo Esperado en Sistema</span>
+                    <i class="bi bi-calculator-fill fs-3 text-white-50"></i>
+                </div>
+                <h2 class="display-5 fw-bold mb-3" id="displayTotalSistema" data-valor="{{ total_sistema }}">
+                    ${{ total_sistema|floatformat:0 }}
+                </h2>
+                <div class="border-top border-white border-opacity-25 pt-3">
+                    <div class="d-flex justify-content-between small text-white-50 mb-1">
+                        <span>(+) Ventas Netas Reales:</span>
+                        <strong class="text-white">${{ total_ingreso_real|floatformat:0 }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between small text-white-50 mb-1">
+                        <span>(-) Retiros Caja Chica:</span>
+                        <strong class="text-white">-${{ total_retiros|floatformat:0 }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between small text-white-50">
+                        <span>Ventas Brutas Totales:</span>
+                        <span class="text-white">${{ total_ventas_bruto|floatformat:0 }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Desglose por Método de Pago -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h6 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-pie-chart-fill text-secondary me-2"></i>Composición por Método de Pago
+                </h6>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for m in resumen_metodos %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
+                        <div>
+                            <strong>{{ m.metodo.nombre }}</strong>
+                            <div class="small text-muted">{{ m.cantidad }} transacción(es)</div>
+                        </div>
+                        <span class="badge bg-light text-dark fs-6 border">
+                            ${{ m.total_ingreso_real|floatformat:0 }}
+                        </span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORMULARIO DE ARQUEO FÍSICO Y JUSTIFICACIÓN -->
+    <div class="col-lg-7">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h5 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-cash-coin text-success me-2"></i>Validación y Arqueo Físico
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" id="formCierre" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger shadow-sm">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            {% for error in form.non_field_errors %}
+                                <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <!-- Total Arqueo Físico -->
+                    <div class="mb-4">
+                        <label for="{{ form.total_arqueo.id_for_label }}" class="form-label fw-bold fs-6">
+                            {{ form.total_arqueo.label }} <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-light fw-bold">$</span>
+                            {{ form.total_arqueo }}
+                        </div>
+                        {% if form.total_arqueo.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ form.total_arqueo.errors|striptags }}
+                            </div>
+                        {% endif %}
+                        <div class="form-text small">
+                            Ingrese el monto total en efectivo y comprobantes físicos contados en gaveta.
+                        </div>
+                    </div>
+
+                    <!-- Panel Dinámico de Cuadratura / Descuadre (Vanilla JS) -->
+                    <div id="panelDiferencia" class="alert alert-secondary py-3 px-3 shadow-sm d-flex align-items-center gap-3">
+                        <div id="iconoDiferencia" class="fs-2 text-secondary">
+                            <i class="bi bi-dash-circle"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="fw-bold" id="textoDiferencia">
+                                Ingrese el arqueo físico para calcular la cuadratura.
+                            </div>
+                            <small class="text-muted" id="subtextoDiferencia">
+                                Comparación automática contra el Total del Sistema (${{ total_sistema|floatformat:0 }}).
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- Campo Justificación (Se oculta/muestra reactivamente vía JS) -->
+                    <div id="contenedorJustificacion" class="mb-4 {% if not form.justificacion.errors %}d-none{% endif %}">
+                        <label for="{{ form.justificacion.id_for_label }}" class="form-label fw-bold text-danger">
+                            <i class="bi bi-shield-exclamation me-1"></i>Justificación de Descuadre Obligatoria <span class="text-danger">*</span>
+                        </label>
+                        {{ form.justificacion }}
+                        {% if form.justificacion.errors %}
+                            <div class="text-danger small mt-1 fw-bold">
+                                {{ form.justificacion.errors|striptags }}
+                            </div>
+                        {% endif %}
+                        <div class="form-text text-danger small">
+                            <i class="bi bi-info-circle me-1"></i>Existe una discrepancia con el saldo calculado por el sistema. Es mandatario indicar el motivo (faltante, error de vuelto, boleta manual, etc.).
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning small py-2 px-3 border-start border-warning border-4 mb-4">
+                        <i class="bi bi-lock-fill me-1"></i><strong>Garantía de Integridad:</strong>
+                        Al confirmar el cierre, todas las ventas ({{ ventas_huerfanas.count }}) y retiros ({{ retiros_huerfanos.count }}) de hoy quedarán vinculados formalmente a este cierre diario de manera irreversible.
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'home' %}" class="btn btn-outline-secondary px-4">
+                            Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-success btn-lg px-4 fw-semibold shadow-sm">
+                            <i class="bi bi-check-circle-fill me-2"></i>Confirmar y Cerrar Caja
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Reactividad pura en Vanilla JS para detectar descuadre y forzar justificación -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const inputArqueo = document.getElementById('id_total_arqueo');
+    const displayTotalSistema = document.getElementById('displayTotalSistema');
+    const panelDiferencia = document.getElementById('panelDiferencia');
+    const iconoDiferencia = document.getElementById('iconoDiferencia');
+    const textoDiferencia = document.getElementById('textoDiferencia');
+    const subtextoDiferencia = document.getElementById('subtextoDiferencia');
+    const contenedorJustificacion = document.getElementById('contenedorJustificacion');
+    const textareaJustificacion = document.getElementById('id_justificacion');
+
+    const totalSistema = parseFloat(displayTotalSistema.getAttribute('data-valor')) || 0;
+
+    function formatearDinero(valor) {
+        return new Intl.NumberFormat('es-CL', {
+            style: 'currency',
+            currency: 'CLP',
+            maximumFractionDigits: 0
+        }).format(valor);
+    }
+
+    function evaluarCuadratura() {
+        const valorTexto = inputArqueo.value.trim();
+
+        if (valorTexto === '') {
+            panelDiferencia.className = 'alert alert-secondary py-3 px-3 shadow-sm d-flex align-items-center gap-3';
+            iconoDiferencia.innerHTML = '<i class="bi bi-dash-circle"></i>';
+            textoDiferencia.textContent = 'Ingrese el arqueo físico para calcular la cuadratura.';
+            subtextoDiferencia.textContent = `Comparación automática contra el Total del Sistema (${formatearDinero(totalSistema)}).`;
+            
+            // Si no hay errores del servidor previos, ocultar justificación
+            if (!textareaJustificacion.classList.contains('is-invalid')) {
+                contenedorJustificacion.classList.add('d-none');
+                textareaJustificacion.removeAttribute('required');
+            }
+            return;
+        }
+
+        const arqueoFisico = parseFloat(valorTexto) || 0;
+        const diferencia = arqueoFisico - totalSistema;
+
+        if (Math.abs(diferencia) < 0.01) {
+            // CAJA EXACTAMENTE CUADRADA
+            panelDiferencia.className = 'alert alert-success py-3 px-3 shadow-sm d-flex align-items-center gap-3';
+            iconoDiferencia.innerHTML = '<i class="bi bi-check-circle-fill text-success"></i>';
+            textoDiferencia.innerHTML = '<strong>Caja Cuadrada Perfecta</strong>';
+            subtextoDiferencia.textContent = 'El dinero físico coincide exactamente con el saldo teórico del sistema ($0 descuadre).';
+            
+            // Ocultar y desmarcar requerimiento
+            contenedorJustificacion.classList.add('d-none');
+            textareaJustificacion.removeAttribute('required');
+        } else {
+            // DESCUADRE DETECTADO (Faltante o Sobrante)
+            const esFaltante = diferencia < 0;
+            const tipo = esFaltante ? 'Faltante de Caja' : 'Sobrante de Caja';
+            const colorClase = esFaltante ? 'alert-danger' : 'alert-warning';
+            const iconoColor = esFaltante ? 'text-danger' : 'text-warning';
+
+            panelDiferencia.className = `alert ${colorClase} py-3 px-3 shadow-sm d-flex align-items-center gap-3`;
+            iconoDiferencia.innerHTML = `<i class="bi bi-exclamation-triangle-fill ${iconoColor}"></i>`;
+            textoDiferencia.innerHTML = `<strong>${tipo}: ${formatearDinero(diferencia)}</strong>`;
+            subtextoDiferencia.textContent = 'Existe una anomalía contable entre el físico y el sistema. La justificación es obligatoria.';
+
+            // Mostrar campo de justificación y volverlo required en el DOM
+            contenedorJustificacion.classList.remove('d-none');
+            textareaJustificacion.setAttribute('required', 'required');
+        }
+    }
+
+    if (inputArqueo) {
+        inputArqueo.addEventListener('input', evaluarCuadratura);
+        evaluarCuadratura();
+    }
+});
+</script>
+{% endblock %}
+
