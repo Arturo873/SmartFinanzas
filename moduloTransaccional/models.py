@@ -7,6 +7,15 @@ class MetodoPago(models.Model):
         max_digits=5, decimal_places=2, null=True, blank=True, verbose_name="Porcentaje de Comisión"
     )
     activo = models.BooleanField(default=True, null=True, blank=True, verbose_name="Activo")
+    empresa = models.ForeignKey(
+        'usuarios.Empresa',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        db_column='empresa_id',
+        related_name='metodos_pago',
+        verbose_name="Empresa"
+    )
 
     class Meta:
         db_table = 'metodopago'
@@ -52,6 +61,15 @@ class CierreCaja(models.Model):
         verbose_name="Revisado Por"
     )
     fecha_revision = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de Revisión")
+    empresa = models.ForeignKey(
+        'usuarios.Empresa',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        db_column='empresa_id',
+        related_name='cierres_caja',
+        verbose_name="Empresa"
+    )
 
     class Meta:
         db_table = 'cierrecaja'
@@ -122,6 +140,15 @@ class RetiroCajaChica(models.Model):
         related_name='retiros',
         verbose_name="Cierre de Caja"
     )
+    empresa = models.ForeignKey(
+        'usuarios.Empresa',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        db_column='empresa_id',
+        related_name='retiros_caja_chica',
+        verbose_name="Empresa"
+    )
 
     class Meta:
         db_table = 'retirocajachica'
@@ -178,6 +205,15 @@ class Venta(models.Model):
         db_column='cierre_id',
         related_name='ventas',
         verbose_name="Cierre de Caja"
+    )
+    empresa = models.ForeignKey(
+        'usuarios.Empresa',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        db_column='empresa_id',
+        related_name='ventas',
+        verbose_name="Empresa"
     )
 
     class Meta:

@@ -4,8 +4,8 @@ from .models import PrediccionRiesgo, Recomendacion, InformePDF
 
 @admin.register(PrediccionRiesgo)
 class PrediccionRiesgoAdmin(admin.ModelAdmin):
-    list_display = ('id', 'fecha_prediccion', 'score_riesgo', 'nivel_semaforo', 'version_modelo', 'ejecutada_por_usuario')
-    list_filter = ('nivel_semaforo', 'version_modelo')
+    list_display = ('id', 'fecha_prediccion', 'score_riesgo', 'nivel_semaforo', 'version_modelo', 'ejecutada_por_usuario', 'empresa')
+    list_filter = ('nivel_semaforo', 'version_modelo', 'empresa')
 
 
 @admin.register(Recomendacion)
@@ -16,5 +16,5 @@ class RecomendacionAdmin(admin.ModelAdmin):
 
 @admin.register(InformePDF)
 class InformePDFAdmin(admin.ModelAdmin):
-    list_display = ('id', 'prediccion', 'fecha_generacion', 'ruta_archivo', 'usuario')
-    list_filter = ('fecha_generacion',)
+    list_display = ('id', 'prediccion', 'fecha_generacion', 'ruta_archivo', 'usuario', 'empresa')
+    list_filter = ('fecha_generacion', 'empresa')

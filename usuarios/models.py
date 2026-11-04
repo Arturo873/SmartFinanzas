@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.hashers import make_password, check_password
+from django.utils import timezone
 
 
 class Rol(models.Model):
@@ -15,7 +16,7 @@ class Rol(models.Model):
         return self.nombre
 
 
-class ConfiguracionEmpresa(models.Model):
+class Empresa(models.Model):
     razon_social = models.CharField(max_length=200, verbose_name="Razón Social")
     rut = models.CharField(max_length=15, unique=True, verbose_name="RUT")
     giro = models.CharField(max_length=150, null=True, blank=True, verbose_name="Giro Comercial")
@@ -24,12 +25,16 @@ class ConfiguracionEmpresa(models.Model):
     fecha_actualizacion = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de Actualización")
 
     class Meta:
-        db_table = 'configuracionempresa'
-        verbose_name = 'Configuración de Empresa'
-        verbose_name_plural = 'Configuraciones de Empresas'
+        db_table = 'empresa'
+        verbose_name = 'Empresa'
+        verbose_name_plural = 'Empresas'
 
     def __str__(self):
         return f"{self.razon_social} ({self.rut})"
+
+
+# Alias para retrocompatibilidad
+ConfiguracionEmpresa = Empresa
 
 
 class Usuario(models.Model):
@@ -46,7 +51,7 @@ class Usuario(models.Model):
         verbose_name="Rol Asignado"
     )
     empresa = models.ForeignKey(
-        ConfiguracionEmpresa,
+        Empresa,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -55,13 +60,18 @@ class Usuario(models.Model):
         verbose_name="Empresa"
     )
     activo = models.BooleanField(default=True, null=True, blank=True, verbose_name="Activo")
-    fecha_creacion = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de Creación")
+    fecha_creacion = models.DateTimeField(default=timezone.now, null=True, blank=True, verbose_name="Fecha de Creación")
     ultima_sesion = models.DateTimeField(null=True, blank=True, verbose_name="Última Sesión")
 
     class Meta:
         db_table = 'usuario'
         verbose_name = 'Usuario'
         verbose_name_plural = 'Usuarios'
+
+    def save(self, *args, **kwargs):
+        if not self.fecha_creacion:
+            self.fecha_creacion = timezone.now()
+        super().save(*args, **kwargs)
 
     def set_password(self, raw_password):
         self.password_hash = make_password(raw_password)

@@ -35,9 +35,18 @@ class PrediccionRiesgo(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        db_column='ejecutada_por_usuario_id',
+        db_column='ejecutado_por_usuario_id',
         related_name='predicciones_ejecutadas',
         verbose_name="Ejecutada Por"
+    )
+    empresa = models.ForeignKey(
+        'usuarios.Empresa',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        db_column='empresa_id',
+        related_name='predicciones_riesgo',
+        verbose_name="Empresa"
     )
 
     class Meta:
@@ -99,6 +108,15 @@ class InformePDF(models.Model):
         db_column='usuario_id',
         related_name='informes_pdf_generados',
         verbose_name="Usuario Solicitante"
+    )
+    empresa = models.ForeignKey(
+        'usuarios.Empresa',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        db_column='empresa_id',
+        related_name='informes_pdf',
+        verbose_name="Empresa"
     )
 
     class Meta:

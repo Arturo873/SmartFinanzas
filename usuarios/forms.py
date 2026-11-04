@@ -1,7 +1,8 @@
 from django import forms
 from django.db.models import Q
 from django.contrib.auth.hashers import make_password
-from .models import Usuario, Rol, ConfiguracionEmpresa
+from django.utils import timezone
+from .models import Usuario, Rol, Empresa, ConfiguracionEmpresa
 
 
 class LoginForm(forms.Form):
@@ -22,7 +23,6 @@ class LoginForm(forms.Form):
         label="Contraseña",
         widget=forms.PasswordInput(attrs={
             'class': 'form-control form-control-lg',
-            'placeholder': '••••••••',
             'required': True
         })
     )
@@ -38,14 +38,12 @@ class LoginForm(forms.Form):
                 email__iexact=email
             ).select_related('rol', 'empresa').first()
 
-            if not usuario:
-                raise forms.ValidationError("No existe ninguna cuenta registrada con este correo electrónico.")
+            # Mensaje de error general para no revelar si falló el correo o la contraseña
+            if not usuario or not usuario.check_password(password):
+                raise forms.ValidationError("Correo electrónico o contraseña incorrectos. Por favor verifique sus datos.")
 
             if not usuario.activo:
                 raise forms.ValidationError("Esta cuenta de usuario se encuentra inactiva. Contacte al Administrador.")
-
-            if not usuario.check_password(password):
-                raise forms.ValidationError("Contraseña incorrecta. Por favor intente nuevamente.")
 
             cleaned_data['usuario_db'] = usuario
 
@@ -79,7 +77,7 @@ class RegistroForm(forms.ModelForm):
         label="Rol en la Empresa"
     )
     empresa = forms.ModelChoiceField(
-        queryset=ConfiguracionEmpresa.objects.all(),
+        queryset=Empresa.objects.all(),
         required=False,
         empty_label="-- Selecciona Empresa (Opcional) --",
         widget=forms.Select(attrs={'class': 'form-select'}),
@@ -147,10 +145,12 @@ class RegistroForm(forms.ModelForm):
         password = self.cleaned_data['password']
         usuario.set_password(password)
         usuario.activo = True
+        if not usuario.fecha_creacion:
+            usuario.fecha_creacion = timezone.now()
 
         # Asignar primera empresa por defecto si no seleccionó ninguna
         if not usuario.empresa:
-            usuario.empresa = ConfiguracionEmpresa.objects.first()
+            usuario.empresa = Empresa.objects.first()
 
         if commit:
             usuario.save()

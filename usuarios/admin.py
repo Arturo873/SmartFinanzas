@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Rol, ConfiguracionEmpresa, Usuario
+from .models import Rol, Empresa, Usuario
 
 
 @admin.register(Rol)
@@ -8,8 +8,8 @@ class RolAdmin(admin.ModelAdmin):
     search_fields = ('nombre',)
 
 
-@admin.register(ConfiguracionEmpresa)
-class ConfiguracionEmpresaAdmin(admin.ModelAdmin):
+@admin.register(Empresa)
+class EmpresaAdmin(admin.ModelAdmin):
     list_display = ('id', 'razon_social', 'rut', 'giro', 'comision_debito_pct', 'comision_credito_pct')
     search_fields = ('razon_social', 'rut')
 

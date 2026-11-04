@@ -50,6 +50,15 @@ class CargaFinanciera(models.Model):
         related_name='cargas_financieras',
         verbose_name="Usuario"
     )
+    empresa = models.ForeignKey(
+        'usuarios.Empresa',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        db_column='empresa_id',
+        related_name='cargas_financieras',
+        verbose_name="Empresa"
+    )
 
     class Meta:
         db_table = 'cargafinanciera'
@@ -128,6 +137,15 @@ class RatioFinanciero(models.Model):
         verbose_name="Validado Por"
     )
     fecha_validacion = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de Validación")
+    empresa = models.ForeignKey(
+        'usuarios.Empresa',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        db_column='empresa_id',
+        related_name='ratios_financieros',
+        verbose_name="Empresa"
+    )
 
     class Meta:
         db_table = 'ratiofinanciero'

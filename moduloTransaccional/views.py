@@ -115,8 +115,11 @@ class VentaCreateView(RolRequeridoMixin, CreateView):
         venta.comision_aplicada = comision_aplicada
         venta.ingreso_real = ingreso_real
 
-        # Asignar usuario en sesión y fecha
-        venta.usuario = resolver_usuario_bd(self.request.user)
+        # Asignar usuario en sesión, empresa y fecha
+        usuario_db = resolver_usuario_bd(self.request.user)
+        venta.usuario = usuario_db
+        if usuario_db and usuario_db.empresa:
+            venta.empresa = usuario_db.empresa
         venta.cierre = None
         if not venta.fecha:
             venta.fecha = timezone.now()
@@ -234,7 +237,10 @@ class CierreCajaCreateView(RolRequeridoMixin, CreateView):
                 cierre.total_retiros = total_retiros
                 cierre.total_arqueo = total_arqueo
                 cierre.descuadre_total = descuadre
-                cierre.cerrado_por_usuario = resolver_usuario_bd(self.request.user)
+                usuario_db = resolver_usuario_bd(self.request.user)
+                cierre.cerrado_por_usuario = usuario_db
+                if usuario_db and usuario_db.empresa:
+                    cierre.empresa = usuario_db.empresa
                 cierre.fecha_confirmacion = timezone.now()
                 cierre.save()
 
