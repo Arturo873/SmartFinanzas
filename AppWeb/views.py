@@ -56,7 +56,7 @@ def login_view(request: HttpRequest):
 def logout_view(request: HttpRequest):
     logout(request)
     messages.success(request, 'Sesión cerrada correctamente.')
-    return redirect('login')
+    return redirect('usuarios:login')
 
 
 def registro_view(request: HttpRequest):

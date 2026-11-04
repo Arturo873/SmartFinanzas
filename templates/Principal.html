@@ -190,7 +190,7 @@
                     {% endif %}
                 </div>
 
-                <form action="{% url 'logout' %}" method="POST" class="d-inline m-0">
+                <form action="{% url 'usuarios:logout' %}" method="POST" class="d-inline m-0">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-outline-light btn-sm d-flex align-items-center gap-1">
                         <i class="bi bi-box-arrow-right"></i>
@@ -198,7 +198,7 @@
                     </button>
                 </form>
             {% else %}
-                <a href="{% url 'login' %}" class="btn btn-primary btn-sm d-flex align-items-center gap-1">
+                <a href="{% url 'usuarios:login' %}" class="btn btn-primary btn-sm d-flex align-items-center gap-1">
                     <i class="bi bi-box-arrow-in-right"></i>
                     <span>Iniciar sesión</span>
                 </a>

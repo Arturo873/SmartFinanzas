@@ -7,9 +7,11 @@ from django.views.generic import TemplateView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('principal/', TemplateView.as_view(template_name='Principal.html'), name='principal_preview'),
+    path('principal/', TemplateView.as_view(template_name='Principal.html'), name='principal'),
     path('Principal.html', TemplateView.as_view(template_name='Principal.html'), name='principal_html'),
+    path('home/', TemplateView.as_view(template_name='Principal.html'), name='home'),
     path('base/', TemplateView.as_view(template_name='Principal.html'), name='base_preview'),
     path('transaccional/', include('moduloTransaccional.urls')),
-    path('', include('AppWeb.urls')),
-]
+    path('app/', include('AppWeb.urls')),
+    path('', include('usuarios.urls')),
+]   #path('', include('AppWeb.urls')),

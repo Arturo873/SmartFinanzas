@@ -67,7 +67,12 @@ class Usuario(models.Model):
         self.password_hash = make_password(raw_password)
 
     def check_password(self, raw_password):
-        return check_password(raw_password, self.password_hash)
+        if not self.password_hash or not raw_password:
+            return False
+        try:
+            return check_password(raw_password, self.password_hash)
+        except Exception:
+            return False
 
     def __str__(self):
         return self.username

@@ -1,0 +1,116 @@
+{% extends "baseTemplates.html" %}
+
+{% block title %}Iniciar Sesión - SmartFinanzas{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-5">
+    <div class="col-12 col-sm-10 col-md-8 col-lg-5 col-xl-4">
+        <div class="card shadow border-0 rounded-3">
+            <div class="card-header bg-dark text-white text-center py-4 rounded-top-3">
+                <div class="text-primary fs-1 mb-2">
+                    <i class="bi bi-shield-lock-fill"></i>
+                </div>
+                <h4 class="fw-bold mb-1">SmartFinanzas</h4>
+                <p class="text-white-50 small mb-0">Autenticación Segura (Base de Datos)</p>
+            </div>
+
+            <div class="card-body p-4 p-md-5">
+                <!-- Alertas del sistema (Logout, Registro exitoso, etc.) -->
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show shadow-sm py-2 px-3 mb-4" role="alert">
+                            <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill{% elif message.tags == 'danger' or message.tags == 'error' %}bi-exclamation-triangle-fill{% else %}bi-info-circle-fill{% endif %} me-2"></i>
+                            <span>{{ message }}</span>
+                            <button type="button" class="btn-close py-2" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger shadow-sm py-2 px-3 mb-4">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        {% for error in form.non_field_errors %}
+                            <span>{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <form method="POST" novalidate>
+                    {% csrf_token %}
+
+                    <!-- Campo Correo Electrónico (Login exclusivo con correo) -->
+                    <div class="mb-3">
+                        <label for="{{ form.email.id_for_label }}" class="form-label fw-semibold">
+                            <i class="bi bi-envelope-at me-1 text-primary"></i>Correo Electrónico
+                        </label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ form.email.errors|striptags }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Campo Contraseña con opción para ver/ocultar contraseña -->
+                    <div class="mb-4">
+                        <label for="{{ form.password.id_for_label }}" class="form-label fw-semibold">
+                            <i class="bi bi-key me-1 text-primary"></i>Contraseña
+                        </label>
+                        <div class="input-group">
+                            {{ form.password }}
+                            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="{{ form.password.id_for_label }}" title="Mostrar u ocultar contraseña" tabindex="-1">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                        {% if form.password.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ form.password.errors|striptags }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-grid mb-3">
+                        <button type="submit" class="btn btn-primary btn-lg fw-semibold shadow-sm">
+                            <i class="bi bi-box-arrow-in-right me-1"></i>Ingresar a la Plataforma
+                        </button>
+                    </div>
+                </form>
+
+                <div class="text-center mt-4 pt-3 border-top">
+                    <span class="text-muted small">¿No tienes cuenta registrada?</span>
+                    <a href="{% url 'usuarios:registro' %}" class="fw-semibold text-decoration-none ms-1">
+                        Crear nueva cuenta
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Alternar visibilidad de contraseña
+        const toggleButtons = document.querySelectorAll('.toggle-password');
+        toggleButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                const targetId = this.getAttribute('data-target');
+                const targetInput = document.getElementById(targetId);
+                const icon = this.querySelector('i');
+                if (!targetInput) return;
+
+                if (targetInput.type === 'password') {
+                    targetInput.type = 'text';
+                    icon.classList.remove('bi-eye');
+                    icon.classList.add('bi-eye-slash');
+                } else {
+                    targetInput.type = 'password';
+                    icon.classList.remove('bi-eye-slash');
+                    icon.classList.add('bi-eye');
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

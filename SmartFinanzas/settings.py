@@ -31,7 +31,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-tx!@obs@8uu=6h(uftth-8%=$7
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 't', 'yes')
 
-ALLOWED_HOSTS = [host.strip() for host in os.getenv('ALLOWED_HOSTS', '').split(',') if host.strip()]
+ALLOWED_HOSTS = [host.strip() for host in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,testserver').split(',') if host.strip()]
 
 
 
@@ -81,9 +81,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'SmartFinanzas.wsgi.application'
 
-LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'home'
-LOGOUT_REDIRECT_URL = 'login'
+LOGIN_URL = 'usuarios:login'
+LOGIN_REDIRECT_URL = 'principal'
+LOGOUT_REDIRECT_URL = 'usuarios:login'
 
 
 # Database
