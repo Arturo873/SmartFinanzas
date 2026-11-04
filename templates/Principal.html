@@ -275,17 +275,22 @@
                 <ul class="sidebar-menu">
                     {% if not user.is_authenticated or user.perfil.rol == 'Contador' or user.perfil.rol == 'Dueño' %}
                     <li>
-                        <a href="{% url 'carga_datos' %}" class="nav-link {% if request.resolver_match.url_name == 'carga_datos' %}active{% endif %}">
+                        <a href="{% url 'moduloETL:carga_datos' %}" class="nav-link {% if request.resolver_match.app_name == 'moduloETL' and request.resolver_match.url_name == 'carga_datos' %}active{% endif %}">
                             <i class="bi bi-cloud-arrow-up"></i>
                             <span>Cargar Balance (ETL)</span>
                         </a>
                     </li>
                     {% endif %}
-                    {% url 'ratios_financieros' as url_ratios %}
                     <li>
-                        <a href="{% if url_ratios %}{{ url_ratios }}{% else %}#{% endif %}" class="nav-link {% if request.resolver_match.url_name == 'ratios_financieros' %}active{% endif %}">
+                        <a href="{% url 'moduloETL:ratios_financieros' %}" class="nav-link {% if request.resolver_match.app_name == 'moduloETL' and request.resolver_match.url_name == 'ratios_financieros' %}active{% endif %}">
                             <i class="bi bi-calculator"></i>
                             <span>Ratios Financieros</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'moduloETL:historial_cargas' %}" class="nav-link {% if request.resolver_match.app_name == 'moduloETL' and request.resolver_match.url_name == 'historial_cargas' %}active{% endif %}">
+                            <i class="bi bi-clock-history"></i>
+                            <span>Historial de Cargas</span>
                         </a>
                     </li>
                 </ul>

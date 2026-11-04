@@ -1,0 +1,19 @@
+# Framework Django (LTS)
+django==4.2.30
+
+# Manipulación de datos y soporte para planillas Excel
+pandas==3.1.0
+openpyxl==3.1.5
+
+# Machine Learning e inferencia del modelo predictivo
+joblib==1.6.0
+scikit-learn==1.9.0
+imbalanced-learn==0.14.2
+
+# Conector de base de datos MySQL/MariaDB y variables de entorno
+mysqlclient==2.3.0
+python-dotenv==1.2.4
+
+# Generación de reportes PDF
+xhtml2pdf==0.2.28
+

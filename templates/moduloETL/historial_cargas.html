@@ -1,0 +1,131 @@
+{% extends "Principal.html" %}
+
+{% block title %}Historial de Cargas Financieras (ETL) - SmartFinanzas{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-wrap align-items-center justify-content-between pb-3 mb-4 border-bottom">
+    <div>
+        <h1 class="h3 fw-bold text-dark mb-1">
+            <i class="bi bi-clock-history text-primary me-2"></i>Historial de Ingesta y Cargas Contables
+        </h1>
+        <p class="text-muted mb-0 small">
+            Empresa: <strong class="text-dark">{{ empresa_usuario.razon_social|default:"Tu Empresa" }}</strong>
+            {% if empresa_usuario.rut %}<span class="badge bg-secondary-subtle text-secondary font-monospace ms-1">{{ empresa_usuario.rut }}</span>{% endif %}
+            &middot; Bitácora de balances ingestados y validados para tu empresa.
+        </p>
+    </div>
+    <div class="mt-2 mt-md-0 d-flex gap-2">
+        <a href="{% url 'moduloETL:carga_datos' %}" class="btn btn-primary btn-sm shadow-sm">
+            <i class="bi bi-cloud-arrow-up me-1"></i>Cargar Nuevo Balance
+        </a>
+        <a href="{% url 'moduloETL:ratios_financieros' %}" class="btn btn-outline-primary btn-sm shadow-sm">
+            <i class="bi bi-calculator me-1"></i>Ver Ratios Calculados
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- TABLA DE CARGAS FINANCIERAS -->
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold mb-0 text-dark">
+            <i class="bi bi-journal-text text-secondary me-2"></i>Bitácora de Archivos Procesados
+        </h5>
+        <span class="badge bg-light text-dark border">
+            {{ paginator.count|default:cargas.count }} cargas en tu empresa
+        </span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 font-monospace small">
+                <thead class="table-light text-uppercase" style="font-size: 0.72rem;">
+                    <tr>
+                        <th class="ps-3">Periodo Contable</th>
+                        <th>Archivo Origen</th>
+                        <th>Tipo Carga</th>
+                        <th class="text-end">Activo Total</th>
+                        <th class="text-end">Pasivo Total</th>
+                        <th class="text-end">Patrimonio</th>
+                        <th>Estado</th>
+                        <th>Cargado Por</th>
+                        <th class="pe-3 text-end">Fecha Carga</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in cargas %}
+                    <tr>
+                        <td class="ps-3 font-sans-serif">
+                            <span class="fw-bold text-dark">{{ c.periodo }}</span>
+                        </td>
+                        <td class="text-truncate" style="max-width: 180px;" title="{{ c.archivo_origen }}">
+                            <i class="bi bi-file-earmark-text text-muted me-1"></i>{{ c.archivo_origen }}
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border font-sans-serif">
+                                {{ c.tipo_carga|default:"Balance" }}
+                            </span>
+                        </td>
+                        <td class="text-end fw-semibold">${{ c.activo_total|floatformat:0 }}</td>
+                        <td class="text-end">${{ c.pasivo_total|floatformat:0 }}</td>
+                        <td class="text-end">${{ c.patrimonio|floatformat:0 }}</td>
+                        <td>
+                            {% if c.estado == 'PROCESADO' %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle font-sans-serif">
+                                    <i class="bi bi-check-circle me-1"></i>Procesado
+                                </span>
+                            {% elif c.estado == 'ERROR' %}
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle font-sans-serif">
+                                    <i class="bi bi-exclamation-octagon me-1"></i>Error
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary border font-sans-serif">
+                                    {{ c.estado|default:"Registrado" }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="font-sans-serif text-muted">
+                            <i class="bi bi-person me-1"></i>{{ c.usuario.username|default:"Sistema" }}
+                        </td>
+                        <td class="pe-3 text-end text-muted font-sans-serif" style="font-size: 0.75rem;">
+                            {{ c.fecha_carga|date:"d/m/Y H:i" }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center py-5 text-muted font-sans-serif">
+                            <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary"></i>
+                            No hay cargas contables registradas para tu empresa.<br>
+                            <a href="{% url 'moduloETL:carga_datos' %}" class="btn btn-primary btn-sm mt-3">
+                                <i class="bi bi-cloud-arrow-up me-1"></i>Cargar Primer Balance
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Paginación -->
+    {% if is_paginated %}
+    <div class="card-footer bg-white d-flex justify-content-between align-items-center py-2 px-3 border-top">
+        <span class="text-muted small">
+            Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+        </span>
+        <ul class="pagination pagination-sm mb-0">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+                </li>
+            {% endif %}
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Siguiente</a>
+                </li>
+            {% endif %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

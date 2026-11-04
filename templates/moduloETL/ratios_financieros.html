@@ -1,0 +1,157 @@
+{% extends "Principal.html" %}
+
+{% block title %}Ratios Financieros y Variables Predictivas - SmartFinanzas{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-wrap align-items-center justify-content-between pb-3 mb-4 border-bottom">
+    <div>
+        <h1 class="h3 fw-bold text-dark mb-1">
+            <i class="bi bi-calculator text-primary me-2"></i>Ratios Financieros y Variables ML (V1 - V7)
+        </h1>
+        <p class="text-muted mb-0 small">
+            Empresa: <strong class="text-dark">{{ empresa_usuario.razon_social|default:"Tu Empresa" }}</strong>
+            {% if empresa_usuario.rut %}<span class="badge bg-secondary-subtle text-secondary font-monospace ms-1">{{ empresa_usuario.rut }}</span>{% endif %}
+            &middot; Vector de indicadores calculados a partir de los balances contables ingestados.
+        </p>
+    </div>
+    <div class="mt-2 mt-md-0 d-flex gap-2">
+        <a href="{% url 'moduloETL:carga_datos' %}" class="btn btn-outline-primary btn-sm shadow-sm">
+            <i class="bi bi-cloud-arrow-up me-1"></i>Cargar Nuevo Balance
+        </a>
+        <a href="{% url 'prediccion' %}" class="btn btn-primary btn-sm shadow-sm">
+            <i class="bi bi-cpu me-1"></i>Ejecutar Predicción (ML)
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+
+<!-- FILTRO POR PERIODO -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-3">
+        <form method="GET" class="row g-2 align-items-center">
+            <div class="col-md-9">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" name="periodo" class="form-control form-control-sm" placeholder="Buscar por Periodo contable (Ej: 2025-Q4, 2026-Q1)" value="{{ periodo_busqueda }}">
+                </div>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm w-100">
+                    <i class="bi bi-filter me-1"></i>Filtrar Periodo
+                </button>
+                {% if periodo_busqueda %}
+                    <a href="{% url 'moduloETL:ratios_financieros' %}" class="btn btn-outline-secondary btn-sm" title="Limpiar Filtro">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- TABLA DE RATIOS FINANCIEROS -->
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold mb-0 text-dark">
+            <i class="bi bi-table text-primary me-2"></i>Matriz de Indicadores Financieros y Predictivos
+        </h5>
+        <span class="badge bg-light text-dark border">
+            {{ paginator.count|default:ratios.count }} registros en tu empresa
+        </span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 font-monospace small">
+                <thead class="table-light text-uppercase" style="font-size: 0.72rem;">
+                    <tr>
+                        <th class="ps-3">Periodo Contable</th>
+                        <th class="text-end" title="V1: Razón Corriente (Activo Circulante / Pasivo Circulante)">V1 R.Corr</th>
+                        <th class="text-end" title="V2: Capital de Trabajo / Activos">V2 CapTrab</th>
+                        <th class="text-end" title="V3: Leverage Total (Pasivo Total / Patrimonio)">V3 Lev</th>
+                        <th class="text-end" title="V4: ROA Operacional (EBIT / Activo Total)">V4 ROA</th>
+                        <th class="text-end" title="V5: Margen Operacional (EBIT / Ingresos)">V5 Margen</th>
+                        <th class="text-end" title="V6: Rotación de Activos (Ingresos / Activo Total)">V6 RotAct</th>
+                        <th class="text-end" title="V7: Volatilidad del Flujo de Caja">V7 Volat</th>
+                        <th class="text-end" title="Z''EM Altman: Índice de Solvencia Mercados Emergentes">Z''EM</th>
+                        <th class="text-end" title="Ref: Prueba Ácida ((Activo Circ - Inv) / Pasivo Circ)">P. Ácida</th>
+                        <th class="pe-3 text-end">Fecha Cálculo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in ratios %}
+                    <tr>
+                        <td class="ps-3 font-sans-serif">
+                            <span class="fw-bold text-dark">{{ r.periodo }}</span>
+                        </td>
+                        <td class="text-end">
+                            <span class="badge {% if r.v1_razon_corriente and r.v1_razon_corriente >= 1.5 %}bg-success-subtle text-success{% elif r.v1_razon_corriente and r.v1_razon_corriente >= 1.0 %}bg-warning-subtle text-warning{% else %}bg-danger-subtle text-danger{% endif %} border">
+                                {{ r.v1_razon_corriente|floatformat:2 }}
+                            </span>
+                        </td>
+                        <td class="text-end">{{ r.v2_capital_trabajo_activos|floatformat:2 }}</td>
+                        <td class="text-end">
+                            <span class="{% if r.v3_leverage_total and r.v3_leverage_total > 5.0 %}text-danger fw-bold{% endif %}">
+                                {{ r.v3_leverage_total|floatformat:2 }}
+                            </span>
+                        </td>
+                        <td class="text-end">{{ r.v4_roa_operacional|floatformat:2 }}</td>
+                        <td class="text-end">{{ r.v5_margen_operacional|floatformat:2 }}</td>
+                        <td class="text-end">{{ r.v6_rotacion_activos|floatformat:2 }}</td>
+                        <td class="text-end">
+                            {% if r.usa_volatilidad_neutra %}
+                                <span class="badge bg-secondary-subtle text-secondary" title="Sin cierres suficientes (&lt;20); se usa volatilidad neutra">Neutra</span>
+                            {% else %}
+                                {{ r.v7_volatilidad_flujo|floatformat:2|default:"Neutra" }}
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <span class="badge {% if r.ref_z_altman and r.ref_z_altman >= 2.60 %}bg-success-subtle text-success border border-success-subtle{% elif r.ref_z_altman and r.ref_z_altman >= 1.10 %}bg-warning-subtle text-warning border border-warning-subtle{% else %}bg-danger-subtle text-danger border border-danger-subtle{% endif %}">
+                                {{ r.ref_z_altman|floatformat:2 }}
+                            </span>
+                        </td>
+                        <td class="text-end">{{ r.ref_prueba_acida|floatformat:2 }}</td>
+                        <td class="pe-3 text-end text-muted font-sans-serif" style="font-size: 0.75rem;">
+                            {{ r.fecha_calculo|date:"d/m/Y H:i" }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="11" class="text-center py-5 text-muted font-sans-serif">
+                            <i class="bi bi-calculator-fill fs-1 d-block mb-2 text-secondary"></i>
+                            No hay ratios calculados para tu empresa.<br>
+                            <a href="{% url 'moduloETL:carga_datos' %}" class="btn btn-primary btn-sm mt-3">
+                                <i class="bi bi-cloud-arrow-up me-1"></i>Cargar Primer Balance (ETL)
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Paginación -->
+    {% if is_paginated %}
+    <div class="card-footer bg-white d-flex justify-content-between align-items-center py-2 px-3 border-top">
+        <span class="text-muted small">
+            Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+        </span>
+        <ul class="pagination pagination-sm mb-0">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if periodo_busqueda %}&periodo={{ periodo_busqueda }}{% endif %}">Anterior</a>
+                </li>
+            {% endif %}
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if periodo_busqueda %}&periodo={{ periodo_busqueda }}{% endif %}">Siguiente</a>
+                </li>
+            {% endif %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

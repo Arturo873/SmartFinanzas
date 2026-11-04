@@ -12,6 +12,7 @@ urlpatterns = [
     path('home/', TemplateView.as_view(template_name='Principal.html'), name='home'),
     path('base/', TemplateView.as_view(template_name='Principal.html'), name='base_preview'),
     path('transaccional/', include('moduloTransaccional.urls')),
+    path('etl/', include('moduloETL.urls')),
     path('app/', include('AppWeb.urls')),
     path('', include('usuarios.urls')),
 ]   #path('', include('AppWeb.urls')),
