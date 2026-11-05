@@ -1,3 +1,13 @@
-from django.db import models
+"""
+Capa de Presentación Gerencial (Dashboard).
 
-# Create your models here.
+Siguiendo las directrices arquitectónicas del sistema:
+Esta app NO define modelos propios de base de datos.
+Consume información mediante dependencias de lectura de las otras aplicaciones:
+- moduloETL (RatioFinanciero)
+- moduloTransaccional (Venta, CierreCaja)
+- capaAnalitica (PrediccionRiesgo)
+- usuarios (Usuario, Empresa)
+"""
+
+# No models defined here. Pure presentation layer.

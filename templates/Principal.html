@@ -237,9 +237,15 @@
                 <div class="sidebar-heading">General</div>
                 <ul class="sidebar-menu">
                     <li>
-                        <a href="{% url 'home' %}" class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+                        <a href="{% url 'dashboard:dashboard' %}" class="nav-link {% if request.resolver_match.app_name == 'dashboard' and request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
                             <i class="bi bi-speedometer2"></i>
-                            <span>Dashboard General</span>
+                            <span>Dashboard Gerencial</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'principal' %}" class="nav-link {% if request.resolver_match.url_name == 'principal' %}active{% endif %}">
+                            <i class="bi bi-grid-1x2"></i>
+                            <span>Panel Principal</span>
                         </a>
                     </li>
                 </ul>
@@ -299,13 +305,13 @@
                 <div class="sidebar-heading">Capa Analítica (ML)</div>
                 <ul class="sidebar-menu">
                     <li>
-                        <a href="{% url 'prediccion' %}" class="nav-link {% if request.resolver_match.url_name == 'prediccion' %}active{% endif %}">
+                        <a href="{% url 'dashboard:dashboard' %}" class="nav-link {% if request.resolver_match.app_name == 'dashboard' and request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
                             <i class="bi bi-cpu"></i>
                             <span>Predicción de Riesgo</span>
                         </a>
                     </li>
                     <li>
-                        <a href="{% url 'exportar_pdf' %}" class="nav-link {% if request.resolver_match.url_name == 'exportar_pdf' %}active{% endif %}">
+                        <a href="{% url 'dashboard:generar_pdf' %}" class="nav-link {% if request.resolver_match.app_name == 'dashboard' and request.resolver_match.url_name == 'generar_pdf' %}active{% endif %}">
                             <i class="bi bi-file-earmark-pdf"></i>
                             <span>Informe Ejecutivo PDF</span>
                         </a>

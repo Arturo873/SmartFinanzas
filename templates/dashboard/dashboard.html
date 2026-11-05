@@ -1,0 +1,420 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Gerencial - SmartFinanzas{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-wrap align-items-center justify-content-between pb-3 mb-4 border-bottom">
+    <div>
+        <h1 class="h3 fw-bold text-dark mb-1">
+            <i class="bi bi-speedometer2 text-primary me-2"></i>Panel Gerencial de Control y Predicción de Riesgo
+        </h1>
+        <p class="text-muted mb-0 small">
+            Empresa: <strong class="text-dark">{{ empresa_usuario.razon_social|default:"Empresa Activa" }}</strong>
+            {% if empresa_usuario.rut %}
+                <span class="badge bg-secondary-subtle text-secondary font-monospace ms-1">{{ empresa_usuario.rut }}</span>
+            {% endif %}
+            &middot; Monitoreo en tiempo real con Inteligencia Artificial (Random Forest + SHAP) y Caja Diaria.
+        </p>
+    </div>
+    <div class="mt-2 mt-md-0 d-flex gap-2">
+        <a href="{% url 'dashboard:generar_pdf' %}" class="btn btn-outline-danger btn-sm shadow-sm">
+            <i class="bi bi-file-earmark-pdf-fill me-1"></i>Descargar Informe Ejecutivo
+        </a>
+        {% if ultimo_ratio %}
+            <form method="POST" action="{% url 'dashboard:ejecutar_prediccion' %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary btn-sm shadow-sm" title="Ejecuta inferencia ML sobre el último balance cargado">
+                    <i class="bi bi-cpu me-1"></i>Ejecutar Predicción (ML)
+                </button>
+            </form>
+        {% else %}
+            <a href="{% url 'moduloETL:carga_datos' %}" class="btn btn-outline-primary btn-sm shadow-sm">
+                <i class="bi bi-cloud-arrow-up me-1"></i>Cargar Balance (ETL)
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- FILA 1: TARJETAS PRINCIPALES (SEMÁFORO DE RIESGO + RESUMEN OPERATIVO + EXPORTACIÓN) -->
+<div class="row g-3 mb-4">
+    <!-- SECCIÓN 1: EL SEMÁFORO DE RIESGO (UI DINÁMICA) -->
+    <div class="col-lg-5 col-md-12">
+        <div class="card border-0 shadow-sm h-100 text-white overflow-hidden {% if nivel == 'Rojo' %}bg-danger{% elif nivel == 'Amarillo' %}bg-warning text-dark{% elif nivel == 'Verde' %}bg-success{% else %}bg-secondary{% endif %}">
+            <div class="card-body p-4 d-flex flex-column justify-content-between">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <span class="badge bg-white {% if nivel == 'Rojo' %}text-danger{% elif nivel == 'Amarillo' %}text-warning{% elif nivel == 'Verde' %}text-success{% else %}text-secondary{% endif %} text-uppercase fw-bold px-2 py-1 mb-2">
+                            Semáforo de Riesgo ML
+                        </span>
+                        <h4 class="card-title fw-bold mb-0">
+                            {% if nivel == 'Rojo' %}
+                                <i class="bi bi-exclamation-octagon-fill me-1"></i>Riesgo Crítico / Insolvencia Alta
+                            {% elif nivel == 'Amarillo' %}
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>Alerta Preventiva / Riesgo Moderado
+                            {% elif nivel == 'Verde' %}
+                                <i class="bi bi-shield-check me-1"></i>Empresa Solvente / Bajo Riesgo
+                            {% else %}
+                                <i class="bi bi-question-circle me-1"></i>Sin Predicciones Registradas
+                            {% endif %}
+                        </h4>
+                    </div>
+                    <div class="text-end">
+                        <i class="bi bi-activity fs-1 opacity-75"></i>
+                    </div>
+                </div>
+
+                <!-- Score de Riesgo (0-100) -->
+                <div class="my-3">
+                    <div class="d-flex align-items-baseline gap-2">
+                        <span class="display-3 fw-bold mb-0">
+                            {% if score is not None %}
+                                {{ score|floatformat:1 }}%
+                            {% else %}
+                                -- %
+                            {% endif %}
+                        </span>
+                        <span class="fs-6 opacity-75">probabilidad de insolvencia</span>
+                    </div>
+
+                    <!-- Barra visual de nivel -->
+                    <div class="progress mt-2 bg-black bg-opacity-25" style="height: 10px;">
+                        <div class="progress-bar {% if nivel == 'Rojo' %}bg-white text-danger{% elif nivel == 'Amarillo' %}bg-dark{% else %}bg-white text-success{% endif %}"
+                             role="progressbar"
+                             style="width: {% if score is not None %}{{ score }}{% else %}0{% endif %}%;"
+                             aria-valuenow="{{ score|default:0 }}"
+                             aria-valuemin="0"
+                             aria-valuemax="100">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Metadatos de la predicción -->
+                <div class="border-top border-white border-opacity-25 pt-2 small d-flex justify-content-between align-items-center">
+                    <span>
+                        <i class="bi bi-clock me-1"></i>
+                        {% if fecha_prediccion %}
+                            Última inferencia: {{ fecha_prediccion|date:"d/m/Y H:i" }}
+                        {% else %}
+                            Inferencia pendiente
+                        {% endif %}
+                    </span>
+                    <span class="opacity-75">
+                        Modelo: Random Forest v1.1
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RESUMEN OPERATIVO (VENTAS DEL DÍA ACTUAL DE APP CAJA) -->
+    <div class="col-lg-4 col-md-6">
+        <div class="card border-0 shadow-sm h-100 bg-white">
+            <div class="card-body p-4 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="badge bg-primary-subtle text-primary text-uppercase fw-bold px-2 py-1">
+                            Módulo Transaccional (Caja)
+                        </span>
+                        <div class="text-primary bg-primary-subtle rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+                            <i class="bi bi-cash-stack fs-5"></i>
+                        </div>
+                    </div>
+                    <h6 class="text-muted text-uppercase mb-1 small fw-bold">Ingreso Real del Día (Ventas)</h6>
+                    <div class="display-6 fw-bold text-dark mb-1">
+                        ${{ ingreso_real_hoy|floatformat:0 }}
+                    </div>
+                    <p class="text-muted small mb-0">
+                        <i class="bi bi-receipt me-1 text-primary"></i>
+                        <strong>{{ total_ventas_hoy }}</strong> transacción(es) registrada(s) hoy.
+                    </p>
+                </div>
+
+                <div class="border-top pt-3 mt-3 d-flex justify-content-between align-items-center">
+                    <a href="{% url 'moduloTransaccional:venta_crear' %}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-plus-circle me-1"></i>Nueva Venta
+                    </a>
+                    <a href="{% url 'moduloTransaccional:cierre_caja' %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-safe me-1"></i>Arqueo de Caja
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECCIÓN 4: ACCIONES Y EXPORTACIÓN EJECUTIVA (PDF) -->
+    <div class="col-lg-3 col-md-6">
+        <div class="card border-0 shadow-sm h-100 bg-white">
+            <div class="card-body p-4 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="badge bg-danger-subtle text-danger text-uppercase fw-bold px-2 py-1">
+                            Reportes Gerenciales
+                        </span>
+                        <div class="text-danger bg-danger-subtle rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+                            <i class="bi bi-file-earmark-pdf fs-5"></i>
+                        </div>
+                    </div>
+                    <h6 class="text-dark fw-bold mb-1">Informe Ejecutivo Oficial</h6>
+                    <p class="text-muted small mb-3">
+                        Diagnóstico completo descargable en formato PDF generado con ReportLab para el Directorio y Gerencia.
+                    </p>
+                </div>
+
+                <div>
+                    <a href="{% url 'dashboard:generar_pdf' %}" class="btn btn-danger w-100 shadow-sm py-2 mb-2">
+                        <i class="bi bi-download me-2"></i>Descargar Informe Ejecutivo
+                    </a>
+                    {% if ultimo_ratio %}
+                        <form method="POST" action="{% url 'dashboard:ejecutar_prediccion' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-secondary btn-sm w-100">
+                                <i class="bi bi-arrow-repeat me-1"></i>Re-evaluar con Ratio Actual
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FILA 2: EXPLICABILIDAD SHAP + CURVA DE TENDENCIA CHART.JS -->
+<div class="row g-3">
+    <!-- SECCIÓN 2: PANEL DE EXPLICABILIDAD (SHAP - TOP 3) -->
+    <div class="col-lg-5 col-md-12">
+        <div class="card border-0 shadow-sm h-100 bg-white">
+            <div class="card-header bg-white border-bottom py-3">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h5 class="card-title fw-bold mb-0 text-dark">
+                            <i class="bi bi-diagram-3 text-primary me-2"></i>Explicabilidad del Modelo (SHAP)
+                        </h5>
+                        <small class="text-muted">Top-3 de variables con mayor impacto en esta predicción</small>
+                    </div>
+                    <span class="badge bg-primary-subtle text-primary">TreeExplainer</span>
+                </div>
+            </div>
+            <div class="card-body p-3">
+                {% if top_3_variables %}
+                    <div class="list-group list-group-flush gap-2">
+                        {% for item in top_3_variables %}
+                            <div class="list-group-item border rounded-3 p-3 bg-light bg-opacity-50">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge bg-secondary-subtle text-secondary font-monospace">{{ item.codigo|default:forloop.counter }}</span>
+                                            <h6 class="fw-bold mb-0 text-dark">{{ item.nombre|default:item.variable }}</h6>
+                                        </div>
+                                        <small class="text-muted">{{ item.grupo|default:"Indicador Financiero" }} &middot; Valor actual: <strong>{{ item.valor|floatformat:2 }}{{ item.unidad }}</strong></small>
+                                    </div>
+                                    <div>
+                                        {% if item.impacto_pct >= 0 %}
+                                            <span class="badge bg-danger-subtle text-danger border border-danger fw-bold">
+                                                +{{ item.impacto_pct|floatformat:1 }}% al riesgo
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-success-subtle text-success border border-success fw-bold">
+                                                {{ item.impacto_pct|floatformat:1 }}% al riesgo
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <p class="card-text small text-secondary mb-0 fst-italic">
+                                    <i class="bi bi-info-circle me-1 text-primary"></i>
+                                    "{{ item.texto|default:item.texto_resumen }}"
+                                </p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-diagram-3 text-muted display-4 mb-3 d-block"></i>
+                        <h6 class="text-dark fw-bold">No hay métricas SHAP disponibles</h6>
+                        <p class="text-muted small mb-3">
+                            Aún no se ha ejecutado ninguna inferencia predictiva para esta empresa.
+                        </p>
+                        {% if ultimo_ratio %}
+                            <form method="POST" action="{% url 'dashboard:ejecutar_prediccion' %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="bi bi-cpu me-1"></i>Ejecutar Primera Predicción
+                                </button>
+                            </form>
+                        {% else %}
+                            <a href="{% url 'moduloETL:carga_datos' %}" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-cloud-arrow-up me-1"></i>Cargar Balance Contable
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-white border-top-0 pt-0 pb-3 text-muted small">
+                <i class="bi bi-shield-lock me-1"></i> Inferencia ejecutada server-side en la Capa Analítica. Los pesos del modelo no se exponen al cliente.
+            </div>
+        </div>
+    </div>
+
+    <!-- SECCIÓN 3: CURVA DE TENDENCIA (CHART.JS) -->
+    <div class="col-lg-7 col-md-12">
+        <div class="card border-0 shadow-sm h-100 bg-white">
+            <div class="card-header bg-white border-bottom py-3">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h5 class="card-title fw-bold mb-0 text-dark">
+                            <i class="bi bi-graph-up text-primary me-2"></i>Curva de Tendencia Histórica de Riesgo
+                        </h5>
+                        <small class="text-muted">Evolución de las últimas inferencias generadas (Score 0-100)</small>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <span class="badge bg-success-subtle text-success border border-success">Verde &le; 35%</span>
+                        <span class="badge bg-warning-subtle text-warning border border-warning">Amarillo 36-70%</span>
+                        <span class="badge bg-danger-subtle text-danger border border-danger">Rojo &gt; 70%</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-4 d-flex flex-column justify-content-between">
+                <div style="position: relative; height: 280px; width: 100%;">
+                    <canvas id="riesgoChart"></canvas>
+                </div>
+
+                <div class="mt-3 pt-3 border-top d-flex justify-content-between align-items-center small text-muted">
+                    <div>
+                        <i class="bi bi-info-circle me-1"></i>
+                        Puntos de control: <strong>{{ total_predicciones_historicas }}</strong> inferencia(s) en base de datos.
+                    </div>
+                    <div>
+                        Eje X: <strong>Fechas de Predicción</strong> &middot; Eje Y: <strong>Score de Riesgo</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Inicialización de Chart.js con Vanilla JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const ctx = document.getElementById('riesgoChart');
+    if (!ctx) return;
+
+    // Lectura de los datos serializados en JSON seguro desde la vista Django
+    let fechas = [];
+    let scores = [];
+    let niveles = [];
+
+    try {
+        fechas = JSON.parse('{{ chart_fechas_json|default:"[]"|escapejs }}');
+        scores = JSON.parse('{{ chart_scores_json|default:"[]"|escapejs }}');
+        niveles = JSON.parse('{{ chart_niveles_json|default:"[]"|escapejs }}');
+    } catch (e) {
+        console.error('Error al parsear datos de tendencia:', e);
+    }
+
+    // Si no hay datos históricos, renderizar estado inicial limpio
+    if (!fechas || fechas.length === 0) {
+        fechas = ['Sin datos registrados'];
+        scores = [0];
+        niveles = ['Verde'];
+    }
+
+    // Colores dinámicos por punto según el nivel de riesgo de cada predicción
+    const pointColors = scores.map(s => {
+        if (s > 70) return '#dc2626';     // Rojo (Crítico)
+        if (s > 35) return '#f59e0b';     // Amarillo (Moderado)
+        return '#16a34a';                 // Verde (Bajo)
+    });
+
+    // Gradiente de fondo bajo la curva
+    const chartCtx = ctx.getContext('2d');
+    const gradient = chartCtx.createLinearGradient(0, 0, 0, 260);
+    gradient.addColorStop(0, 'rgba(37, 99, 235, 0.25)');
+    gradient.addColorStop(1, 'rgba(37, 99, 235, 0.00)');
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: fechas,
+            datasets: [{
+                label: 'Score de Riesgo de Insolvencia',
+                data: scores,
+                borderColor: '#2563eb',
+                backgroundColor: gradient,
+                borderWidth: 2.5,
+                fill: true,
+                tension: 0.35,
+                pointBackgroundColor: pointColors,
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 6,
+                pointHoverRadius: 8,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    min: 0,
+                    max: 100,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        },
+                        stepSize: 20
+                    },
+                    title: {
+                        display: true,
+                        text: 'Score de Riesgo (%)',
+                        font: {
+                            weight: 'bold',
+                            size: 11
+                        }
+                    },
+                    grid: {
+                        color: '#f1f5f9'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Fecha y Hora de la Inferencia',
+                        font: {
+                            weight: 'bold',
+                            size: 11
+                        }
+                    },
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: '#0f172a',
+                    titleFont: { size: 12, weight: 'bold' },
+                    bodyFont: { size: 12 },
+                    padding: 10,
+                    callbacks: {
+                        label: function (context) {
+                            const val = context.parsed.y;
+                            let estado = 'Solvente (Bajo)';
+                            if (val > 70) estado = 'Crítico (Rojo)';
+                            else if (val > 35) estado = 'Moderado (Amarillo)';
+                            return ` Score: ${val.toFixed(1)}% [${estado}]`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}
+
