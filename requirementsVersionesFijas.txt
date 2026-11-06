@@ -3,17 +3,19 @@ django==4.2.30
 
 # Manipulación de datos y soporte para planillas Excel
 pandas==3.1.0
+numpy==2.5.4
 openpyxl==3.1.5
 
-# Machine Learning e inferencia del modelo predictivo
+# Machine Learning, inferencia y explicabilidad (SHAP)
 joblib==1.6.0
-scikit-learn==1.9.0
+scikit-learn==1.9.1
 imbalanced-learn==0.14.2
+shap==0.54.1
+
+# Generación de reportes PDF (Informe Ejecutivo)
+reportlab==5.1.0
+xhtml2pdf==0.2.28
 
 # Conector de base de datos MySQL/MariaDB y variables de entorno
 mysqlclient==2.3.0
 python-dotenv==1.2.4
-
-# Generación de reportes PDF
-xhtml2pdf==0.2.28
-

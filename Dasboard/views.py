@@ -127,7 +127,8 @@ class DashboardView(DashboardRolMixin, TemplateView):
         predicciones_cronologicas = list(reversed(ultimas_predicciones))
 
         chart_fechas = [
-            p.fecha_prediccion.strftime('%d/%m %H:%M') if p.fecha_prediccion else f"#{p.id}"
+            f"{p.ratio.periodo} ({p.fecha_prediccion.strftime('%d/%m %H:%M')})" if (p.ratio and p.ratio.periodo and p.fecha_prediccion)
+            else (p.fecha_prediccion.strftime('%d/%m %H:%M') if p.fecha_prediccion else f"#{p.id}")
             for p in predicciones_cronologicas
         ]
         chart_scores = [
@@ -138,6 +139,12 @@ class DashboardView(DashboardRolMixin, TemplateView):
             p.nivel_semaforo or ('Rojo' if (p.score_riesgo or 0) > 70 else 'Amarillo' if (p.score_riesgo or 0) > 35 else 'Verde')
             for p in predicciones_cronologicas
         ]
+        chart_es_actual = [
+            bool(ultima_prediccion and p.id == ultima_prediccion.id)
+            for p in predicciones_cronologicas
+        ]
+        if ultima_prediccion and chart_es_actual and not any(chart_es_actual):
+            chart_es_actual[-1] = True
 
         # 4. Total Ingreso_Real del día actual sumando transacciones de Venta (moduloTransaccional / app_caja)
         hoy = timezone.localdate()
@@ -176,6 +183,7 @@ class DashboardView(DashboardRolMixin, TemplateView):
             'chart_fechas_json': json.dumps(chart_fechas, ensure_ascii=False),
             'chart_scores_json': json.dumps(chart_scores),
             'chart_niveles_json': json.dumps(chart_niveles),
+            'chart_es_actual_json': json.dumps(chart_es_actual),
             'top_3_shap_json': json.dumps(top_3_variables, ensure_ascii=False),
         })
 

@@ -4,29 +4,98 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}SmartFinanzas{% endblock %}</title>
-    
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    
+
+    <style>
+        body {
+            background-color: #f9fafb;
+            color: #111827;
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        main {
+            flex-grow: 1;
+        }
+
+        .card {
+            border: 1px solid #e5e7eb !important;
+            border-radius: 8px !important;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04) !important;
+            background-color: #ffffff;
+        }
+
+        .btn {
+            font-size: 0.8125rem;
+            font-weight: 500;
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            transition: all 0.15s ease;
+        }
+
+        .btn-primary {
+            background-color: #2563eb !important;
+            border-color: #2563eb !important;
+            color: #ffffff !important;
+        }
+
+        .btn-primary:hover {
+            background-color: #1d4ed8 !important;
+            border-color: #1d4ed8 !important;
+        }
+
+        .form-control, .form-select {
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.8125rem;
+            padding: 0.5rem 0.75rem;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 1px #2563eb;
+        }
+
+        .app-simple-footer {
+            background-color: #ffffff;
+            border-top: 1px solid #e5e7eb;
+            color: #6b7280;
+            font-size: 0.75rem;
+            padding: 1.25rem 0;
+            text-align: center;
+        }
+    </style>
+
     {% block extra_css %}{% endblock %}
 </head>
-<body class="bg-light">
-    
+<body>
+
     <!-- Contenido Principal -->
-    <main class="container py-4">
+    <main class="container py-5">
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Footer -->
-    <footer class="bg-dark text-white text-center py-4 mt-5">
-        <p class="mb-0 text-white-50">&copy; 2026 SmartFinanzas. Todos los derechos reservados.</p>
+    <!-- Footer Utilitario -->
+    <footer class="app-simple-footer">
+        <p class="mb-0">&copy; 2026 SmartFinanzas &middot; Plataforma de Inteligencia Financiera Empresarial</p>
     </footer>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>

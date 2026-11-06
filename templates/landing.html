@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartFinanzas &mdash; Plataforma de Inteligencia Financiera y Control de Liquidez</title>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5.3 CSS & Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        :root {
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --border-color: #e5e7eb;
+            --text-primary: #111827;
+            --text-secondary: #4b5563;
+            --text-muted: #6b7280;
+            --bg-canvas: #f9fafb;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #ffffff;
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .navbar-brand {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            letter-spacing: -0.01em;
+        }
+
+        .btn {
+            font-size: 0.8125rem;
+            font-weight: 500;
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            transition: all 0.15s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--accent) !important;
+            border-color: var(--accent) !important;
+            color: #ffffff !important;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent-hover) !important;
+            border-color: var(--accent-hover) !important;
+        }
+
+        .btn-outline-secondary {
+            background-color: #ffffff !important;
+            border-color: #d1d5db !important;
+            color: #374151 !important;
+        }
+
+        .btn-outline-secondary:hover {
+            background-color: #f9fafb !important;
+            border-color: #9ca3af !important;
+            color: #111827 !important;
+        }
+
+        .hero-section {
+            padding: 5rem 0 4rem;
+            background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .badge-live {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.72rem;
+            font-weight: 500;
+            color: #374151;
+            background-color: #ffffff;
+            border: 1px solid var(--border-color);
+            padding: 0.3rem 0.75rem;
+            border-radius: 9999px;
+            margin-bottom: 1.5rem;
+        }
+
+        .badge-live-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: #10b981;
+        }
+
+        .feature-card {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+            height: 100%;
+            transition: border-color 0.15s ease;
+        }
+
+        .feature-card:hover {
+            border-color: #cbd5e1;
+        }
+
+        .feature-icon-box {
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            background-color: #f3f4f6;
+            color: #111827;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+
+        .preview-frame {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+        }
+
+        footer {
+            border-top: 1px solid var(--border-color);
+            padding: 2.5rem 0;
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+            background-color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header / Navbar -->
+    <header class="border-bottom sticky-top bg-white" style="border-color: var(--border-color) !important;">
+        <div class="container d-flex align-items-center justify-content-between py-3">
+            <a href="{% url 'home' %}" class="navbar-brand d-flex align-items-center gap-2 text-decoration-none">
+                <div class="rounded d-flex align-items-center justify-content-center bg-dark text-white" style="width: 26px; height: 26px; font-size: 0.75rem;">
+                    <i class="bi bi-bar-chart-fill"></i>
+                </div>
+                <span>SmartFinanzas</span>
+            </a>
+
+            <div class="d-flex align-items-center gap-2">
+                {% if user.is_authenticated %}
+                    <a href="{% url 'dashboard:dashboard' %}" class="btn btn-primary btn-sm">
+                        <span>Ir al Dashboard</span>
+                        <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                {% else %}
+                    <a href="{% url 'usuarios:login' %}" class="btn btn-outline-secondary btn-sm">
+                        Iniciar Sesión
+                    </a>
+                    <a href="{% url 'usuarios:registro' %}" class="btn btn-primary btn-sm">
+                        Comenzar
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero-section text-center">
+        <div class="container" style="max-width: 860px;">
+            <div class="badge-live">
+                <span class="badge-live-dot"></span>
+                <span>Motor Predictivo de Solvencia &amp; Riesgo en Producción</span>
+            </div>
+
+            <h1 class="display-6 fw-bold tracking-tight mb-3" style="color: #111827; letter-spacing: -0.03em;">
+                Control de liquidez y predicción de riesgo para empresas modernas
+            </h1>
+
+            <p class="text-secondary fs-6 mb-4 mx-auto" style="max-width: 680px; line-height: 1.6;">
+                Plataforma integral de gestión financiera. Combina ingesta automatizada de balances contables (ETL), arqueo y venta en caja diaria, y detección temprana de insolvencia con algoritmos de Machine Learning explicables.
+            </p>
+
+            <div class="d-flex justify-content-center gap-2 mb-5">
+                <a href="{% url 'usuarios:login' %}" class="btn btn-primary px-4 py-2">
+                    <span>Acceder a la Plataforma</span>
+                    <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+                <a href="{% url 'dashboard:dashboard' %}" class="btn btn-outline-secondary px-4 py-2">
+                    <i class="bi bi-speedometer2 me-1"></i>
+                    <span>Ver Dashboard</span>
+                </a>
+            </div>
+
+            <!-- Preview Card -->
+            <div class="preview-frame p-4 text-start">
+                <div class="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom" style="border-color: #f3f4f6 !important;">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fw-semibold" style="font-size: 0.8125rem;">Panel de Control Gerencial</span>
+                        <span class="badge border font-monospace text-secondary" style="font-size: 0.65rem; background-color: #f9fafb;">Tiempo Real</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-1.5">
+                        <span class="rounded-circle d-inline-block" style="width: 8px; height: 8px; background-color: #e5e7eb;"></span>
+                        <span class="rounded-circle d-inline-block" style="width: 8px; height: 8px; background-color: #e5e7eb;"></span>
+                        <span class="rounded-circle d-inline-block" style="width: 8px; height: 8px; background-color: #e5e7eb;"></span>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="p-3 rounded border" style="border-color: #e5e7eb !important; background-color: #ffffff;">
+                            <span class="text-muted" style="font-size: 0.72rem;">Índice de Riesgo (ML)</span>
+                            <div class="fw-bold mt-1 text-dark" style="font-size: 1.5rem;">14.2%</div>
+                            <span class="badge border fw-medium mt-1" style="background-color: #f0fdf4; border-color: #bbf7d0 !important; color: #15803d; font-size: 0.65rem;">Solvente</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 rounded border" style="border-color: #e5e7eb !important; background-color: #ffffff;">
+                            <span class="text-muted" style="font-size: 0.72rem;">Flujo de Caja Hoy</span>
+                            <div class="fw-bold mt-1 text-dark" style="font-size: 1.5rem;">$1.842.000</div>
+                            <span class="text-muted" style="font-size: 0.6875rem;">18 transacciones</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 rounded border" style="border-color: #e5e7eb !important; background-color: #ffffff;">
+                            <span class="text-muted" style="font-size: 0.72rem;">Razón Corriente</span>
+                            <div class="fw-bold mt-1 text-dark" style="font-size: 1.5rem;">1.85x</div>
+                            <span class="text-muted" style="font-size: 0.6875rem;">Activo / Pasivo Cte.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Características Principales (Grid 3 cols) -->
+    <section class="py-5 bg-white">
+        <div class="container" style="max-width: 1080px;">
+            <div class="text-center mb-5">
+                <span class="text-uppercase fw-semibold text-muted" style="font-size: 0.6875rem; letter-spacing: 0.08em;">Arquitectura Monolito Modular</span>
+                <h2 class="h4 fw-bold mt-1 text-dark tracking-tight">Capacidades del Sistema</h2>
+            </div>
+
+            <div class="row g-4">
+                <!-- Modulo 1 -->
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon-box">
+                            <i class="bi bi-cpu"></i>
+                        </div>
+                        <h3 class="h6 fw-semibold text-dark mb-2">Analítica Predictiva Avanzada</h3>
+                        <p class="text-secondary mb-0" style="font-size: 0.8125rem; line-height: 1.5;">
+                            Evaluación anticipada y probabilística para proyectar la solvencia empresarial. Incorpora desglose de variables clave para auditar cada diagnóstico financiero.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Modulo 2 -->
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon-box">
+                            <i class="bi bi-cloud-arrow-up"></i>
+                        </div>
+                        <h3 class="h6 fw-semibold text-dark mb-2">Motor ETL Automatizado</h3>
+                        <p class="text-secondary mb-0" style="font-size: 0.8125rem; line-height: 1.5;">
+                            Ingesta y saneamiento de balances financieros en CSV/Excel. Cálculo automático de los 7 ratios clave de liquidez, solvencia y cobertura de deuda.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Modulo 3 -->
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon-box">
+                            <i class="bi bi-cart-check"></i>
+                        </div>
+                        <h3 class="h6 fw-semibold text-dark mb-2">Gestión Transaccional (Caja)</h3>
+                        <p class="text-secondary mb-0" style="font-size: 0.8125rem; line-height: 1.5;">
+                            Registro ágil de ventas operativas diarias, control de métodos de pago y arqueo de caja con trazabilidad auditada para contabilidad y gerencia.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2">
+            <div>
+                &copy; 2026 <strong>SmartFinanzas</strong> — Sistema de Analítica Predictiva.
+            </div>
+            <div class="text-muted">
+                Plataforma de Inteligencia Financiera Empresarial
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+

@@ -1,11 +1,21 @@
-#Django
+# Framework Web Django (LTS)
 django>=4.2,<4.3
+
+# Manipulación de datos y planillas Excel
 pandas
+numpy
 openpyxl
+
+# Machine Learning, inferencia y explicabilidad (SHAP)
 joblib
-#scikit-learn
-scikit-learn==1.9.0
-xhtml2pdf
+scikit-learn>=1.9.0
 imbalanced-learn
+shap
+
+# Generación de reportes PDF ejecutivos
+reportlab
+xhtml2pdf
+
+# Conector de base de datos y variables de entorno
 mysqlclient
 python-dotenv

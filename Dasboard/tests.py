@@ -130,7 +130,7 @@ class DashboardViewTests(TestCase):
         """Los usuarios no autenticados deben ser redirigidos al login."""
         response = self.client.get(reverse('dashboard:dashboard'))
         self.assertEqual(response.status_code, 302)
-        self.assertIn('/login/', response.url)
+        self.assertIn(reverse('usuarios:login'), response.url)
 
     def test_acceso_rol_no_autorizado_es_bloqueado(self):
         """Los usuarios con rol Trabajador no deben tener acceso al Dashboard gerencial."""
