@@ -111,8 +111,25 @@ class DashboardView(DashboardRolMixin, TemplateView):
         elif not user.is_superuser:
             predicciones_qs = predicciones_qs.none()
 
-        # Última Predicción de Riesgo generada
-        ultima_prediccion = predicciones_qs.order_by('-fecha_prediccion', '-id').first()
+        # Selección de predicción activa: permite al usuario hacer clic en un punto de la curva
+        # o seleccionar un período para actualizar todos los datos del dashboard.
+        prediccion_id_param = (self.request.GET.get('prediccion_id') or '').strip()
+        periodo_param = (self.request.GET.get('periodo') or '').strip()
+
+        prediccion_seleccionada = None
+        if prediccion_id_param and prediccion_id_param.isdigit():
+            prediccion_seleccionada = predicciones_qs.filter(id=int(prediccion_id_param)).first()
+
+        if not prediccion_seleccionada and periodo_param:
+            prediccion_seleccionada = predicciones_qs.filter(
+                Q(ratio__periodo=periodo_param) | Q(ratio__periodo__icontains=periodo_param)
+            ).order_by('-fecha_prediccion', '-id').first()
+
+        mas_reciente_db = predicciones_qs.order_by('-fecha_prediccion', '-id').first()
+        ultima_prediccion = prediccion_seleccionada or mas_reciente_db
+        es_prediccion_mas_reciente = bool(
+            ultima_prediccion and mas_reciente_db and ultima_prediccion.id == mas_reciente_db.id
+        )
 
         score = float(ultima_prediccion.score_riesgo) if (ultima_prediccion and ultima_prediccion.score_riesgo is not None) else None
         nivel = ultima_prediccion.nivel_semaforo if ultima_prediccion else 'Sin Datos'
@@ -133,21 +150,10 @@ class DashboardView(DashboardRolMixin, TemplateView):
             per = p.ratio.periodo if (p.ratio and p.ratio.periodo) else (p.fecha_prediccion.strftime('%d/%m/%Y') if p.fecha_prediccion else f"#{p.id}")
             if per and per not in periodos_disponibles:
                 periodos_disponibles.append(per)
-        periodos_disponibles.sort()
-
-        # Filtro opcional por período o rango recibido por GET (RF-04)
-        periodo_filtro = (self.request.GET.get('periodo') or '').strip()
-        rango_filtro = (self.request.GET.get('rango') or '').strip()
-
-        qs_tendencia = predicciones_qs
-        if periodo_filtro:
-            qs_tendencia = qs_tendencia.filter(
-                Q(ratio__periodo__icontains=periodo_filtro) |
-                Q(fecha_prediccion__icontains=periodo_filtro)
-            )
+            periodos_disponibles.sort()
 
         # Hasta 20 evaluaciones históricas para graficación y filtrado dinámico
-        ultimas_predicciones = list(qs_tendencia.order_by('-fecha_prediccion', '-id')[:20])
+        ultimas_predicciones = list(predicciones_qs.order_by('-fecha_prediccion', '-id')[:20])
         # Invertir a orden cronológico ascendente para el eje horizontal del gráfico
         predicciones_cronologicas = list(reversed(ultimas_predicciones))
 
@@ -204,14 +210,18 @@ class DashboardView(DashboardRolMixin, TemplateView):
         elif not user.is_superuser:
             ratios_qs = ratios_qs.none()
 
-        ultimo_ratio = ratios_qs.order_by('-fecha_calculo', '-id').first()
+        ultimo_ratio = (
+            ultima_prediccion.ratio
+            if (ultima_prediccion and ultima_prediccion.ratio)
+            else ratios_qs.order_by('-fecha_calculo', '-id').first()
+        )
 
         # Detección de valores anómalos (outliers) en el balance activo (RF-10)
         anomalias_detectadas = detectar_anomalias_financieras(ultimo_ratio) if ultimo_ratio else []
         tiene_anomalias = bool(anomalias_detectadas)
 
         # Ratios de la predicción activa para trazabilidad integral de los resultados (X1 a X7)
-        ratio_asociado_prediccion = ultima_prediccion.ratio if (ultima_prediccion and ultima_prediccion.ratio) else ultimo_ratio
+        ratio_asociado_prediccion = ultimo_ratio
         todos_los_ratios_prediccion = []
 
         METADATA_ADICIONAL_RATIOS = {
@@ -337,10 +347,24 @@ class DashboardView(DashboardRolMixin, TemplateView):
                 'margen_neto_pct': (util_neta / ingresos * 100.0) if ingresos else 0.0,
             }
 
-        # 5. Entrega de datos al contexto (incluyendo JSON serializado seguro para Chart.js y UI)
+        # 5. Definición de variables de período, filtros y comprobación de datos existentes
+        periodo_activo = ''
+        if ultima_prediccion and ultima_prediccion.ratio and ultima_prediccion.ratio.periodo:
+            periodo_activo = ultima_prediccion.ratio.periodo
+        elif ultimo_ratio and ultimo_ratio.periodo:
+            periodo_activo = ultimo_ratio.periodo
+        elif carga_financiera and carga_financiera.periodo:
+            periodo_activo = carga_financiera.periodo
+
+        periodo_filtro = periodo_param or periodo_activo
+        rango_filtro = (self.request.GET.get('rango') or '').strip()
+        tiene_datos = bool(ultima_prediccion or ultimo_ratio or carga_financiera)
+
+        # Entrega de datos al contexto (incluyendo JSON serializado seguro para Chart.js y UI)
         context.update({
             'empresa_usuario': empresa_usuario,
             'usuario_rol': self.get_user_role(),
+            'tiene_datos': tiene_datos,
             'ultima_prediccion': ultima_prediccion,
             'score': score,
             'nivel': nivel,
@@ -350,6 +374,8 @@ class DashboardView(DashboardRolMixin, TemplateView):
             'ratio_asociado_prediccion': ratio_asociado_prediccion,
             'carga_financiera': carga_financiera,
             'info_periodo': info_periodo,
+            'es_prediccion_mas_reciente': es_prediccion_mas_reciente,
+            'prediccion_id_seleccionada': ultima_prediccion.id if ultima_prediccion else None,
             'ingreso_real_hoy': ingreso_real_hoy,
             'total_ventas_hoy': total_ventas_hoy,
             'ultimo_ratio': ultimo_ratio,
@@ -391,7 +417,12 @@ class GenerarPDFView(DashboardRolMixin, View):
         elif not request.user.is_superuser:
             predicciones_qs = predicciones_qs.none()
 
-        ultima_prediccion = predicciones_qs.order_by('-fecha_prediccion', '-id').first()
+        prediccion_id_param = (request.GET.get('prediccion_id') or '').strip()
+        ultima_prediccion = None
+        if prediccion_id_param and prediccion_id_param.isdigit():
+            ultima_prediccion = predicciones_qs.filter(id=int(prediccion_id_param)).first()
+        if not ultima_prediccion:
+            ultima_prediccion = predicciones_qs.order_by('-fecha_prediccion', '-id').first()
 
         top_3_variables = []
         if ultima_prediccion and ultima_prediccion.variables_influyentes:

@@ -65,32 +65,39 @@
         </p>
     </div>
     <div class="mt-3 mt-md-0 d-flex align-items-center gap-2">
-        <a href="{% url 'dashboard:generar_pdf' %}" class="btn btn-outline-secondary btn-sm" title="Descargar Informe Ejecutivo">
-            <i class="bi bi-file-earmark-pdf"></i>
-            <span>Descargar Informe Ejecutivo</span>
-        </a>
-        {% if ultimo_ratio %}
-            {% if tiene_anomalias %}
-                <button type="button" class="btn btn-primary btn-sm position-relative d-inline-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#modalAdvertenciaOutliers" title="Se detectaron valores anómalos: requiere revisión o confirmación" id="btnEjecutarAnalisisDashboardModal">
-                    <i class="bi bi-cpu"></i>
-                    <span>Ejecutar Análisis</span>
-                    <span class="badge bg-warning text-dark fs-micro py-0.5 px-1.5 rounded-pill" title="{{ total_anomalias }} valor(es) fuera de rango detectado(s)">
-                        <i class="bi bi-exclamation-triangle-fill me-0.5"></i>{{ total_anomalias }}
-                    </span>
-                </button>
-            {% else %}
-                <form method="POST" action="{% url 'dashboard:ejecutar_prediccion' %}" class="d-inline m-0 form-ejecutar-analisis">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-primary btn-sm btn-ejecutar-analisis" id="btnEjecutarAnalisisDashboard" title="Ejecuta inferencia ML sobre el último balance cargado">
-                        <i class="bi bi-cpu me-1"></i>
+        {% if tiene_datos %}
+            <a href="{% url 'dashboard:generar_pdf' %}{% if ultima_prediccion %}?prediccion_id={{ ultima_prediccion.id }}{% endif %}" class="btn btn-outline-secondary btn-sm" title="Descargar Informe Ejecutivo de este período">
+                <i class="bi bi-file-earmark-pdf"></i>
+                <span>Descargar Informe Ejecutivo</span>
+            </a>
+            {% if ultimo_ratio %}
+                {% if tiene_anomalias %}
+                    <button type="button" class="btn btn-primary btn-sm position-relative d-inline-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#modalAdvertenciaOutliers" title="Se detectaron valores anómalos: requiere revisión o confirmación" id="btnEjecutarAnalisisDashboardModal">
+                        <i class="bi bi-cpu"></i>
                         <span>Ejecutar Análisis</span>
+                        <span class="badge bg-warning text-dark fs-micro py-0.5 px-1.5 rounded-pill" title="{{ total_anomalias }} valor(es) fuera de rango detectado(s)">
+                            <i class="bi bi-exclamation-triangle-fill me-0.5"></i>{{ total_anomalias }}
+                        </span>
                     </button>
-                </form>
+                {% else %}
+                    <form method="POST" action="{% url 'dashboard:ejecutar_prediccion' %}" class="d-inline m-0 form-ejecutar-analisis">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary btn-sm btn-ejecutar-analisis" id="btnEjecutarAnalisisDashboard" title="Ejecuta inferencia ML sobre el último balance cargado">
+                            <i class="bi bi-cpu me-1"></i>
+                            <span>Ejecutar Análisis</span>
+                        </button>
+                    </form>
+                {% endif %}
+            {% else %}
+                <a href="{% url 'moduloETL:carga_datos' %}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-cloud-arrow-up"></i>
+                    <span>Cargar Balance (ETL)</span>
+                </a>
             {% endif %}
         {% else %}
             <a href="{% url 'moduloETL:carga_datos' %}" class="btn btn-primary btn-sm">
-                <i class="bi bi-cloud-arrow-up"></i>
-                <span>Cargar Balance (ETL)</span>
+                <i class="bi bi-cloud-arrow-up me-1"></i>
+                <span>Realiza tu primera carga de datos aquí</span>
             </a>
         {% endif %}
     </div>
@@ -98,12 +105,141 @@
 {% endblock %}
 
 {% block content %}
+{% if not tiene_datos %}
 <!-- ====================================================================== -->
-<!-- 1. FILA DE KPIS (4 Columnas - Spacing matemático 4/8px - 1px border)    -->
+<!-- ESTADO INICIAL / ONBOARDING: SIN CARGAS CONTABLES REGISTRADAS          -->
+<!-- ====================================================================== -->
+<div class="row justify-content-center py-5 my-2">
+    <div class="col-12 col-md-10 col-lg-8 col-xl-7">
+        <div class="card border border-default shadow-sm p-4 p-md-5 text-center bg-white rounded-3">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary bg-opacity-10 text-primary mx-auto mb-4" style="width: 88px; height: 88px;">
+                <i class="bi bi-cloud-arrow-up display-5"></i>
+            </div>
+            
+            <h2 class="h4 fw-bold text-main mb-2">
+                Aún no tienes balances contables registrados
+            </h2>
+            <p class="text-muted-custom mb-4 fs-6">
+                Para comenzar a monitorear la salud financiera, proyectar el riesgo predictivo con Inteligencia Artificial, calcular automáticamente los ratios y auditar balances de tu empresa:
+            </p>
+
+            <div class="d-flex flex-column flex-sm-row justify-content-center gap-2 mb-4">
+                <a href="{% url 'moduloETL:carga_datos' %}" class="btn btn-primary btn-lg px-4 py-2.5 fw-semibold shadow-sm d-inline-flex align-items-center justify-content-center">
+                    <i class="bi bi-cloud-arrow-up-fill me-2 fs-5"></i>
+                    <span>Realiza tu primera carga de datos aquí</span>
+                </a>
+            </div>
+
+            <div class="pt-4 mt-2 border-top border-light text-start">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <i class="bi bi-stars text-primary fs-5"></i>
+                    <h3 class="h6 fw-semibold text-main mb-0">¿Qué obtendrás tras realizar tu primera carga?</h3>
+                </div>
+                <div class="row g-3">
+                    <div class="col-12 col-sm-6">
+                        <div class="p-3 rounded-2 bg-light border border-subtle h-100">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="bi bi-shield-check text-success"></i>
+                                <strong class="text-main fs-caption">Semáforo de Riesgo ML</strong>
+                            </div>
+                            <p class="text-muted-custom fs-micro mb-0">
+                                Diagnóstico probabilístico de solvencia financiera evaluado por modelos de Machine Learning.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6">
+                        <div class="p-3 rounded-2 bg-light border border-subtle h-100">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="bi bi-diagram-3 text-primary"></i>
+                                <strong class="text-main fs-caption">Explicabilidad SHAP</strong>
+                            </div>
+                            <p class="text-muted-custom fs-micro mb-0">
+                                Desglose de los factores contables que mayor impacto tienen en el resultado predictivo.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6">
+                        <div class="p-3 rounded-2 bg-light border border-subtle h-100">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="bi bi-calculator text-primary"></i>
+                                <strong class="text-main fs-caption">Ratios Calculados (X1 a X7)</strong>
+                            </div>
+                            <p class="text-muted-custom fs-micro mb-0">
+                                Métricas automáticas de liquidez, rotación, rentabilidad y apalancamiento financiero.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6">
+                        <div class="p-3 rounded-2 bg-light border border-subtle h-100">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="bi bi-graph-up text-primary"></i>
+                                <strong class="text-main fs-caption">Curva de Tendencia Interactiva</strong>
+                            </div>
+                            <p class="text-muted-custom fs-micro mb-0">
+                                Evolución histórica por período para navegar y comparar el comportamiento patrimonial.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+
+{% if not ultima_prediccion and ultimo_ratio %}
+<div class="alert alert-primary border-primary d-flex flex-wrap align-items-center justify-content-between gap-3 py-3 px-4 mb-4 shadow-xs">
+    <div class="d-flex align-items-center gap-3">
+        <i class="bi bi-cpu fs-3 text-primary"></i>
+        <div>
+            <div class="fw-semibold text-main fs-6">Balance del período {{ ultimo_ratio.periodo|default:"cargado" }} listo para análisis</div>
+            <div class="text-muted-custom fs-caption">
+                Los ratios e información contable ya fueron registrados. Haz clic en <strong>Ejecutar Análisis</strong> para generar el diagnóstico predictivo de solvencia y explicabilidad SHAP.
+            </div>
+        </div>
+    </div>
+    {% if tiene_anomalias %}
+        <button type="button" class="btn btn-primary btn-sm px-3 py-2 fw-medium" data-bs-toggle="modal" data-bs-target="#modalAdvertenciaOutliers">
+            <i class="bi bi-cpu me-1"></i>Ejecutar Análisis
+        </button>
+    {% else %}
+        <form method="POST" action="{% url 'dashboard:ejecutar_prediccion' %}" class="m-0 form-ejecutar-analisis">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary btn-sm px-3 py-2 fw-medium btn-ejecutar-analisis">
+                <i class="bi bi-cpu me-1"></i>Ejecutar Análisis
+            </button>
+        </form>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if not es_prediccion_mas_reciente and ultima_prediccion %}
+<div class="alert alert-info border-info d-flex flex-wrap align-items-center justify-content-between gap-2 py-2.5 px-3 mb-4 shadow-xs">
+    <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-clock-history fs-5 text-primary"></i>
+        <div class="fs-caption">
+            Visualizando diagnóstico histórico del período: <strong class="text-main">{{ ratio_asociado_prediccion.periodo|default:"Balance Seleccionado" }}</strong>
+            &middot; Inferencia evaluada el {{ fecha_prediccion|date:"d/m/Y H:i" }} con un Score de <strong>{{ score|floatformat:1 }}%</strong>
+            {% if nivel == 'Verde' %}
+                <span class="badge border fw-medium badge-status-solvente fs-micro ms-1">Solvente</span>
+            {% elif nivel == 'Amarillo' %}
+                <span class="badge border fw-medium badge-status-alerta fs-micro ms-1">Alerta</span>
+            {% else %}
+                <span class="badge border fw-medium badge-status-critico fs-micro ms-1">Crítico</span>
+            {% endif %}
+        </div>
+    </div>
+    <a href="{% url 'dashboard:dashboard' %}" class="btn btn-primary btn-sm py-1 px-2.5 fs-micro fw-medium">
+        <i class="bi bi-arrow-counterclockwise me-1"></i>Ver Diagnóstico Más Reciente
+    </a>
+</div>
+{% endif %}
+<!-- ====================================================================== -->
+<!-- 1. DIAGNÓSTICO PREDICTIVO & EXPLICABILIDAD SHAP                        -->
 <!-- ====================================================================== -->
 <div class="row g-3 mb-4">
     <!-- Card 1: Probabilidad de Insolvencia / Semáforo ML -->
-    <div class="col-12 col-sm-6 col-xl-3">
+    <div class="col-12 col-lg-4 col-xl-3">
         <div class="card h-100 p-3 d-flex flex-column justify-content-between">
             <div class="d-flex align-items-start justify-content-between mb-2">
                 <span class="text-muted-custom fw-medium fs-caption">Índice de Riesgo (ML)</span>
@@ -160,7 +296,11 @@
         </div>
     </div>
 
-    <!-- Card 2: Ingreso Real del Día (App Transaccional / Caja) -->
+    <!-- ====================================================================== -->
+    <!-- CARDS 2, 3 Y 4 (COMENTADAS A SOLICITUD DEL USUARIO)                   -->
+    <!-- ====================================================================== -->
+    <!--
+    [Card 2: Ingreso Real del Día (App Transaccional / Caja)]
     <div class="col-12 col-sm-6 col-xl-3">
         <div class="card h-100 p-3 d-flex flex-column justify-content-between">
             <div class="d-flex align-items-start justify-content-between mb-2">
@@ -180,7 +320,6 @@
                     {{ total_ventas_hoy }} transacción(es) registrada(s) hoy
                 </p>
 
-                <!-- Barra de actividad (Usa clases de Bootstrap w-100 / w-0 para evitar linter errors) -->
                 <div class="progress kpi-progress rounded-pill overflow-hidden mt-2">
                     <div class="progress-bar bg-primary {% if total_ventas_hoy %}w-100{% else %}w-0{% endif %}"
                          role="progressbar"></div>
@@ -198,7 +337,7 @@
         </div>
     </div>
 
-    <!-- Card 3: Razón Corriente (V1 - Liquidez) -->
+    [Card 3: Razón Corriente (V1 - Liquidez)]
     <div class="col-12 col-sm-6 col-xl-3">
         <div class="card h-100 p-3 d-flex flex-column justify-content-between">
             <div class="d-flex align-items-start justify-content-between mb-2">
@@ -232,7 +371,7 @@
         </div>
     </div>
 
-    <!-- Card 4: Apalancamiento / Leverage (V3) -->
+    [Card 4: Apalancamiento / Leverage (V3)]
     <div class="col-12 col-sm-6 col-xl-3">
         <div class="card h-100 p-3 d-flex flex-column justify-content-between">
             <div class="d-flex align-items-start justify-content-between mb-2">
@@ -265,147 +404,140 @@
             </div>
         </div>
     </div>
-</div>
+    -->
 
-<!-- ====================================================================== -->
-<!-- 2. EXPLICABILIDAD SHAP (Variables Determinantes de la Inferencia)      -->
-<!-- ====================================================================== -->
-<div class="card mb-4 border-default">
-    <div class="card-header py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-2 border-default bg-white">
-        <div>
-            <div class="d-flex align-items-center gap-2">
-                <h2 class="h6 fw-semibold text-main mb-0">Explicabilidad SHAP del Diagnóstico</h2>
-                <i class="bi bi-info-circle text-muted-custom fs-caption" 
-                   data-bs-toggle="tooltip" 
-                   data-bs-placement="top" 
-                   title="SHAP (SHapley Additive exPlanations): Descompone el diagnóstico de Machine Learning cuantificando con precisión matemática cuánto aporta cada ratio contable al score final de insolvencia."></i>
+    <!-- Explicabilidad SHAP del Diagnóstico (Ocupa el espacio de las cards 2, 3 y 4) -->
+    <div class="col-12 col-lg-8 col-xl-9">
+        <div class="card h-100 border-default d-flex flex-column justify-content-between">
+            <div class="card-header py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-2 border-default bg-white">
+                <div>
+                    <div class="d-flex align-items-center gap-2">
+                        <h2 class="h6 fw-semibold text-main mb-0">Explicabilidad SHAP del Diagnóstico</h2>
+                        <i class="bi bi-info-circle text-muted-custom fs-caption" 
+                           data-bs-toggle="tooltip" 
+                           data-bs-placement="top" 
+                           title="SHAP (SHapley Additive exPlanations): Descompone el diagnóstico de Machine Learning cuantificando con precisión matemática cuánto aporta cada ratio contable al score final de insolvencia."></i>
+                    </div>
+                    <p class="text-muted-custom mb-0 fs-caption">Variables financieras con mayor peso determinante en la estimación del nivel de riesgo</p>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge border font-monospace badge-status-neutral fs-micro"
+                          data-bs-toggle="tooltip"
+                          data-bs-placement="left"
+                          title="Ponderación e impacto absoluto calculado sobre los 7 ratios financieros del último balance evaluado.">
+                        Análisis de Factores Clave
+                    </span>
+                </div>
             </div>
-            <p class="text-muted-custom mb-0 fs-caption">Variables financieras con mayor peso determinante en la estimación del nivel de riesgo</p>
-        </div>
-        <div class="d-flex align-items-center gap-2">
-            <span class="badge border font-monospace badge-status-neutral fs-micro"
-                  data-bs-toggle="tooltip"
-                  data-bs-placement="left"
-                  title="Ponderación e impacto absoluto calculado sobre los 7 ratios financieros del último balance evaluado.">
-                Análisis de Factores Clave
-            </span>
-            <a href="{% url 'moduloETL:ratios_financieros' %}" 
-               class="btn btn-outline-secondary btn-sm py-1 px-2.5 fs-micro d-inline-flex align-items-center gap-1"
-               data-bs-toggle="tooltip"
-               data-bs-placement="bottom"
-               title="Ver el detalle completo de los 7 ratios financieros calculados en el módulo ETL.">
-                <span>Ver Ratios Completos</span>
-                <i class="bi bi-arrow-right"></i>
-            </a>
-        </div>
-    </div>
 
-    <div class="card-body p-4">
-        {% if top_3_variables %}
-            <div class="row g-3 g-xl-4">
-                {% for item in top_3_variables %}
-                    <div class="col-12 col-md-4">
-                        <div class="p-4 rounded-3 border border-default bg-canvas h-100 d-flex flex-column justify-content-between shadow-xs">
-                            <div>
-                                <div class="d-flex align-items-center justify-content-between mb-3">
-                                    <div class="d-flex align-items-center gap-2 overflow-hidden">
-                                        <span class="badge border font-monospace badge-status-neutral fs-caption px-2 py-1"
-                                              data-bs-toggle="tooltip"
-                                              data-bs-placement="top"
-                                              title="Variable predictiva {{ item.codigo|default:forloop.counter }}: clasificada en la categoría {{ item.grupo|default:'Indicador Financiero' }}.">
-                                            {{ item.codigo|default:forloop.counter }}
-                                        </span>
-                                        <span class="fw-semibold text-main text-truncate fs-6"
-                                              data-bs-toggle="tooltip"
-                                              data-bs-placement="top"
-                                              title="{{ item.nombre|default:'Variable Financiera' }}: Valor contable registrado de {{ item.valor|floatformat:2 }}{{ item.unidad }}.">
-                                            {{ item.nombre|default:"Variable Financiera" }}
-                                        </span>
+            <div class="card-body p-3 p-xl-4">
+                {% if top_3_variables %}
+                    <div class="row g-3">
+                        {% for item in top_3_variables %}
+                            <div class="col-12 col-md-4">
+                                <div class="p-3 p-xl-4 rounded-3 border border-default bg-canvas h-100 d-flex flex-column justify-content-between shadow-xs">
+                                    <div>
+                                        <div class="d-flex align-items-center justify-content-between mb-3">
+                                            <div class="d-flex align-items-center gap-2 overflow-hidden">
+                                                <span class="badge border font-monospace badge-status-neutral fs-caption px-2 py-1"
+                                                      data-bs-toggle="tooltip"
+                                                      data-bs-placement="top"
+                                                      title="Variable predictiva {{ item.codigo|default:forloop.counter }}: clasificada en la categoría {{ item.grupo|default:'Indicador Financiero' }}.">
+                                                    {{ item.codigo|default:forloop.counter }}
+                                                </span>
+                                                <span class="fw-semibold text-main text-truncate fs-6"
+                                                      data-bs-toggle="tooltip"
+                                                      data-bs-placement="top"
+                                                      title="{{ item.nombre|default:'Variable Financiera' }}: Valor contable registrado de {{ item.valor|floatformat:2 }}{{ item.unidad }}.">
+                                                    {{ item.nombre|default:"Variable Financiera" }}
+                                                </span>
+                                            </div>
+                                            <span class="badge border font-monospace bg-white text-dark fs-caption px-2 py-1 shadow-xs"
+                                                  data-bs-toggle="tooltip"
+                                                  data-bs-placement="top"
+                                                  title="Valor obtenido para este ratio en el balance contable ingresado.">
+                                                {{ item.valor|floatformat:2 }}{{ item.unidad }}
+                                            </span>
+                                        </div>
+
+                                        <div class="d-flex align-items-center justify-content-between mb-2.5">
+                                            <span class="text-muted-custom fs-caption fw-medium">Impacto en Riesgo</span>
+                                            {% if item.impacto_pct >= 0 %}
+                                                <span class="badge border fw-semibold badge-status-critico fs-caption px-2.5 py-1"
+                                                      data-bs-toggle="tooltip"
+                                                      data-bs-placement="left"
+                                                      title="Impacto adverso: Esta variable incrementa el score de insolvencia en +{{ item.impacto_pct|floatformat:1 }}% de riesgo debido a su comportamiento contable.">
+                                                    <i class="bi bi-arrow-up-right me-1"></i>+{{ item.impacto_pct|floatformat:1 }}% al riesgo
+                                                </span>
+                                            {% else %}
+                                                <span class="badge border fw-semibold badge-status-solvente fs-caption px-2.5 py-1"
+                                                      data-bs-toggle="tooltip"
+                                                      data-bs-placement="left"
+                                                      title="Impacto favorable: Esta variable actúa como factor protector, reduciendo el score en {{ item.impacto_pct|floatformat:1 }}% de riesgo gracias a la solidez financiera mostrada.">
+                                                    <i class="bi bi-arrow-down-right me-1"></i>{{ item.impacto_pct|floatformat:1 }}% al riesgo
+                                                </span>
+                                            {% endif %}
+                                        </div>
+
+                                        <div class="progress kpi-progress rounded-pill overflow-hidden my-3"
+                                             style="height: 8px;"
+                                             data-bs-toggle="tooltip"
+                                             data-bs-placement="top"
+                                             title="Magnitud relativa del peso SHAP en la decisión: {{ item.impacto_abs|floatformat:2 }}% de influencia sobre el resultado final.">
+                                            <div class="progress-bar {% if item.impacto_pct >= 0 %}bg-danger{% else %}bg-success{% endif %}"
+                                                 role="progressbar"
+                                                 style="width: {{ item.impacto_abs|default:15|floatformat:0 }}%;"></div>
+                                        </div>
                                     </div>
-                                    <span class="badge border font-monospace bg-white text-dark fs-caption px-2 py-1 shadow-xs"
-                                          data-bs-toggle="tooltip"
-                                          data-bs-placement="top"
-                                          title="Valor obtenido para este ratio en el balance contable ingresado.">
-                                        {{ item.valor|floatformat:2 }}{{ item.unidad }}
-                                    </span>
-                                </div>
 
-                                <div class="d-flex align-items-center justify-content-between mb-2.5">
-                                    <span class="text-muted-custom fs-caption fw-medium">Impacto en Riesgo</span>
-                                    {% if item.impacto_pct >= 0 %}
-                                        <span class="badge border fw-semibold badge-status-critico fs-caption px-2.5 py-1"
-                                              data-bs-toggle="tooltip"
-                                              data-bs-placement="left"
-                                              title="Impacto adverso: Esta variable incrementa el score de insolvencia en +{{ item.impacto_pct|floatformat:1 }}% de riesgo debido a su comportamiento contable.">
-                                            <i class="bi bi-arrow-up-right me-1"></i>+{{ item.impacto_pct|floatformat:1 }}% al riesgo
-                                        </span>
-                                    {% else %}
-                                        <span class="badge border fw-semibold badge-status-solvente fs-caption px-2.5 py-1"
-                                              data-bs-toggle="tooltip"
-                                              data-bs-placement="left"
-                                              title="Impacto favorable: Esta variable actúa como factor protector, reduciendo el score en {{ item.impacto_pct|floatformat:1 }}% de riesgo gracias a la solidez financiera mostrada.">
-                                            <i class="bi bi-arrow-down-right me-1"></i>{{ item.impacto_pct|floatformat:1 }}% al riesgo
-                                        </span>
+                                    {% if item.texto %}
+                                        <div class="pt-3 mt-3 border-top border-subtle d-flex align-items-start gap-2 text-secondary fs-caption">
+                                            <i class="bi bi-chat-left-text text-muted-custom mt-0.5 flex-shrink-0"></i>
+                                            <p class="mb-0 lh-base text-main opacity-85">
+                                                {{ item.texto }}
+                                            </p>
+                                        </div>
                                     {% endif %}
                                 </div>
-
-                                <div class="progress kpi-progress rounded-pill overflow-hidden my-3"
-                                     style="height: 8px;"
-                                     data-bs-toggle="tooltip"
-                                     data-bs-placement="top"
-                                     title="Magnitud relativa del peso SHAP en la decisión: {{ item.impacto_abs|floatformat:2 }}% de influencia sobre el resultado final.">
-                                    <div class="progress-bar {% if item.impacto_pct >= 0 %}bg-danger{% else %}bg-success{% endif %}"
-                                         role="progressbar"
-                                         style="width: {{ item.impacto_abs|default:15|floatformat:0 }}%;"></div>
-                                </div>
                             </div>
-
-                            {% if item.texto %}
-                                <div class="pt-3 mt-3 border-top border-subtle d-flex align-items-start gap-2 text-secondary fs-caption">
-                                    <i class="bi bi-chat-left-text text-muted-custom mt-0.5 flex-shrink-0"></i>
-                                    <p class="mb-0 lh-base text-main opacity-85">
-                                        {{ item.texto }}
-                                    </p>
-                                </div>
-                            {% endif %}
-                        </div>
+                        {% endfor %}
                     </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="text-center py-4 my-auto">
-                <i class="bi bi-diagram-3 text-secondary opacity-50 display-6 mb-2 d-block"></i>
-                <h6 class="text-main fw-semibold fs-caption">Sin métricas SHAP registradas</h6>
-                <p class="text-muted-custom mb-3 fs-caption">
-                    Ejecuta una inferencia sobre el último balance cargado para analizar los factores determinantes del diagnóstico.
-                </p>
-                {% if ultimo_ratio %}
-                    {% if tiene_anomalias %}
-                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAdvertenciaOutliers">
-                            <i class="bi bi-cpu me-1"></i>Ejecutar Análisis
-                        </button>
-                    {% else %}
-                        <form method="POST" action="{% url 'dashboard:ejecutar_prediccion' %}" class="form-ejecutar-analisis">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-primary btn-sm btn-ejecutar-analisis">
-                                <i class="bi bi-cpu me-1"></i>Ejecutar Análisis
-                            </button>
-                        </form>
-                    {% endif %}
                 {% else %}
-                    <a href="{% url 'moduloETL:carga_datos' %}" class="btn btn-outline-secondary btn-sm">
-                        <i class="bi bi-cloud-arrow-up me-1"></i>Cargar Balance
-                    </a>
+                    <div class="text-center py-4 my-auto">
+                        <i class="bi bi-diagram-3 text-secondary opacity-50 display-6 mb-2 d-block"></i>
+                        <h6 class="text-main fw-semibold fs-caption">Sin métricas SHAP registradas</h6>
+                        <p class="text-muted-custom mb-3 fs-caption">
+                            Ejecuta una inferencia sobre el último balance cargado para analizar los factores determinantes del diagnóstico.
+                        </p>
+                        {% if ultimo_ratio %}
+                            {% if tiene_anomalias %}
+                                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAdvertenciaOutliers">
+                                    <i class="bi bi-cpu me-1"></i>Ejecutar Análisis
+                                </button>
+                            {% else %}
+                                <form method="POST" action="{% url 'dashboard:ejecutar_prediccion' %}" class="form-ejecutar-analisis">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-primary btn-sm btn-ejecutar-analisis">
+                                        <i class="bi bi-cpu me-1"></i>Ejecutar Análisis
+                                    </button>
+                                </form>
+                            {% endif %}
+                        {% else %}
+                            <a href="{% url 'moduloETL:carga_datos' %}" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-cloud-arrow-up me-1"></i>Cargar Balance
+                            </a>
+                        {% endif %}
+                    </div>
                 {% endif %}
             </div>
-        {% endif %}
-    </div>
 
-    <div class="card-footer py-2.5 px-4 bg-white border-top border-subtle d-flex flex-wrap align-items-center justify-content-between text-muted-custom fs-micro">
-        <span data-bs-toggle="tooltip" data-bs-placement="top" title="Inferencia generada con el modelo predictivo calibrado y explicada mediante TreeSHAP.">
-            <i class="bi bi-shield-check text-success me-1"></i>Diagnóstico Automatizado con Explicabilidad SHAP (TreeExplainer)
-        </span>
-        <span class="font-mono">Top 3 Factores Determinantes</span>
+            <div class="card-footer py-2.5 px-4 bg-white border-top border-subtle d-flex flex-wrap align-items-center justify-content-between text-muted-custom fs-micro">
+                <span data-bs-toggle="tooltip" data-bs-placement="top" title="Inferencia generada con el modelo predictivo calibrado y explicada mediante TreeSHAP.">
+                    <i class="bi bi-shield-check text-success me-1"></i>Diagnóstico Automatizado con Explicabilidad SHAP (TreeExplainer)
+                </span>
+                <span class="font-mono">Top 3 Factores Determinantes</span>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -569,15 +701,6 @@
                     <span class="badge border fw-medium badge-status-neutral fs-micro">Sin Inferencia</span>
                 {% endif %}
             </div>
-
-            <a href="{% url 'dashboard:generar_pdf' %}" class="btn btn-outline-secondary btn-sm py-1 px-2.5 fs-micro d-inline-flex align-items-center gap-1.5" title="Exportar informe con trazabilidad completa">
-                <i class="bi bi-file-earmark-pdf"></i>
-                <span>Descargar PDF</span>
-            </a>
-            <a href="{% url 'moduloETL:ratios_financieros' %}" class="btn btn-primary btn-sm py-1 px-2.5 fs-micro d-inline-flex align-items-center gap-1">
-                <span>Ir al Módulo ETL</span>
-                <i class="bi bi-arrow-right"></i>
-            </a>
         </div>
     </div>
 
@@ -759,10 +882,6 @@
             <a href="{% url 'moduloETL:historial_cargas' %}" class="btn btn-outline-secondary btn-sm py-1 px-2.5 fs-micro d-inline-flex align-items-center gap-1.5" title="Ver bitácora de cargas contables">
                 <i class="bi bi-clock-history"></i>
                 <span>Historial de Cargas</span>
-            </a>
-            <a href="{% url 'moduloETL:ratios_financieros' %}" class="btn btn-outline-primary btn-sm py-1 px-2.5 fs-micro d-inline-flex align-items-center gap-1">
-                <i class="bi bi-calculator"></i>
-                <span>Ratios ETL</span>
             </a>
         </div>
     </div>
@@ -1105,6 +1224,7 @@
     </div>
 </div>
 {% endif %}
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
@@ -1249,10 +1369,17 @@ document.addEventListener('DOMContentLoaded', function () {
                         ${per} ${esActualPeriodo ? '<span class="badge bg-dark text-white fs-micro py-0 px-1">Actual</span>' : ''}
                     </span>
                 </div>
-                <div class="d-flex align-items-center gap-1">
+                <div class="d-flex align-items-center gap-1.5">
                     <span class="badge border font-monospace ${badgeClass} fs-micro">
                         ${ultimoDelPeriodo ? ultimoDelPeriodo.score.toFixed(1) + '%' : '--%'}
                     </span>
+                    ${!esActualPeriodo && ultimoDelPeriodo ? `
+                        <a href="?prediccion_id=${ultimoDelPeriodo.id}" 
+                           class="btn btn-outline-primary btn-sm py-0 px-1.5 fs-micro text-decoration-none"
+                           title="Seleccionar este período en el Dashboard">
+                            Ver
+                        </a>
+                    ` : ''}
                 </div>
             `;
 
@@ -1367,6 +1494,31 @@ document.addEventListener('DOMContentLoaded', function () {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            onClick: function(event, elements) {
+                if (!elements || elements.length === 0) return;
+                const dataIndex = elements[0].index;
+                const punto = puntosVisiblesActuales[dataIndex];
+                if (!punto || !punto.id) return;
+
+                // 1. Mover el crosshair y badge [ACTUAL] de inmediato al punto clicado
+                puntosOriginales.forEach(p => { p.es_actual = (p.id === punto.id); });
+                aplicarFiltrosYActualizar();
+
+                // 2. Redirigir para cargar todos los datos de ese período en el dashboard
+                const currentId = '{{ ultima_prediccion.id|default:"" }}';
+                if (currentId !== String(punto.id)) {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('prediccion_id', punto.id);
+                    url.searchParams.delete('periodo');
+                    window.location.href = url.toString();
+                }
+            },
+            onHover: function(event, elements) {
+                const target = event.native ? event.native.target : ctx;
+                if (target) {
+                    target.style.cursor = elements && elements.length > 0 ? 'pointer' : 'default';
+                }
+            },
             scales: {
                 y: {
                     min: 0,
@@ -1417,7 +1569,9 @@ document.addEventListener('DOMContentLoaded', function () {
                             else if (val > 35) estado = 'Alerta';
                             const lines = ['Probabilidad: ' + val.toFixed(1) + '% (' + estado + ')'];
                             if (esActualArr[context.dataIndex]) {
-                                lines.push('● Inferencia en Pantalla (KPIs y SHAP)');
+                                lines.push('● Período en pantalla [ACTUAL]');
+                            } else {
+                                lines.push('👉 Clic para seleccionar y ver este período');
                             }
                             return lines;
                         }
@@ -1427,10 +1581,16 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    // Variable global para tracking de puntos visibles en eventos de clic
+    let puntosVisiblesActuales = [];
+
     // 6. Función Núcleo de Filtrado y Actualización de la Curva (RF-04)
     function aplicarFiltrosYActualizar() {
         // Filtrar puntos cuyos períodos estén marcados
         let visibles = puntosOriginales.filter(p => periodosSeleccionados.has(p.periodo));
+
+        // Guardar referencia para el handler de clic
+        puntosVisiblesActuales = visibles;
 
         // Aplicar filtro de rango si no es 'todos'
         if (filtroRango === 'ultimos3') {
