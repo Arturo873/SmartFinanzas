@@ -49,7 +49,7 @@ INSTALLED_APPS = [
     'moduloTransaccional',
     'moduloETL',
     'capaAnalitica',
-    'Dasboard',
+    'dashboard',
 ]
 
 MIDDLEWARE = [
