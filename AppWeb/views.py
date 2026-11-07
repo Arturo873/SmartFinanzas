@@ -109,6 +109,15 @@ def carga_datos(request: HttpRequest):
         archivo = request.FILES['archivo_datos']
         tipo_documento = request.POST.get('tipo_documento')
 
+        # Límite de tamaño: 25 MB (RNF-10)
+        if archivo.size > 25 * 1024 * 1024:
+            tamano_mb = archivo.size / (1024 * 1024)
+            messages.error(
+                request,
+                f'El archivo seleccionado supera el tamaño máximo permitido de 25 MB ({tamano_mb:.2f} MB cargados) (RNF-10).'
+            )
+            return render(request, 'AppWeb/cargaDatos.html', _contexto_carga())
+
         if not (archivo.name.endswith('.csv') or archivo.name.endswith('.xlsx')):
             messages.error(request, 'Formato no soportado. Por favor suba un archivo .csv o .xlsx')
             return render(request, 'AppWeb/cargaDatos.html', _contexto_carga())

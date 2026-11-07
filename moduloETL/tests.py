@@ -13,6 +13,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from .models import CargaFinanciera, RatioFinanciero
+from .forms import CargaArchivoForm
 from .services import (
     COLUMNAS_PLANTILLA,
     extraer_dataframe_desde_archivo,
@@ -410,3 +411,60 @@ class ETLIntegrationAndViewsTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         prediccion = PrediccionRiesgo.objects.filter(empresa=self.empresa1, ratio=ratio_q1).first()
         self.assertIsNotNone(prediccion)
+
+    def test_rnf10_settings_limite_subida_25mb(self):
+        """[RNF-10] Verifica configuración de settings para soportar hasta 25 MB sin caídas."""
+        from django.conf import settings
+        self.assertGreaterEqual(settings.DATA_UPLOAD_MAX_MEMORY_SIZE, 25 * 1024 * 1024)
+        self.assertGreaterEqual(settings.FILE_UPLOAD_MAX_MEMORY_SIZE, 25 * 1024 * 1024)
+
+    def test_rnf10_form_rechaza_archivo_mayor_a_25mb(self):
+        """[RNF-10] Verifica que CargaArchivoForm rechace archivos mayores a 25 MB con mensaje amigable."""
+        archivo_grande = SimpleUploadedFile('balance_pesado.csv', b'col1,col2\n1,2', content_type='text/csv')
+        # Simular tamaño mayor a 25 MB (ej. 26 MB)
+        archivo_grande.size = 26 * 1024 * 1024
+
+        form = CargaArchivoForm(
+            data={'tipo_documento': 'Balance General'},
+            files={'archivo_datos': archivo_grande}
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn('archivo_datos', form.errors)
+        error_msg = str(form.errors['archivo_datos'])
+        self.assertIn('25 MB', error_msg)
+
+    def test_rnf10_form_acepta_archivo_hasta_25mb(self):
+        """[RNF-10] Verifica que CargaArchivoForm acepte archivos válidos dentro de los 25 MB."""
+        archivo_valido = SimpleUploadedFile('balance_ok.csv', b'col1,col2\n1,2', content_type='text/csv')
+        # Simular tamaño de 15 MB
+        archivo_valido.size = 15 * 1024 * 1024
+
+        form = CargaArchivoForm(
+            data={'tipo_documento': 'Balance General'},
+            files={'archivo_datos': archivo_valido}
+        )
+        self.assertTrue(form.is_valid())
+
+    def test_rnf10_servicio_rechaza_archivo_mayor_a_25mb(self):
+        """[RNF-10] Verifica que el servicio de extracción ETL rechace archivos > 25 MB sin saturar el backend."""
+        archivo_grande = SimpleUploadedFile('balance_grande.csv', b'datos...', content_type='text/csv')
+        archivo_grande.size = 26 * 1024 * 1024
+
+        df_out, errs = extraer_dataframe_desde_archivo(archivo_grande)
+        self.assertIsNone(df_out)
+        self.assertTrue(any('25 MB' in e and 'RNF-10' in e for e in errs))
+
+    def test_rnf10_frontend_elementos_y_script_en_carga_datos(self):
+        """[RNF-10] Verifica que la plantilla carga_datos.html contenga la alerta y script de validación inmediata."""
+        self.client.force_login(self.auth_contador)
+        resp = self.client.get(reverse('moduloETL:carga_datos'))
+        self.assertEqual(resp.status_code, 200)
+
+        content = resp.content.decode('utf-8')
+        # Contenedor de alerta frontend
+        self.assertIn('alertaTamanoArchivo', content)
+        self.assertIn('mensajeTamanoArchivo', content)
+        # Constante y validación de 25 MB en el script
+        self.assertIn('25 * 1024 * 1024', content)
+        self.assertIn('RNF-10', content)
+        self.assertIn('Archivo seleccionado correctamente', content)

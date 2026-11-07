@@ -92,6 +92,22 @@
                             {{ form.archivo_datos.label }} <span class="text-danger">*</span>
                         </label>
                         {{ form.archivo_datos }}
+
+                        <!-- Contenedor de advertencia frontend para archivos que superen 25 MB (RNF-10) -->
+                        <div id="alertaTamanoArchivo" class="alert alert-danger d-none mt-2 p-2.5 small align-items-center shadow-sm" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill fs-5 me-2 flex-shrink-0 text-danger"></i>
+                            <div>
+                                <strong>Archivo demasiado pesado (RNF-10):</strong>
+                                <span id="mensajeTamanoArchivo"></span>
+                            </div>
+                        </div>
+
+                        <!-- Indicador de archivo válido -->
+                        <div id="infoArchivoValido" class="d-none mt-2 text-success small align-items-center">
+                            <i class="bi bi-check-circle-fill me-1"></i>
+                            <span id="mensajeArchivoValido"></span>
+                        </div>
+
                         {% if form.archivo_datos.errors %}
                             <div class="text-danger small mt-1">
                                 {{ form.archivo_datos.errors|striptags }}
@@ -246,10 +262,87 @@
 
 {% block extra_js %}
 <script>
-    document.getElementById('formCargaETL').addEventListener('submit', function() {
-        const btn = document.getElementById('btnSubmit');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Validando balance...';
-    });
+document.addEventListener('DOMContentLoaded', function() {
+    const LIMITE_MAX_BYTES = 25 * 1024 * 1024; // 25 MB (RNF-10)
+    const LIMITE_MAX_MB = 25;
+
+    const inputArchivo = document.getElementById('id_archivo_datos');
+    const formCarga = document.getElementById('formCargaETL');
+    const btnSubmit = document.getElementById('btnSubmit');
+    const alertaTamano = document.getElementById('alertaTamanoArchivo');
+    const mensajeTamano = document.getElementById('mensajeTamanoArchivo');
+    const infoValido = document.getElementById('infoArchivoValido');
+    const mensajeValido = document.getElementById('mensajeArchivoValido');
+
+    function validarArchivo() {
+        if (!inputArchivo || !inputArchivo.files || inputArchivo.files.length === 0) {
+            if (alertaTamano) alertaTamano.classList.add('d-none');
+            if (infoValido) infoValido.classList.add('d-none');
+            if (btnSubmit) btnSubmit.disabled = false;
+            return true;
+        }
+
+        const archivo = inputArchivo.files[0];
+        const tamanoBytes = archivo.size;
+        const tamanoMB = (tamanoBytes / (1024 * 1024)).toFixed(2);
+
+        // Validación frontend inmediata: si excede 25 MB, bloquear inmediatamente (RNF-10)
+        if (tamanoBytes > LIMITE_MAX_BYTES) {
+            if (mensajeTamano) {
+                mensajeTamano.textContent = `El archivo seleccionado ("${archivo.name}") pesa ${tamanoMB} MB, lo cual supera el límite máximo permitido de ${LIMITE_MAX_MB} MB. Seleccione un archivo de hasta 25 MB para continuar sin saturar el servidor.`;
+            }
+            if (alertaTamano) {
+                alertaTamano.classList.remove('d-none');
+                alertaTamano.classList.add('d-flex');
+            }
+            if (infoValido) infoValido.classList.add('d-none');
+
+            // Limpiar input y deshabilitar botón de procesamiento para no saturar el backend
+            inputArchivo.value = '';
+            inputArchivo.classList.add('is-invalid');
+            if (btnSubmit) btnSubmit.disabled = true;
+            return false;
+        } else {
+            // Archivo válido dentro del límite (< 25 MB)
+            if (alertaTamano) {
+                alertaTamano.classList.add('d-none');
+                alertaTamano.classList.remove('d-flex');
+            }
+            inputArchivo.classList.remove('is-invalid');
+            inputArchivo.classList.add('is-valid');
+
+            if (infoValido && mensajeValido) {
+                mensajeValido.textContent = `Archivo seleccionado correctamente: "${archivo.name}" (${tamanoMB} MB / ${LIMITE_MAX_MB} MB máx).`;
+                infoValido.classList.remove('d-none');
+                infoValido.classList.add('d-flex');
+            }
+            if (btnSubmit) btnSubmit.disabled = false;
+            return true;
+        }
+    }
+
+    if (inputArchivo) {
+        inputArchivo.addEventListener('change', validarArchivo);
+    }
+
+    if (formCarga) {
+        formCarga.addEventListener('submit', function(e) {
+            if (inputArchivo && inputArchivo.files && inputArchivo.files.length > 0) {
+                const archivo = inputArchivo.files[0];
+                if (archivo.size > LIMITE_MAX_BYTES) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    validarArchivo();
+                    return false;
+                }
+            }
+
+            if (btnSubmit) {
+                btnSubmit.disabled = true;
+                btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Validando balance contable...';
+            }
+        });
+    }
+});
 </script>
 {% endblock %}

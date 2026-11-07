@@ -127,6 +127,16 @@ class CargaYPrediccionTests(TestCase):
         self._subir([{**FILA_SANA, 'Activo_Circulante': 1500.0}])
         self.assertIsNone(EstadoCarga.actual().ruta_csv)
 
+    def test_rechaza_archivo_mayor_a_25mb(self):
+        """[RNF-10] Verifica rechazo de archivos > 25 MB en la vista de carga de AppWeb."""
+        self.client.force_login(self.contador)
+        archivo_grande = SimpleUploadedFile('pesado.csv', b'col1,col2\n1,2', content_type='text/csv')
+        archivo_grande.size = 26 * 1024 * 1024
+        resp = self.client.post(reverse('carga_datos'), {'tipo_documento': 'balance', 'archivo_datos': archivo_grande})
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, '25 MB')
+        self.assertIsNone(EstadoCarga.actual().ruta_csv)
+
     def test_carga_y_prediccion_con_plantilla_v8(self):
         self._subir([FILA_SANA])
         self.assertIsNotNone(EstadoCarga.actual().ruta_csv)

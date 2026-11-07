@@ -145,3 +145,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# ==============================================================================
+# CONFIGURACIÓN DE CARGA DE ARCHIVOS (RNF-10: Soporte hasta 25 MB)
+# ==============================================================================
+# Límite máximo de tamaño del cuerpo de la petición y archivos en memoria/disco.
+# Se configuran 30 MB para permitir holgura suficiente al payload multipart de 25 MB.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 30 * 1024 * 1024  # 31,457,280 bytes (~30 MB)
+FILE_UPLOAD_MAX_MEMORY_SIZE = 30 * 1024 * 1024  # 31,457,280 bytes (~30 MB)
+

@@ -44,12 +44,15 @@
                     <div class="mb-3">
                         <label for="archivo_datos" class="form-label">Archivo de Datos (.csv, .xlsx)</label>
                         <input class="form-control" type="file" id="archivo_datos" name="archivo_datos" accept=".csv, .xlsx" required>
-                        
+                        <div id="alertaTamanoLegacy" class="alert alert-danger d-none mt-2 p-2 small" role="alert">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            <span id="mensajeTamanoLegacy"></span>
+                        </div>
                     </div>
 
                     <div class="d-flex justify-content-end">
                         <a href="{% url 'home' %}" class="btn btn-secondary me-2">Cancelar</a>
-                        <button type="submit" class="btn btn-success">Procesar Archivo</button>
+                        <button type="submit" class="btn btn-success" id="btnSubmitLegacy">Procesar Archivo</button>
                     </div>
                 </form>
 
@@ -63,4 +66,32 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const inputArchivo = document.getElementById('archivo_datos');
+    const alerta = document.getElementById('alertaTamanoLegacy');
+    const mensaje = document.getElementById('mensajeTamanoLegacy');
+    const btn = document.getElementById('btnSubmitLegacy');
+    const LIMITE = 25 * 1024 * 1024; // 25 MB (RNF-10)
+
+    if (inputArchivo) {
+        inputArchivo.addEventListener('change', function() {
+            if (this.files && this.files.length > 0) {
+                const archivo = this.files[0];
+                if (archivo.size > LIMITE) {
+                    const mb = (archivo.size / (1024 * 1024)).toFixed(2);
+                    mensaje.textContent = `El archivo supera el tamaño máximo de 25 MB (${mb} MB detectados). Por favor seleccione un archivo menor a 25 MB.`;
+                    alerta.classList.remove('d-none');
+                    this.value = '';
+                    if (btn) btn.disabled = true;
+                } else {
+                    alerta.classList.add('d-none');
+                    if (btn) btn.disabled = false;
+                }
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

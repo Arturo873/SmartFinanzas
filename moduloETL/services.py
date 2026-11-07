@@ -396,9 +396,20 @@ def extraer_dataframe_desde_archivo(archivo) -> Tuple[Optional[pd.DataFrame], Li
     """
     Extrae un DataFrame desde un archivo subido (.csv o .xlsx).
     Detecta automáticamente separadores (; o ,) y codificaciones (utf-8, latin-1).
+    Aplica validación de tamaño máximo de 25 MB (RNF-10).
     """
     errores: List[str] = []
     nombre = getattr(archivo, 'name', '').lower()
+
+    # Validación de tamaño máximo de 25 MB (RNF-10)
+    MAX_FILE_SIZE_BYTES: int = 25 * 1024 * 1024
+    tamano = getattr(archivo, 'size', None)
+    if tamano and tamano > MAX_FILE_SIZE_BYTES:
+        tamano_mb = tamano / (1024 * 1024)
+        errores.append(
+            f"El archivo seleccionado pesa {tamano_mb:.2f} MB, superando el límite máximo permitido de 25 MB (RNF-10)."
+        )
+        return None, errores
 
     if not (nombre.endswith('.csv') or nombre.endswith('.xlsx')):
         errores.append("Formato no soportado. Por favor suba un archivo en formato .csv o .xlsx.")
