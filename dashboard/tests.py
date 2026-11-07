@@ -221,3 +221,51 @@ class DashboardViewTests(TestCase):
         self.assertTrue(len(response.content) > 1000)
         # Magic bytes de un archivo PDF (%PDF)
         self.assertTrue(response.content.startswith(b'%PDF'))
+
+    def test_rf04_filtro_y_ocultar_periodos_historicos(self):
+        """
+        [RF-04] Verifica que el dashboard proporcione los controles interactivos
+        para filtrar y ocultar períodos históricos cargados en el gráfico de líneas temporales.
+        """
+        # Asociar un ratio con período específico a la predicción para verificar períodos
+        ratio_2025 = RatioFinanciero.objects.create(empresa=self.empresa, periodo='2025-Q4')
+        self.prediccion1.ratio = ratio_2025
+        self.prediccion1.save()
+
+        self.client.login(username='dueno_user', password='password123')
+        session = self.client.session
+        session['usuario_rol'] = 'Dueño'
+        session.save()
+
+        # 1. Petición inicial sin filtros
+        response = self.client.get(reverse('dashboard:dashboard'))
+        self.assertEqual(response.status_code, 200)
+
+        # Verificar presencia de datos y períodos en el contexto
+        self.assertIn('periodos_disponibles', response.context)
+        self.assertIn('chart_puntos_json', response.context)
+
+        periodos = response.context['periodos_disponibles']
+        self.assertIn('2025-Q4', periodos)
+
+        puntos_json = json.loads(response.context['chart_puntos_json'])
+        self.assertGreaterEqual(len(puntos_json), 2)
+        # Al menos uno de los puntos debe corresponder al período 2025-Q4
+        periodos_en_puntos = [p['periodo'] for p in puntos_json]
+        self.assertIn('2025-Q4', periodos_en_puntos)
+
+        # Verificar elementos de interfaz de usuario para RF-04 en el HTML
+        content = response.content.decode('utf-8')
+        self.assertIn('dropdownFiltroPeriodos', content)
+        self.assertIn('Filtrar / Ocultar Períodos', content)
+        self.assertIn('listaCheckboxesPeriodos', content)
+        self.assertIn('btnMarcarTodos', content)
+        self.assertIn('btnDesmarcarTodos', content)
+        self.assertIn('btnRangoUltimos3', content)
+
+        # 2. Petición con filtro de período específico por GET
+        response_filtrado = self.client.get(reverse('dashboard:dashboard'), {'periodo': '2025-Q4'})
+        self.assertEqual(response_filtrado.status_code, 200)
+        puntos_filtrados = json.loads(response_filtrado.context['chart_puntos_json'])
+        self.assertEqual(len(puntos_filtrados), 1)
+        self.assertEqual(puntos_filtrados[0]['periodo'], '2025-Q4')

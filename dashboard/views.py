@@ -13,7 +13,7 @@ import logging
 from decimal import Decimal
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from django.http import HttpResponse, HttpRequest, Http404
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -125,8 +125,28 @@ class DashboardView(DashboardRolMixin, TemplateView):
             except Exception:
                 top_3_variables = []
 
-        # 3. Consulta de las últimas 5 a 10 PrediccionRiesgo para la curva de tendencia
-        ultimas_predicciones = list(predicciones_qs.order_by('-fecha_prediccion', '-id')[:10])
+        # 3. Consulta de predicciones históricas para la curva de tendencia (RF-04)
+        # Extraer todos los períodos históricos disponibles para los filtros
+        periodos_disponibles = []
+        for p in predicciones_qs:
+            per = p.ratio.periodo if (p.ratio and p.ratio.periodo) else (p.fecha_prediccion.strftime('%d/%m/%Y') if p.fecha_prediccion else f"#{p.id}")
+            if per and per not in periodos_disponibles:
+                periodos_disponibles.append(per)
+        periodos_disponibles.sort()
+
+        # Filtro opcional por período o rango recibido por GET (RF-04)
+        periodo_filtro = (self.request.GET.get('periodo') or '').strip()
+        rango_filtro = (self.request.GET.get('rango') or '').strip()
+
+        qs_tendencia = predicciones_qs
+        if periodo_filtro:
+            qs_tendencia = qs_tendencia.filter(
+                Q(ratio__periodo__icontains=periodo_filtro) |
+                Q(fecha_prediccion__icontains=periodo_filtro)
+            )
+
+        # Hasta 20 evaluaciones históricas para graficación y filtrado dinámico
+        ultimas_predicciones = list(qs_tendencia.order_by('-fecha_prediccion', '-id')[:20])
         # Invertir a orden cronológico ascendente para el eje horizontal del gráfico
         predicciones_cronologicas = list(reversed(ultimas_predicciones))
 
@@ -149,6 +169,21 @@ class DashboardView(DashboardRolMixin, TemplateView):
         ]
         if ultima_prediccion and chart_es_actual and not any(chart_es_actual):
             chart_es_actual[-1] = True
+
+        # Estructura enriquecida por punto para interactividad completa en el frontend (RF-04)
+        chart_puntos = [
+            {
+                'id': p.id,
+                'periodo': p.ratio.periodo if (p.ratio and p.ratio.periodo) else (p.fecha_prediccion.strftime('%d/%m/%Y') if p.fecha_prediccion else f"#{p.id}"),
+                'fecha_corta': p.fecha_prediccion.strftime('%d/%m %H:%M') if p.fecha_prediccion else '',
+                'fecha_completa': p.fecha_prediccion.strftime('%d/%m/%Y %H:%M') if p.fecha_prediccion else '',
+                'label': chart_fechas[i],
+                'score': chart_scores[i],
+                'nivel': chart_niveles[i],
+                'es_actual': chart_es_actual[i],
+            }
+            for i, p in enumerate(predicciones_cronologicas)
+        ]
 
         # 4. Total Ingreso_Real del día actual sumando transacciones de Venta (moduloTransaccional / app_caja)
         hoy = timezone.localdate()
@@ -183,11 +218,16 @@ class DashboardView(DashboardRolMixin, TemplateView):
             'total_ventas_hoy': total_ventas_hoy,
             'ultimo_ratio': ultimo_ratio,
             'total_predicciones_historicas': predicciones_qs.count(),
-            # JSON seguro para el frontend
+            # JSON seguro para el frontend y control interactivo (RF-04)
+            'periodos_disponibles': periodos_disponibles,
+            'periodos_disponibles_json': json.dumps(periodos_disponibles, ensure_ascii=False),
+            'periodo_filtro': periodo_filtro,
+            'rango_filtro': rango_filtro,
             'chart_fechas_json': json.dumps(chart_fechas, ensure_ascii=False),
             'chart_scores_json': json.dumps(chart_scores),
             'chart_niveles_json': json.dumps(chart_niveles),
             'chart_es_actual_json': json.dumps(chart_es_actual),
+            'chart_puntos_json': json.dumps(chart_puntos, ensure_ascii=False),
             'top_3_shap_json': json.dumps(top_3_variables, ensure_ascii=False),
         })
 

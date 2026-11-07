@@ -65,9 +65,9 @@
         </p>
     </div>
     <div class="mt-3 mt-md-0 d-flex align-items-center gap-2">
-        <a href="{% url 'dashboard:generar_pdf' %}" class="btn btn-outline-secondary btn-sm">
+        <a href="{% url 'dashboard:generar_pdf' %}" class="btn btn-outline-secondary btn-sm" title="Descargar Informe Ejecutivo">
             <i class="bi bi-file-earmark-pdf"></i>
-            <span>Exportar PDF</span>
+            <span>Descargar Informe Ejecutivo</span>
         </a>
         {% if ultimo_ratio %}
             <form method="POST" action="{% url 'dashboard:ejecutar_prediccion' %}" class="d-inline m-0">
@@ -261,7 +261,7 @@
 <!-- 2. SECCIÓN PRINCIPAL: TENDENCIA (8 Cols) + EXPLICABILIDAD SHAP (4 Cols)-->
 <!-- ====================================================================== -->
 <div class="row g-3 mb-4">
-    <!-- SECCIÓN: CURVA DE TENDENCIA -->
+    <!-- SECCIÓN: CURVA DE TENDENCIA (RF-04: Interactividad y Filtro de Períodos) -->
     <div class="col-lg-8">
         <div class="card h-100 d-flex flex-column justify-content-between">
             <div class="card-header py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-2 border-default">
@@ -286,19 +286,95 @@
                 </div>
             </div>
 
-            <div class="card-body p-4">
+            <!-- Barra de Controles Interactivos: Filtrar u Ocultar Períodos Históricos (RF-04) -->
+            <div class="px-4 py-2 border-bottom border-subtle bg-canvas d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <!-- Dropdown con Checkboxes de Períodos -->
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle py-1 px-2.5 d-flex align-items-center gap-1.5"
+                                type="button"
+                                id="dropdownFiltroPeriodos"
+                                data-bs-toggle="dropdown"
+                                data-bs-auto-close="outside"
+                                aria-expanded="false">
+                            <i class="bi bi-funnel-fill text-primary"></i>
+                            <span class="fw-medium">Filtrar / Ocultar Períodos</span>
+                            <span class="badge rounded-pill bg-primary fs-micro" id="badgePeriodosActivos">0</span>
+                        </button>
+                        <div class="dropdown-menu p-3 shadow border border-default" style="min-width: 300px; max-width: 350px; z-index: 1050;" aria-labelledby="dropdownFiltroPeriodos">
+                            <div class="d-flex align-items-center justify-content-between pb-2 mb-2 border-bottom border-subtle">
+                                <span class="fw-semibold text-main fs-caption">
+                                    <i class="bi bi-calendar3 me-1 text-primary"></i>Períodos Cargados
+                                </span>
+                                <span class="text-muted-custom fs-micro">Visibilidad</span>
+                            </div>
+                            <p class="text-muted-custom fs-micro mb-2">
+                                Marca o desmarca para mostrar u ocultar períodos contables de la curva:
+                            </p>
+                            <!-- Acciones rápidas de selección -->
+                            <div class="d-flex gap-1 mb-2">
+                                <button type="button" class="btn btn-light btn-sm py-0.5 px-2 flex-grow-1 fs-micro border" id="btnMarcarTodos">
+                                    <i class="bi bi-check-all me-1"></i>Mostrar todos
+                                </button>
+                                <button type="button" class="btn btn-light btn-sm py-0.5 px-2 flex-grow-1 fs-micro border" id="btnDesmarcarTodos">
+                                    <i class="bi bi-x me-1"></i>Ocultar todos
+                                </button>
+                            </div>
+                            <!-- Contenedor dinámico de checkboxes por período -->
+                            <div class="d-flex flex-column gap-1 overflow-y-auto" id="listaCheckboxesPeriodos" style="max-height: 210px;">
+                                <!-- Poblado por JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botones Pills de Rango Rápido -->
+                    <div class="btn-group btn-group-sm" role="group" aria-label="Rango Temporal">
+                        <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2 active" id="btnRangoTodos">Todos</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2" id="btnRangoUltimos3">Últimos 3</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2" id="btnRangoUltimos5">Últimos 5</button>
+                    </div>
+
+                    <!-- Botón para filtrar solo Alertas -->
+                    <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2 d-none d-sm-inline-flex align-items-center gap-1" id="btnFiltroAlertas">
+                        <i class="bi bi-exclamation-triangle text-warning"></i>
+                        <span>Solo Alertas</span>
+                    </button>
+                </div>
+
+                <!-- Resumen de Puntos Visibles y Botón Restablecer -->
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge border font-monospace badge-status-neutral fs-micro" id="contadorPuntosGrafico">
+                        Cargando...
+                    </span>
+                    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none fs-micro text-primary d-none" id="btnRestablecerFiltros">
+                        Restablecer
+                    </button>
+                </div>
+            </div>
+
+            <div class="card-body p-4 position-relative">
                 <div style="position: relative; height: 260px; width: 100%;">
                     <canvas id="riesgoChart"></canvas>
+                </div>
+
+                <!-- Mensaje de estado cuando todos los períodos están ocultos -->
+                <div id="mensajeSinPeriodos" class="d-none position-absolute top-50 start-50 translate-middle text-center p-3 bg-white border border-default rounded shadow-sm" style="z-index: 10; width: 85%; max-width: 340px;">
+                    <i class="bi bi-eye-slash text-secondary fs-3 mb-1 d-block opacity-75"></i>
+                    <p class="text-main fw-semibold fs-caption mb-1">Todos los períodos están ocultos</p>
+                    <p class="text-muted-custom fs-micro mb-2">Marca al menos un período en el menú "Filtrar / Ocultar Períodos" para reactivar la curva de tendencia.</p>
+                    <button type="button" class="btn btn-primary btn-sm py-0.5 px-2 fs-micro" id="btnRestablecerDesdeMensaje">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>Mostrar Todos los Períodos
+                    </button>
                 </div>
             </div>
 
             <div class="card-footer py-2.5 px-4 bg-white border-top border-subtle d-flex flex-wrap align-items-center justify-content-between text-muted-custom fs-micro">
-                <div>
+                <div id="footerInfoGrafico">
                     <i class="bi bi-info-circle me-1"></i>
-                    Puntos registrados: <strong class="text-main">{{ total_predicciones_historicas }}</strong> evaluaciones en el historial del sistema.
+                    Puntos visualizados: <strong class="text-main" id="puntosVisiblesFooter">--</strong> de <strong class="text-main">{{ total_predicciones_historicas }}</strong> evaluaciones registradas.
                 </div>
                 <div class="font-mono">
-                    Confiabilidad del Diagnóstico: 94.1%
+                    Tendencia Dinámica Interperíodo (RF-04)
                 </div>
             </div>
         </div>
@@ -511,78 +587,168 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 {{ block.super }}
 
-<!-- Contenedores de Datos Seguros para renderizado de interfaz -->
+<!-- Contenedores de Datos Seguros para renderizado de interfaz y filtrado (RF-04) -->
 <script type="application/json" id="chart-fechas-raw">{{ chart_fechas_json|default:"[]"|safe }}</script>
 <script type="application/json" id="chart-scores-raw">{{ chart_scores_json|default:"[]"|safe }}</script>
 <script type="application/json" id="chart-niveles-raw">{{ chart_niveles_json|default:"[]"|safe }}</script>
 <script type="application/json" id="chart-actual-raw">{{ chart_es_actual_json|default:"[]"|safe }}</script>
+<script type="application/json" id="chart-puntos-raw">{{ chart_puntos_json|default:"[]"|safe }}</script>
+<script type="application/json" id="periodos-disponibles-raw">{{ periodos_disponibles_json|default:"[]"|safe }}</script>
 
-<!-- Curva de Tendencia y Localizador de Inferencia -->
+<!-- Curva de Tendencia y Control de Períodos Históricos (RF-04) -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const ctx = document.getElementById('riesgoChart');
     if (!ctx) return;
 
+    // 1. Carga de datos parseados desde el backend
     const fechasElem = document.getElementById('chart-fechas-raw');
     const scoresElem = document.getElementById('chart-scores-raw');
     const actualElem = document.getElementById('chart-actual-raw');
+    const puntosElem = document.getElementById('chart-puntos-raw');
 
     let fechas = [];
     let scores = [];
     let esActual = [];
+    let puntosRaw = [];
 
     try {
         fechas = fechasElem ? JSON.parse(fechasElem.textContent || '[]') : [];
         scores = scoresElem ? JSON.parse(scoresElem.textContent || '[]') : [];
         esActual = actualElem ? JSON.parse(actualElem.textContent || '[]') : [];
+        puntosRaw = puntosElem ? JSON.parse(puntosElem.textContent || '[]') : [];
     } catch (e) {
         console.error('Error al parsear datos de tendencia:', e);
     }
 
-    if (!fechas || fechas.length === 0) {
-        fechas = ['Sin datos registrados'];
-        scores = [0];
-        esActual = [false];
+    // Normalizar puntos para manipulación y filtrado interactivo (RF-04)
+    let puntosOriginales = [];
+    if (puntosRaw && puntosRaw.length > 0) {
+        puntosOriginales = puntosRaw.map((p, idx) => ({
+            id: p.id || (idx + 1),
+            periodo: p.periodo || `Periodo ${idx + 1}`,
+            label: p.label || fechas[idx] || `Punto ${idx + 1}`,
+            score: typeof p.score === 'number' ? p.score : (scores[idx] || 0),
+            nivel: p.nivel || (scores[idx] > 70 ? 'Rojo' : (scores[idx] > 35 ? 'Amarillo' : 'Verde')),
+            es_actual: Boolean(p.es_actual !== undefined ? p.es_actual : esActual[idx])
+        }));
+    } else if (scores.length > 0) {
+        puntosOriginales = scores.map((s, idx) => ({
+            id: idx + 1,
+            periodo: fechas[idx] ? fechas[idx].split(' ')[0] : `P-${idx + 1}`,
+            label: fechas[idx] || `Punto ${idx + 1}`,
+            score: s,
+            nivel: s > 70 ? 'Rojo' : (s > 35 ? 'Amarillo' : 'Verde'),
+            es_actual: Boolean(esActual[idx])
+        }));
     }
 
-    // Si hay datos pero ningún punto marcado como actual, marcar el último (más reciente)
-    if (scores.length > 0 && (!esActual || esActual.length === 0 || !esActual.some(Boolean))) {
-        esActual = new Array(scores.length).fill(false);
-        esActual[esActual.length - 1] = true;
+    // Si hay datos pero ninguno marcado como actual, marcar el último (más reciente)
+    if (puntosOriginales.length > 0 && !puntosOriginales.some(p => p.es_actual)) {
+        puntosOriginales[puntosOriginales.length - 1].es_actual = true;
     }
 
+    // 2. Extraer períodos únicos disponibles en el historial
+    const periodosUnicos = [];
+    puntosOriginales.forEach(p => {
+        if (!periodosUnicos.includes(p.periodo)) {
+            periodosUnicos.push(p.periodo);
+        }
+    });
+
+    // Estado reactivo de períodos seleccionados y filtros
+    let periodosSeleccionados = new Set(periodosUnicos);
+    let filtroRango = 'todos'; // 'todos' | 'ultimos3' | 'ultimos5'
+    let soloAlertas = false;
+    let esActualArr = [];
+
+    // Referencias a elementos del DOM
+    const badgeActivos = document.getElementById('badgePeriodosActivos');
+    const listaCheckboxes = document.getElementById('listaCheckboxesPeriodos');
+    const contadorPuntos = document.getElementById('contadorPuntosGrafico');
+    const puntosFooter = document.getElementById('puntosVisiblesFooter');
+    const mensajeSinPeriodos = document.getElementById('mensajeSinPeriodos');
+    const btnRestablecerFiltros = document.getElementById('btnRestablecerFiltros');
+    const btnMarcarTodos = document.getElementById('btnMarcarTodos');
+    const btnDesmarcarTodos = document.getElementById('btnDesmarcarTodos');
+    const btnRangoTodos = document.getElementById('btnRangoTodos');
+    const btnRangoUltimos3 = document.getElementById('btnRangoUltimos3');
+    const btnRangoUltimos5 = document.getElementById('btnRangoUltimos5');
+    const btnFiltroAlertas = document.getElementById('btnFiltroAlertas');
+    const btnRestablecerDesdeMensaje = document.getElementById('btnRestablecerDesdeMensaje');
+
+    // 3. Generación de Checkboxes para cada Período Histórico (RF-04)
+    function renderizarCheckboxesPeriodos() {
+        if (!listaCheckboxes) return;
+        listaCheckboxes.innerHTML = '';
+
+        if (periodosUnicos.length === 0) {
+            listaCheckboxes.innerHTML = '<span class="text-muted-custom fs-micro px-2 py-1">Sin períodos registrados</span>';
+            return;
+        }
+
+        periodosUnicos.forEach((per, idx) => {
+            const puntosDelPeriodo = puntosOriginales.filter(p => p.periodo === per);
+            const ultimoDelPeriodo = puntosDelPeriodo[puntosDelPeriodo.length - 1];
+            const esActivo = periodosSeleccionados.has(per);
+
+            let badgeClass = 'badge-status-neutral';
+            if (ultimoDelPeriodo) {
+                if (ultimoDelPeriodo.score > 70) badgeClass = 'badge-status-critico';
+                else if (ultimoDelPeriodo.score > 35) badgeClass = 'badge-status-alerta';
+                else badgeClass = 'badge-status-solvente';
+            }
+
+            const item = document.createElement('label');
+            item.className = 'd-flex align-items-center justify-content-between px-2 py-1.5 rounded border border-subtle bg-white text-decoration-none';
+            item.style.cursor = 'pointer';
+
+            const esActualPeriodo = puntosDelPeriodo.some(p => p.es_actual);
+
+            item.innerHTML = `
+                <div class="form-check m-0 d-flex align-items-center gap-2">
+                    <input class="form-check-input m-0 check-periodo-item" 
+                           type="checkbox" 
+                           value="${per}" 
+                           id="chk_periodo_${idx}"
+                           ${esActivo ? 'checked' : ''}>
+                    <span class="fs-micro fw-semibold text-main">
+                        ${per} ${esActualPeriodo ? '<span class="badge bg-dark text-white fs-micro py-0 px-1">Actual</span>' : ''}
+                    </span>
+                </div>
+                <div class="d-flex align-items-center gap-1">
+                    <span class="badge border font-monospace ${badgeClass} fs-micro">
+                        ${ultimoDelPeriodo ? ultimoDelPeriodo.score.toFixed(1) + '%' : '--%'}
+                    </span>
+                </div>
+            `;
+
+            const chk = item.querySelector('.check-periodo-item');
+            chk.addEventListener('change', function () {
+                if (this.checked) {
+                    periodosSeleccionados.add(per);
+                } else {
+                    periodosSeleccionados.delete(per);
+                }
+                setRangoActivo('personalizado');
+                aplicarFiltrosYActualizar();
+            });
+
+            listaCheckboxes.appendChild(item);
+        });
+    }
+
+    // 4. Configuración del Degradado y Plugin de Chart.js
     const chartCtx = ctx.getContext('2d');
     const gradient = chartCtx.createLinearGradient(0, 0, 0, 240);
     gradient.addColorStop(0, 'rgba(37, 99, 235, 0.08)');
     gradient.addColorStop(1, 'rgba(37, 99, 235, 0.00)');
 
-    const pointColors = scores.map(function(s) {
-        if (s > 70) return '#dc2626';     // Rojo (Crítico)
-        if (s > 35) return '#f59e0b';     // Amarillo (Alerta)
-        return '#10b981';                 // Verde (Solvente)
-    });
-
-    const pointRadiusList = scores.map(function(_, idx) {
-        return esActual[idx] ? 7.5 : 4.5;
-    });
-
-    const pointHoverRadiusList = scores.map(function(_, idx) {
-        return esActual[idx] ? 9.5 : 6.5;
-    });
-
-    const pointBorderColorList = scores.map(function(_, idx) {
-        return esActual[idx] ? '#0f172a' : '#ffffff';
-    });
-
-    const pointBorderWidthList = scores.map(function(_, idx) {
-        return esActual[idx] ? 3 : 2;
-    });
-
     // Plugin localizador para resaltar la inferencia visualizada actualmente
     const activePointLocatorPlugin = {
         id: 'activePointLocator',
         afterDatasetsDraw: function(chart) {
-            const activeIdx = esActual.findIndex(function(v) { return !!v; });
+            const activeIdx = esActualArr.findIndex(v => Boolean(v));
             if (activeIdx === -1) return;
 
             const meta = chart.getDatasetMeta(0);
@@ -644,24 +810,25 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
-    new Chart(ctx, {
+    // 5. Inicialización de la Instancia de Chart.js
+    const chart = new Chart(ctx, {
         type: 'line',
         plugins: [activePointLocatorPlugin],
         data: {
-            labels: fechas,
+            labels: [],
             datasets: [{
                 label: 'Score de Riesgo',
-                data: scores,
+                data: [],
                 borderColor: '#2563eb',
                 backgroundColor: gradient,
                 borderWidth: 2,
                 fill: true,
                 tension: 0.25,
-                pointBackgroundColor: pointColors,
-                pointBorderColor: pointBorderColorList,
-                pointBorderWidth: pointBorderWidthList,
-                pointRadius: pointRadiusList,
-                pointHoverRadius: pointHoverRadiusList,
+                pointBackgroundColor: [],
+                pointBorderColor: [],
+                pointBorderWidth: [],
+                pointRadius: [],
+                pointHoverRadius: [],
             }]
         },
         options: {
@@ -672,45 +839,25 @@ document.addEventListener('DOMContentLoaded', function () {
                     min: 0,
                     max: 100,
                     ticks: {
-                        callback: function(value) {
-                            return value + '%';
-                        },
+                        callback: function(value) { return value + '%'; },
                         stepSize: 20,
                         color: '#9ca3af',
-                        font: {
-                            family: "'Inter', sans-serif",
-                            size: 11
-                        }
+                        font: { family: "'Inter', sans-serif", size: 11 }
                     },
-                    grid: {
-                        color: '#f3f4f6',
-                        drawBorder: false
-                    },
-                    border: {
-                        display: false
-                    }
+                    grid: { color: '#f3f4f6', drawBorder: false },
+                    border: { display: false }
                 },
                 x: {
                     ticks: {
                         color: '#9ca3af',
-                        font: {
-                            family: "'Inter', sans-serif",
-                            size: 11
-                        }
+                        font: { family: "'Inter', sans-serif", size: 11 }
                     },
-                    grid: {
-                        display: false,
-                        drawBorder: false
-                    },
-                    border: {
-                        display: false
-                    }
+                    grid: { display: false, drawBorder: false },
+                    border: { display: false }
                 }
             },
             plugins: {
-                legend: {
-                    display: false
-                },
+                legend: { display: false },
                 tooltip: {
                     backgroundColor: '#0f172a',
                     titleColor: '#ffffff',
@@ -725,7 +872,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             if (!items || items.length === 0) return '';
                             const idx = items[0].dataIndex;
                             const title = items[0].label || '';
-                            if (esActual[idx]) {
+                            if (esActualArr[idx]) {
                                 return title + '  [ACTUAL]';
                             }
                             return title;
@@ -736,7 +883,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             if (val > 70) estado = 'Crítico';
                             else if (val > 35) estado = 'Alerta';
                             const lines = ['Probabilidad: ' + val.toFixed(1) + '% (' + estado + ')'];
-                            if (esActual[context.dataIndex]) {
+                            if (esActualArr[context.dataIndex]) {
                                 lines.push('● Inferencia en Pantalla (KPIs y SHAP)');
                             }
                             return lines;
@@ -746,6 +893,171 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     });
+
+    // 6. Función Núcleo de Filtrado y Actualización de la Curva (RF-04)
+    function aplicarFiltrosYActualizar() {
+        // Filtrar puntos cuyos períodos estén marcados
+        let visibles = puntosOriginales.filter(p => periodosSeleccionados.has(p.periodo));
+
+        // Aplicar filtro de rango si no es 'todos'
+        if (filtroRango === 'ultimos3') {
+            visibles = visibles.slice(-3);
+        } else if (filtroRango === 'ultimos5') {
+            visibles = visibles.slice(-5);
+        }
+
+        // Aplicar filtro de solo alertas si está activo
+        if (soloAlertas) {
+            visibles = visibles.filter(p => p.score > 35);
+        }
+
+        // Actualizar arreglos de datos para Chart.js
+        esActualArr = visibles.map(p => p.es_actual);
+
+        const visibleScores = visibles.map(p => p.score);
+        const visibleLabels = visibles.map(p => p.label);
+
+        const visiblePointColors = visibleScores.map(s => {
+            if (s > 70) return '#dc2626';     // Rojo
+            if (s > 35) return '#f59e0b';     // Amarillo
+            return '#10b981';                 // Verde
+        });
+
+        const visibleRadius = esActualArr.map(act => act ? 7.5 : 4.5);
+        const visibleHoverRadius = esActualArr.map(act => act ? 9.5 : 6.5);
+        const visibleBorderColor = esActualArr.map(act => act ? '#0f172a' : '#ffffff');
+        const visibleBorderWidth = esActualArr.map(act => act ? 3 : 2);
+
+        // Actualizar el gráfico
+        chart.data.labels = visibleLabels;
+        chart.data.datasets[0].data = visibleScores;
+        chart.data.datasets[0].pointBackgroundColor = visiblePointColors;
+        chart.data.datasets[0].pointRadius = visibleRadius;
+        chart.data.datasets[0].pointHoverRadius = visibleHoverRadius;
+        chart.data.datasets[0].pointBorderColor = visibleBorderColor;
+        chart.data.datasets[0].pointBorderWidth = visibleBorderWidth;
+
+        chart.update();
+
+        // Control visual del mensaje de estado cuando no hay períodos visibles
+        if (visibles.length === 0) {
+            if (mensajeSinPeriodos) mensajeSinPeriodos.classList.remove('d-none');
+            ctx.style.opacity = '0.15';
+        } else {
+            if (mensajeSinPeriodos) mensajeSinPeriodos.classList.add('d-none');
+            ctx.style.opacity = '1';
+        }
+
+        // Actualización de contadores e indicadores en la interfaz
+        if (badgeActivos) {
+            badgeActivos.textContent = `${periodosSeleccionados.size}/${periodosUnicos.length}`;
+        }
+        if (contadorPuntos) {
+            contadorPuntos.textContent = `${visibles.length} de ${puntosOriginales.length} puntos`;
+        }
+        if (puntosFooter) {
+            puntosFooter.textContent = visibles.length;
+        }
+
+        // Mostrar u ocultar botón de restablecer si hay filtros aplicados
+        const filtrosPersonalizados = (
+            periodosSeleccionados.size !== periodosUnicos.length ||
+            filtroRango !== 'todos' ||
+            soloAlertas
+        );
+        if (btnRestablecerFiltros) {
+            btnRestablecerFiltros.classList.toggle('d-none', !filtrosPersonalizados);
+        }
+    }
+
+    // Manejo visual de botones de rango
+    function setRangoActivo(rango) {
+        filtroRango = rango;
+        [btnRangoTodos, btnRangoUltimos3, btnRangoUltimos5].forEach(btn => {
+            if (btn) btn.classList.remove('active');
+        });
+        if (rango === 'todos' && btnRangoTodos) btnRangoTodos.classList.add('active');
+        if (rango === 'ultimos3' && btnRangoUltimos3) btnRangoUltimos3.classList.add('active');
+        if (rango === 'ultimos5' && btnRangoUltimos5) btnRangoUltimos5.classList.add('active');
+    }
+
+    // 7. Enlace de Eventos para la Interactividad del Usuario
+    if (btnMarcarTodos) {
+        btnMarcarTodos.addEventListener('click', function () {
+            periodosSeleccionados = new Set(periodosUnicos);
+            document.querySelectorAll('.check-periodo-item').forEach(c => { c.checked = true; });
+            setRangoActivo('todos');
+            aplicarFiltrosYActualizar();
+        });
+    }
+
+    if (btnDesmarcarTodos) {
+        btnDesmarcarTodos.addEventListener('click', function () {
+            periodosSeleccionados.clear();
+            document.querySelectorAll('.check-periodo-item').forEach(c => { c.checked = false; });
+            setRangoActivo('personalizado');
+            aplicarFiltrosYActualizar();
+        });
+    }
+
+    if (btnRangoTodos) {
+        btnRangoTodos.addEventListener('click', function () {
+            periodosSeleccionados = new Set(periodosUnicos);
+            document.querySelectorAll('.check-periodo-item').forEach(c => { c.checked = true; });
+            soloAlertas = false;
+            if (btnFiltroAlertas) btnFiltroAlertas.classList.remove('active', 'btn-warning');
+            setRangoActivo('todos');
+            aplicarFiltrosYActualizar();
+        });
+    }
+
+    if (btnRangoUltimos3) {
+        btnRangoUltimos3.addEventListener('click', function () {
+            periodosSeleccionados = new Set(periodosUnicos);
+            document.querySelectorAll('.check-periodo-item').forEach(c => { c.checked = true; });
+            setRangoActivo('ultimos3');
+            aplicarFiltrosYActualizar();
+        });
+    }
+
+    if (btnRangoUltimos5) {
+        btnRangoUltimos5.addEventListener('click', function () {
+            periodosSeleccionados = new Set(periodosUnicos);
+            document.querySelectorAll('.check-periodo-item').forEach(c => { c.checked = true; });
+            setRangoActivo('ultimos5');
+            aplicarFiltrosYActualizar();
+        });
+    }
+
+    if (btnFiltroAlertas) {
+        btnFiltroAlertas.addEventListener('click', function () {
+            soloAlertas = !soloAlertas;
+            this.classList.toggle('active', soloAlertas);
+            this.classList.toggle('btn-warning', soloAlertas);
+            this.classList.toggle('text-white', soloAlertas);
+            aplicarFiltrosYActualizar();
+        });
+    }
+
+    function restablecerTodo() {
+        periodosSeleccionados = new Set(periodosUnicos);
+        soloAlertas = false;
+        if (btnFiltroAlertas) btnFiltroAlertas.classList.remove('active', 'btn-warning', 'text-white');
+        document.querySelectorAll('.check-periodo-item').forEach(c => { c.checked = true; });
+        setRangoActivo('todos');
+        aplicarFiltrosYActualizar();
+    }
+
+    if (btnRestablecerFiltros) {
+        btnRestablecerFiltros.addEventListener('click', restablecerTodo);
+    }
+    if (btnRestablecerDesdeMensaje) {
+        btnRestablecerDesdeMensaje.addEventListener('click', restablecerTodo);
+    }
+
+    // Inicialización del Componente
+    renderizarCheckboxesPeriodos();
+    aplicarFiltrosYActualizar();
 });
 </script>
 {% endblock %}
