@@ -14,11 +14,6 @@
             &middot; Bitácora de balances ingestados y validados para tu empresa.
         </p>
     </div>
-    <div class="mt-2 mt-md-0 d-flex gap-2">
-        <a href="{% url 'moduloETL:ratios_financieros' %}" class="btn btn-outline-primary btn-sm shadow-sm">
-            <i class="bi bi-calculator me-1"></i>Ver Ratios Calculados
-        </a>
-    </div>
 </div>
 {% endblock %}
 
@@ -36,19 +31,21 @@
         </div>
     </div>
 
-    <!-- Barra de Búsqueda y Ordenamiento por Fecha de Carga -->
+    <!-- Barra de Búsqueda Automática y Ordenamiento por Fecha de Carga -->
     <div class="p-3 bg-light border-bottom">
-        <form method="GET" action="{% url 'moduloETL:historial_cargas' %}" class="row g-2 align-items-center">
-            <div class="col-12 col-md-6 col-lg-5">
+        <form method="GET" action="{% url 'moduloETL:historial_cargas' %}" class="row g-2 align-items-center" id="formHistorialCargas">
+            <div class="col-12 col-md-7 col-lg-6">
                 <div class="input-group input-group-sm">
                     <span class="input-group-text bg-white border-end-0">
                         <i class="bi bi-search text-muted"></i>
                     </span>
                     <input type="text" 
                            name="q" 
+                           id="inputBusquedaCargas"
                            value="{{ q }}" 
                            class="form-control border-start-0" 
-                           placeholder="Buscar período, archivo, usuario o estado...">
+                           placeholder="Buscar automáticamente período, archivo, usuario o estado..."
+                           autocomplete="off">
                     {% if q %}
                         <a href="?orden={{ orden }}" class="btn btn-outline-secondary" title="Limpiar búsqueda">
                             <i class="bi bi-x-lg"></i>
@@ -57,7 +54,7 @@
                 </div>
             </div>
 
-            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+            <div class="col-12 col-sm-6 col-md-3 col-lg-4">
                 <div class="input-group input-group-sm">
                     <span class="input-group-text bg-white">
                         <i class="bi bi-arrow-down-up text-muted me-1"></i>Ordenar por Fecha
@@ -69,16 +66,14 @@
                 </div>
             </div>
 
-            <div class="col-12 col-sm-6 col-md-2 col-lg-3 d-flex gap-2">
-                <button type="submit" class="btn btn-primary btn-sm">
-                    <i class="bi bi-funnel me-1"></i>Buscar
-                </button>
-                {% if q or orden == 'asc' %}
-                    <a href="{% url 'moduloETL:historial_cargas' %}" class="btn btn-outline-secondary btn-sm">
-                        Restablecer
-                    </a>
-                {% endif %}
+            {% if q or orden == 'asc' %}
+            <div class="col-12 col-sm-6 col-md-2 col-lg-2">
+                <a href="{% url 'moduloETL:historial_cargas' %}" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                    <span>Restablecer</span>
+                </a>
             </div>
+            {% endif %}
         </form>
     </div>
 
@@ -185,4 +180,47 @@
     </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const inputBusqueda = document.getElementById('inputBusquedaCargas');
+    const formBusqueda = document.getElementById('formHistorialCargas');
+    if (!inputBusqueda || !formBusqueda) return;
+
+    let timeoutId = null;
+    const valorInicial = inputBusqueda.value.trim();
+
+    // Mantener el foco y cursor al final del texto si ya había un valor buscado
+    if (inputBusqueda.value) {
+        inputBusqueda.focus();
+        const len = inputBusqueda.value.length;
+        inputBusqueda.setSelectionRange(len, len);
+    }
+
+    // Búsqueda automática con debounce (400ms después de que el usuario deja de tipear)
+    inputBusqueda.addEventListener('input', function () {
+        clearTimeout(timeoutId);
+        const valorActual = this.value.trim();
+
+        timeoutId = setTimeout(function () {
+            // Solo envía el formulario si el valor realmente cambió respecto al que cargó la página
+            if (valorActual !== valorInicial) {
+                formBusqueda.submit();
+            }
+        }, 400);
+    });
+
+    // Enviar inmediatamente si el usuario presiona Enter
+    inputBusqueda.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            clearTimeout(timeoutId);
+            formBusqueda.submit();
+        }
+    });
+});
+</script>
 {% endblock %}
