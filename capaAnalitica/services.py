@@ -344,7 +344,7 @@ def evaluar_vector_financiero(vector_ratios):
 def ejecutar_y_persistir_prediccion(ratio_obj_o_id, usuario=None, empresa=None):
     """
     Servicio de alto nivel invocado cuando el usuario ejecuta una predicción.
-    Evalúa los ratios financieros y persiste la instancia de PrediccionRiesgo en la base de datos.
+    Evalúa los ratios financieros y persiste la instancia de PrediccionRiesgo en el sistema.
     """
     from moduloETL.models import RatioFinanciero
     from capaAnalitica.models import PrediccionRiesgo
@@ -366,7 +366,7 @@ def ejecutar_y_persistir_prediccion(ratio_obj_o_id, usuario=None, empresa=None):
     resultado = motor.evaluar_riesgo(ratio_obj)
     tiempo_ms = int((time.time() - t_inicio) * 1000)
 
-    # Persistencia en base de datos en tabla 'prediccionriesgo'
+    # Persistencia en tabla 'prediccionriesgo'
     prediccion = PrediccionRiesgo.objects.create(
         ratio=ratio_obj,
         fecha_prediccion=timezone.now(),

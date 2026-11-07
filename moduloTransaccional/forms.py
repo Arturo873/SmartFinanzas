@@ -70,9 +70,29 @@ class VentaForm(forms.ModelForm):
 
     def clean_total_bruto(self):
         total_bruto = self.cleaned_data.get('total_bruto')
-        if total_bruto is not None and total_bruto <= Decimal('0.00'):
+        if total_bruto is None:
+            raise forms.ValidationError("El total bruto de la venta es obligatorio y no puede estar vacío.")
+        if total_bruto <= Decimal('0.00'):
             raise forms.ValidationError("El total bruto de la venta debe ser estrictamente mayor a 0.")
+        if total_bruto > Decimal('99999999.99'):
+            raise forms.ValidationError("El total bruto excede el importe máximo permitido por transacción ($99.999.999,99).")
         return total_bruto
+
+    def clean_descuento_monto(self):
+        descuento = self.cleaned_data.get('descuento_monto')
+        if descuento is None:
+            return Decimal('0.00')
+        if descuento < Decimal('0.00'):
+            raise forms.ValidationError("El monto de descuento no puede ser un valor negativo.")
+        return descuento
+
+    def clean_metodo_pago(self):
+        metodo = self.cleaned_data.get('metodo_pago')
+        if not metodo:
+            raise forms.ValidationError("Debe seleccionar un método de pago válido.")
+        if not metodo.activo:
+            raise forms.ValidationError(f"El método de pago '{metodo.nombre}' no está habilitado para operaciones.")
+        return metodo
 
     def clean(self):
         cleaned_data = super().clean()
@@ -80,12 +100,13 @@ class VentaForm(forms.ModelForm):
         descuento_monto = cleaned_data.get('descuento_monto') or Decimal('0.00')
 
         if total_bruto is not None and descuento_monto is not None:
-            if descuento_monto < Decimal('0.00'):
-                self.add_error('descuento_monto', forms.ValidationError("El descuento no puede ser un valor negativo."))
-            elif descuento_monto >= total_bruto:
+            if descuento_monto >= total_bruto:
                 self.add_error(
                     'descuento_monto',
-                    forms.ValidationError("El monto de descuento no puede ser mayor o igual al total bruto de la venta.")
+                    forms.ValidationError(
+                        f"El monto de descuento (${descuento_monto:,.2f}) no puede ser mayor o igual "
+                        f"al total bruto (${total_bruto:,.2f}). El valor a cobrar resultante debe ser estrictamente mayor a 0."
+                    )
                 )
         return cleaned_data
 
@@ -125,6 +146,14 @@ class CierreCajaForm(forms.ModelForm):
     def __init__(self, *args, total_sistema=None, **kwargs):
         self.total_sistema = total_sistema if total_sistema is not None else Decimal('0.00')
         super().__init__(*args, **kwargs)
+
+    def clean_total_arqueo(self):
+        total_arqueo = self.cleaned_data.get('total_arqueo')
+        if total_arqueo is None:
+            raise forms.ValidationError("Debe ingresar el monto de arqueo físico contado en caja.")
+        if total_arqueo < Decimal('0.00'):
+            raise forms.ValidationError("El total de arqueo físico no puede ser un valor negativo.")
+        return total_arqueo
 
     def clean(self):
         cleaned_data = super().clean()

@@ -12,10 +12,10 @@ from AppWeb.models import PerfilUsuario
 
 def sincronizar_sesion(request, usuario_db):
     """
-    Sincroniza la autenticación entre el modelo Usuario (BDD smartfinanzas)
+    Sincroniza la autenticación entre el modelo Usuario
     y el subsistema de sesiones y usuarios de Django (auth.User + PerfilUsuario).
     """
-    # 1. Actualizar última sesión en la base de datos
+    # 1. Actualizar última sesión
     usuario_db.ultima_sesion = timezone.now()
     usuario_db.save(update_fields=['ultima_sesion'])
 
@@ -41,7 +41,7 @@ def sincronizar_sesion(request, usuario_db):
 
 def login_view(request):
     """
-    Vista de inicio de sesión que autentica usuarios contra la base de datos (BDD).
+    Vista de inicio de sesión que autentica usuarios en el sistema.
     Redirige a 'principal' tras una autenticación exitosa.
     """
     if request.user.is_authenticated:
@@ -70,7 +70,7 @@ def logout_view(request):
 
 def registro_view(request):
     """
-    Vista de registro de nuevos usuarios persistiendo en la tabla 'usuario' de la BDD.
+    Vista de registro de nuevos usuarios en el sistema.
     """
     if request.user.is_authenticated:
         return redirect('principal')

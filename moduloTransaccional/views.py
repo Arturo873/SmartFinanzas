@@ -1,5 +1,6 @@
-from decimal import Decimal
-from django.db import transaction
+import logging
+from decimal import Decimal, InvalidOperation, DivisionByZero, Overflow
+from django.db import transaction, DatabaseError, OperationalError
 from django.db.models import Sum, Q
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
@@ -11,6 +12,8 @@ from django.views.generic import CreateView, ListView
 from .models import Venta, MetodoPago, RetiroCajaChica, CierreCaja, DetalleCierrePorMetodo
 from .forms import VentaForm, CierreCajaForm
 from usuarios.models import Usuario
+
+logger = logging.getLogger(__name__)
 
 
 def resolver_usuario_bd(auth_user):
@@ -74,6 +77,12 @@ class VentaCreateView(RolRequeridoMixin, CreateView):
     Vista operativa de registro de ventas diarias.
     Exclusiva para el rol 'Trabajador' (y Administrador).
     Calcula automáticamente los campos financieros protegidos antes del guardado.
+
+    Principios de Programación Defensiva aplicados:
+    - Verificación proactiva de condiciones de borde (guard clauses).
+    - Prevención de operaciones ilógicas (ventas <= $0, cobros negativos o nulos).
+    - Aislamiento en transacciones ACID con manejo de excepciones y rollback automático.
+    - Generación de alertas claras y accionables (problema, causa y solución).
     """
     model = Venta
     form_class = VentaForm
@@ -81,58 +90,255 @@ class VentaCreateView(RolRequeridoMixin, CreateView):
     success_url = reverse_lazy('moduloTransaccional:venta_crear')
     roles_permitidos = ['Trabajador', 'Administrador']
 
+    def dispatch(self, request, *args, **kwargs):
+        # Verificación defensiva previa: comprobar si la caja de hoy ya fue cerrada
+        fecha_hoy = timezone.localdate()
+        cierre_hoy = CierreCaja.objects.filter(fecha=fecha_hoy).first()
+        if cierre_hoy and request.method == 'POST':
+            messages.error(
+                request,
+                f"Operación bloqueada: La caja del día ({fecha_hoy.strftime('%d/%m/%Y')}) ya fue cerrada "
+                f"(ID #{cierre_hoy.pk} - Estado: {cierre_hoy.estado}). "
+                f"Motivo: No se pueden añadir ventas a una caja con arqueo cerrado. "
+                f"Solución: Para registrar ventas rezagadas o ajustes extraordinarios, contacta al Administrador o Dueño del turno."
+            )
+            return redirect(self.success_url)
+        return super().dispatch(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         fecha_hoy = timezone.localdate()
-        # Muestra las últimas 10 ventas del día para referencia del operador
-        context['ventas_hoy'] = Venta.objects.filter(
-            fecha__date=fecha_hoy
-        ).select_related('metodo_pago').order_by('-fecha')[:10]
+        try:
+            # Consulta segura con límite defensivo y captura de excepciones
+            context['ventas_hoy'] = Venta.objects.filter(
+                fecha__date=fecha_hoy
+            ).select_related('metodo_pago').order_by('-fecha')[:10]
+        except Exception as e:
+            logger.error(f"Error al consultar historial de ventas del día: {e}", exc_info=True)
+            context['ventas_hoy'] = []
+            messages.warning(
+                self.request,
+                "Aviso del sistema: No fue posible cargar el listado de ventas recientes del día. "
+                "El registro de nuevas ventas sigue operativo."
+            )
+
         context['fecha_hoy'] = fecha_hoy
+        context['cierre_hoy'] = CierreCaja.objects.filter(fecha=fecha_hoy).first()
         return context
 
-    def form_valid(self, form):
-        venta = form.save(commit=False)
-        total_bruto = form.cleaned_data['total_bruto']
-        descuento_monto = form.cleaned_data.get('descuento_monto') or Decimal('0.00')
-        metodo_pago = form.cleaned_data['metodo_pago']
+    def form_invalid(self, form):
+        """
+        Manejo defensivo ante fallos de validación en el formulario.
+        Genera alertas amigables y detalladas con la causa y la solución para el usuario.
+        """
+        errores_lista = []
+        for campo, errs in form.errors.items():
+            nombre_campo = form.fields[campo].label if campo in form.fields and form.fields[campo].label else campo
+            for err in errs:
+                errores_lista.append(f"{nombre_campo}: {err}")
 
-        # -------------------------------------------------------------
-        # Fórmulas de Negocio Protegidas (Lógica de Servidor):
-        # 1. Total_Cobrado = total_bruto - descuento_monto
-        # 2. Comision = Total_Cobrado * (comision_porcentaje / 100)
-        # 3. Ingreso_Real = Total_Cobrado - Comision
-        # -------------------------------------------------------------
-        total_cobrado = total_bruto - descuento_monto
-        comision_pct = metodo_pago.comision_porcentaje or Decimal('0.00')
-        comision_aplicada = (total_cobrado * (comision_pct / Decimal('100.00'))).quantize(Decimal('0.01'))
-        ingreso_real = (total_cobrado - comision_aplicada).quantize(Decimal('0.01'))
-
-        venta.total_bruto = total_bruto
-        venta.descuento_tipo = 'Monto' if descuento_monto > Decimal('0.00') else 'Sin Desc'
-        venta.descuento_monto = descuento_monto
-        venta.total_cobrado = total_cobrado
-        venta.comision_aplicada = comision_aplicada
-        venta.ingreso_real = ingreso_real
-
-        # Asignar usuario en sesión, empresa y fecha
-        usuario_db = resolver_usuario_bd(self.request.user)
-        venta.usuario = usuario_db
-        if usuario_db and usuario_db.empresa:
-            venta.empresa = usuario_db.empresa
-        venta.cierre = None
-        if not venta.fecha:
-            venta.fecha = timezone.now()
-
-        venta.save()
-
-        messages.success(
+        resumen_errores = " | ".join(errores_lista) if errores_lista else "Verifique los campos obligatorios."
+        messages.error(
             self.request,
-            f"Venta #{venta.pk} registrada exitosamente. "
-            f"Cobrado: ${total_cobrado:,.0f} | Comisión ({comision_pct}%): ${comision_aplicada:,.0f} | "
-            f"Ingreso Real: ${ingreso_real:,.0f}."
+            f"No fue posible registrar la venta debido a errores de validación: {resumen_errores}. "
+            f"Solución: Corrija los valores señalados en el formulario e intente presionar 'Registrar Venta' nuevamente."
         )
-        return redirect(self.success_url)
+        return super().form_invalid(form)
+
+    def form_valid(self, form):
+        # -------------------------------------------------------------
+        # 1. VALIDACIONES DEFENSIVAS DE NEGOCIO Y SANEAMIENTO DE DATOS
+        # -------------------------------------------------------------
+        fecha_hoy = timezone.localdate()
+
+        # A. Bloqueo de seguridad: No procesar ventas en turnos cerrados
+        cierre_existente = CierreCaja.objects.filter(fecha=fecha_hoy).first()
+        if cierre_existente:
+            messages.error(
+                self.request,
+                f"Operación rechazada: La caja del día ({fecha_hoy.strftime('%d/%m/%Y')}) ya se encuentra cerrada "
+                f"(Cierre #{cierre_existente.pk} - Estado: {cierre_existente.estado}). "
+                f"Motivo: Registrar nuevas transacciones corrompería la auditoría del arqueo de hoy. "
+                f"Solución: Si se trata de una venta fuera de horario o turno cerrado, solicite autorización al Administrador."
+            )
+            return self.form_invalid(form)
+
+        # B. Validación de variables críticas nulas o vacías
+        total_bruto = form.cleaned_data.get('total_bruto')
+        if total_bruto is None:
+            form.add_error('total_bruto', "El total bruto de la venta no puede estar vacío.")
+            messages.error(
+                self.request,
+                "Validación de datos fallida: El campo 'Total Bruto' no contiene ningún valor. "
+                "Solución: Ingrese un importe numérico mayor a 0."
+            )
+            return self.form_invalid(form)
+
+        metodo_pago = form.cleaned_data.get('metodo_pago')
+        if not metodo_pago:
+            form.add_error('metodo_pago', "Debe seleccionar un método de pago activo.")
+            messages.error(
+                self.request,
+                "Validación de datos fallida: No se seleccionó un medio de pago para la transacción. "
+                "Solución: Seleccione una opción válida de la lista desplegable (Efectivo, Débito, Transferencia, etc.)."
+            )
+            return self.form_invalid(form)
+
+        if not metodo_pago.activo:
+            form.add_error('metodo_pago', f"El método de pago '{metodo_pago.nombre}' no se encuentra habilitado.")
+            messages.error(
+                self.request,
+                f"Operación rechazada: El método '{metodo_pago.nombre}' fue deshabilitado en el sistema. "
+                f"Solución: Seleccione un método de pago activo o solicite su activación al Administrador."
+            )
+            return self.form_invalid(form)
+
+        # C. Validación de negocio: No procesar ventas con valor 0 o negativo
+        if total_bruto <= Decimal('0.00'):
+            form.add_error('total_bruto', "El total bruto de la venta debe ser estrictamente mayor a 0.")
+            messages.error(
+                self.request,
+                f"Operación ilógica rechazada: No se pueden registrar ventas por un valor de ${total_bruto:,.2f}. "
+                f"Motivo: Toda venta debe representar un flujo de ingreso comercial positivo mayor a $0. "
+                f"Solución: Ingrese el monto real y positivo de los productos o servicios comercializados."
+            )
+            return self.form_invalid(form)
+
+        # Límite superior razonable para evitar desbordamiento numérico o digitación accidental
+        max_venta_permitida = Decimal('99999999.99')
+        if total_bruto > max_venta_permitida:
+            form.add_error('total_bruto', f"El importe excede el límite máximo por transacción (${max_venta_permitida:,.0f}).")
+            messages.error(
+                self.request,
+                f"Alerta de seguridad: El total bruto (${total_bruto:,.2f}) supera el tope por transacción del sistema. "
+                f"Solución: Verifique que no haya ingresado ceros adicionales accidentalmente."
+            )
+            return self.form_invalid(form)
+
+        # D. Validación defensiva de descuentos
+        descuento_monto = form.cleaned_data.get('descuento_monto')
+        if descuento_monto is None:
+            descuento_monto = Decimal('0.00')
+
+        if descuento_monto < Decimal('0.00'):
+            form.add_error('descuento_monto', "El descuento no puede ser un valor negativo.")
+            messages.error(
+                self.request,
+                "Operación ilógica rechazada: El descuento ingresado es negativo. "
+                "Solución: Ingrese un valor mayor o igual a $0 o déjelo en blanco si no aplica descuento."
+            )
+            return self.form_invalid(form)
+
+        # E. Validación de coherencia comercial: el valor a cobrar debe ser positivo
+        total_cobrado = total_bruto - descuento_monto
+        if total_cobrado <= Decimal('0.00'):
+            form.add_error('descuento_monto', "El descuento no puede igualar o exceder el total bruto.")
+            messages.error(
+                self.request,
+                f"Operación ilógica rechazada: El descuento (${descuento_monto:,.2f}) cubre o supera el 100% de la venta (${total_bruto:,.2f}), "
+                f"resultando en un valor a cobrar de ${total_cobrado:,.2f}. "
+                f"Motivo: El total cobrado al cliente debe ser estrictamente mayor a $0. "
+                f"Solución: Ajuste el descuento para que sea menor al total bruto."
+            )
+            return self.form_invalid(form)
+
+        # F. Validación de Usuario y Organización (Multi-tenancy)
+        usuario_db = resolver_usuario_bd(self.request.user)
+        if not usuario_db:
+            messages.error(
+                self.request,
+                "Error de sesión de usuario: No fue posible validar la cuenta activa del operador en el sistema. "
+                "Solución: Cierre sesión, vuelva a iniciar sesión e intente nuevamente."
+            )
+            return self.form_invalid(form)
+
+        if not usuario_db.empresa and not self.request.user.is_superuser:
+            messages.error(
+                self.request,
+                "Error de configuración empresarial: Tu perfil de usuario no está vinculado a ninguna empresa activa. "
+                "Motivo: Toda operación transaccional debe imputarse a una empresa para mantener la integridad contable. "
+                "Solución: Solicita al Administrador del sistema asignar tu usuario a una Empresa."
+            )
+            return self.form_invalid(form)
+
+        # -------------------------------------------------------------
+        # 2. MANEJO DE EXCEPCIONES EN OPERACIONES CRÍTICAS (CÁLCULOS Y DIVISIÓN)
+        # -------------------------------------------------------------
+        try:
+            # Control defensivo de comisión: rango 0% a 100%
+            comision_pct = metodo_pago.comision_porcentaje or Decimal('0.00')
+            if comision_pct < Decimal('0.00') or comision_pct > Decimal('100.00'):
+                raise ValueError(
+                    f"El porcentaje de comisión configurado ({comision_pct}%) está fuera del rango admitido (0% a 100%)."
+                )
+
+            divisor_cien = Decimal('100.00')
+            if divisor_cien <= Decimal('0.00'):
+                raise ZeroDivisionError("División por cero en el cálculo porcentual de comisión.")
+
+            comision_factor = comision_pct / divisor_cien
+            comision_aplicada = (total_cobrado * comision_factor).quantize(Decimal('0.01'))
+            ingreso_real = (total_cobrado - comision_aplicada).quantize(Decimal('0.01'))
+
+            if ingreso_real < Decimal('0.00'):
+                raise ValueError("El ingreso real calculado resulta en un valor negativo.")
+
+        except (InvalidOperation, DivisionByZero, Overflow, OverflowError, ValueError, TypeError) as calc_err:
+            logger.error(f"Falla aritmética defensiva en VentaCreateView: {calc_err}", exc_info=True)
+            messages.error(
+                self.request,
+                f"Error en el cálculo financiero: {calc_err}. "
+                f"Motivo: Falló la fórmula de deducción de comisiones para '{metodo_pago.nombre}'. "
+                f"Solución: Verifique los valores ingresados y confirme con administración la comisión del método de pago."
+            )
+            return self.form_invalid(form)
+
+        # -------------------------------------------------------------
+        # 3. TRANSACCIONALIDAD ACID Y MANEJO DE EXCEPCIONES DE PERSISTENCIA
+        # -------------------------------------------------------------
+        try:
+            with transaction.atomic():
+                venta = form.save(commit=False)
+                venta.total_bruto = total_bruto
+                venta.descuento_tipo = 'Monto' if descuento_monto > Decimal('0.00') else 'Sin Desc'
+                venta.descuento_monto = descuento_monto
+                venta.total_cobrado = total_cobrado
+                venta.comision_aplicada = comision_aplicada
+                venta.ingreso_real = ingreso_real
+                venta.usuario = usuario_db
+                if usuario_db and usuario_db.empresa:
+                    venta.empresa = usuario_db.empresa
+                venta.cierre = None
+                if not venta.fecha:
+                    venta.fecha = timezone.now()
+
+                venta.save()
+
+            messages.success(
+                self.request,
+                f"✓ Venta #{venta.pk} registrada exitosamente. "
+                f"Total Cobrado: ${total_cobrado:,.0f} | Comisión ({comision_pct}%): ${comision_aplicada:,.0f} | "
+                f"Ingreso Real para Caja: ${ingreso_real:,.0f}."
+            )
+            return redirect(self.success_url)
+
+        except (OperationalError, DatabaseError) as db_err:
+            logger.error(f"Error de persistencia en VentaCreateView: {db_err}", exc_info=True)
+            messages.error(
+                self.request,
+                "No fue posible completar el registro de la venta debido a una interrupción temporal del servicio. "
+                "Tus datos siguen cargados en el formulario. Por favor, reintenta presionar 'Registrar Venta' en unos momentos o contacta a soporte si la situación persiste."
+            )
+            return self.form_invalid(form)
+
+        except Exception as exc:
+            logger.exception(f"Excepción inesperada en VentaCreateView: {exc}")
+            messages.error(
+                self.request,
+                "No fue posible procesar la solicitud en este momento por una inconsistencia imprevista. "
+                "Tus datos se conservan en pantalla. Por favor, reintenta la operación o contacta al equipo de soporte."
+            )
+            return self.form_invalid(form)
 
 
 class CierreCajaCreateView(RolRequeridoMixin, CreateView):
@@ -215,20 +421,78 @@ class CierreCajaCreateView(RolRequeridoMixin, CreateView):
         context['resumen_metodos'] = resumen_metodos
         return context
 
+    def form_invalid(self, form):
+        """
+        Manejo defensivo ante fallos de validación en el cierre de caja.
+        Genera alertas con descripción clara del problema y los pasos de solución.
+        """
+        errores_lista = []
+        for campo, errs in form.errors.items():
+            nombre_campo = form.fields[campo].label if campo in form.fields and form.fields[campo].label else campo
+            for err in errs:
+                errores_lista.append(f"{nombre_campo}: {err}")
+
+        resumen_errores = " | ".join(errores_lista) if errores_lista else "Verifique los montos del arqueo."
+        messages.error(
+            self.request,
+            f"No se pudo completar el cierre de caja: {resumen_errores}. "
+            f"Solución: Verifique los valores contados e ingrese la justificación requerida si existe descuadre."
+        )
+        return super().form_invalid(form)
+
     def form_valid(self, form):
-        datos = self._obtener_datos_del_dia()
+        # 1. Validación defensiva de datos y estado del día
+        try:
+            datos = self._obtener_datos_del_dia()
+        except Exception as e:
+            logger.error(f"Error al obtener datos del día para cierre: {e}", exc_info=True)
+            messages.error(
+                self.request,
+                "Error al consolidar la información del turno para el arqueo. "
+                "Motivo: No se pudieron calcular las ventas o retiros del día. "
+                "Solución: Verifique la conectividad del sistema e intente recargar la página."
+            )
+            return self.form_invalid(form)
+
         total_sistema = datos['total_sistema']
         total_retiros = datos['total_retiros']
         fecha_hoy = datos['fecha_hoy']
 
-        total_arqueo = form.cleaned_data['total_arqueo']
-        justificacion = form.cleaned_data.get('justificacion', '').strip()
+        total_arqueo = form.cleaned_data.get('total_arqueo')
+        if total_arqueo is None:
+            form.add_error('total_arqueo', "El total de arqueo físico es obligatorio.")
+            messages.error(
+                self.request,
+                "Validación de datos fallida: No se ingresó el monto de arqueo físico. "
+                "Solución: Realice el recuento de efectivo en caja e ingrese el total."
+            )
+            return self.form_invalid(form)
+
+        if total_arqueo < Decimal('0.00'):
+            form.add_error('total_arqueo', "El arqueo físico no puede ser negativo.")
+            messages.error(
+                self.request,
+                "Operación ilógica rechazada: El arqueo físico no puede ser un monto negativo. "
+                "Solución: Ingrese un valor mayor o igual a $0."
+            )
+            return self.form_invalid(form)
+
+        justificacion = (form.cleaned_data.get('justificacion') or '').strip()
         descuadre = total_arqueo - total_sistema
 
+        if descuadre != Decimal('0.00') and not justificacion:
+            signo = "+" if descuadre > Decimal('0.00') else "-"
+            form.add_error('justificacion', "Debe justificar obligatoriamente el descuadre detectado.")
+            messages.error(
+                self.request,
+                f"Validación de auditoría requerida: Se detectó un descuadre de {signo}${abs(descuadre):,.2f}. "
+                f"Motivo: La normativa interna exige un registro explicativo de cualquier diferencia con el sistema. "
+                f"Solución: Complete el campo 'Justificación de Descuadre' indicando el motivo de la discrepancia."
+            )
+            return self.form_invalid(form)
+
+        # 2. Transaccionalidad ACID y manejo robusto de excepciones
         try:
-            # -------------------------------------------------------------
-            # Transaccionalidad ACID con rollback ante cualquier excepción
-            # -------------------------------------------------------------
             with transaction.atomic():
                 cierre = form.save(commit=False)
                 cierre.fecha = fecha_hoy
@@ -260,7 +524,7 @@ class CierreCajaCreateView(RolRequeridoMixin, CreateView):
                 for mp in MetodoPago.objects.filter(activo=True):
                     ventas_mp = Venta.objects.filter(cierre=cierre, metodo_pago=mp)
                     tot_mp = ventas_mp.aggregate(tot=Sum('ingreso_real'))['tot'] or Decimal('0.00')
-                    
+
                     # Generar detalle si tuvo movimiento o para registrar la cuadratura
                     if tot_mp > Decimal('0.00') or mp.nombre == 'Efectivo':
                         DetalleCierrePorMetodo.objects.create(
@@ -274,16 +538,29 @@ class CierreCajaCreateView(RolRequeridoMixin, CreateView):
 
             messages.success(
                 self.request,
-                f"Cierre de caja #{cierre.pk} completado con éxito. "
+                f"✓ Cierre de caja #{cierre.pk} completado con éxito. "
                 f"Ventas consolidadas: {ventas_actualizadas} | Retiros consolidados: {retiros_actualizados} | "
                 f"Estado: {cierre.estado} (Descuadre: ${descuadre:,.2f})."
             )
             return redirect(self.success_url)
 
-        except Exception as e:
+        except (OperationalError, DatabaseError) as db_err:
+            logger.error(f"Error de persistencia en CierreCajaCreateView: {db_err}", exc_info=True)
             messages.error(
                 self.request,
-                f"Error crítico al registrar el cierre de caja. La transacción fue revertida: {str(e)}"
+                "No fue posible completar el cierre de caja debido a una interrupción temporal del servicio. "
+                "La operación fue cancelada de forma segura para proteger los registros de las ventas. "
+                "Solución: Por favor, reintenta presionar 'Confirmar Cierre' en unos momentos."
+            )
+            return self.form_invalid(form)
+
+        except Exception as e:
+            logger.exception(f"Error crítico en CierreCajaCreateView: {e}")
+            messages.error(
+                self.request,
+                "Ocurrió un problema imprevisto al procesar el cierre de caja. "
+                "La operación fue cancelada de forma segura para proteger la integridad contable. "
+                "Solución: Revise los montos e intente nuevamente; si la situación persiste, informe al equipo de soporte."
             )
             return self.form_invalid(form)
 

@@ -2,12 +2,14 @@
 Vistas de la Capa de Presentación Gerencial (Dashboard).
 SmartFinanzas - Arquitectura Monolito Modular.
 
-Esta app NO define modelos de base de datos propios. Inyecta dependencias
+Esta app NO define modelos propios. Inyecta dependencias
 de lectura de moduloETL, moduloTransaccional y capaAnalitica para renderizar
 el panel gerencial interactivo y emitir informes ejecutivos en PDF.
 """
 
+import io
 import json
+import logging
 from decimal import Decimal
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -28,10 +30,12 @@ from capaAnalitica.models import PrediccionRiesgo
 from capaAnalitica.services import MotorRiesgo, ejecutar_y_persistir_prediccion
 from .pdf_generator import construir_informe_ejecutivo_pdf
 
+logger = logging.getLogger(__name__)
+
 
 def resolver_usuario_bd(auth_user):
     """
-    Obtiene la entidad Usuario de la base de datos a partir del usuario Django en sesión.
+    Obtiene la entidad Usuario del sistema a partir del usuario Django en sesión.
     """
     if not auth_user or not auth_user.is_authenticated:
         return None
@@ -225,19 +229,28 @@ class GenerarPDFView(DashboardRolMixin, View):
         ingreso_real_hoy = ventas_hoy_qs.aggregate(total=Sum('ingreso_real'))['total'] or Decimal('0.00')
         total_ventas_hoy = ventas_hoy_qs.count()
 
-        pdf_buffer = construir_informe_ejecutivo_pdf(
-            empresa=empresa_usuario,
-            ultima_prediccion=ultima_prediccion,
-            top_3_variables=top_3_variables,
-            ingreso_real_hoy=ingreso_real_hoy,
-            usuario=usuario_db or request.user,
-            total_ventas_hoy=total_ventas_hoy,
-        )
+        try:
+            pdf_buffer = construir_informe_ejecutivo_pdf(
+                empresa=empresa_usuario,
+                ultima_prediccion=ultima_prediccion,
+                top_3_variables=top_3_variables,
+                ingreso_real_hoy=ingreso_real_hoy,
+                usuario=usuario_db or request.user,
+                total_ventas_hoy=total_ventas_hoy,
+            )
 
-        nombre_archivo = f"informe_ejecutivo_riesgo_{timezone.now().strftime('%Y%m%d_%H%M')}.pdf"
-        response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
-        return response
+            nombre_archivo = f"informe_ejecutivo_riesgo_{timezone.now().strftime('%Y%m%d_%H%M')}.pdf"
+            response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
+            return response
+        except Exception as exc:
+            logger.exception("Error al compilar el informe ejecutivo PDF: %s", exc)
+            messages.error(
+                request,
+                "No fue posible generar el informe ejecutivo en este momento debido a un problema temporal. "
+                "Por favor, reintente la descarga o contacte al soporte del sistema."
+            )
+            return redirect('dashboard:dashboard')
 
 
 class EjecutarPrediccionDashboardView(DashboardRolMixin, View):
@@ -275,7 +288,12 @@ class EjecutarPrediccionDashboardView(DashboardRolMixin, View):
                 request,
                 f"¡Nueva predicción ejecutada exitosamente! Score: {resultado['score']}% - Nivel: {resultado['nivel']}."
             )
-        except Exception as e:
-            messages.error(request, f"Error al ejecutar la predicción con el modelo de Machine Learning: {e}")
+        except Exception as exc:
+            logger.exception("Error al ejecutar predicción ML desde el dashboard: %s", exc)
+            messages.error(
+                request,
+                "No fue posible completar la evaluación del modelo analítico en este momento por una interrupción del servicio. "
+                "Por favor, reintente la operación en unos instantes."
+            )
 
         return redirect('dashboard:dashboard')

@@ -7,7 +7,7 @@ from .models import Usuario, Rol, Empresa, ConfiguracionEmpresa
 
 class LoginForm(forms.Form):
     """
-    Formulario de autenticación que valida credenciales directamente contra la tabla 'usuario' (BDD).
+    Formulario de autenticación que valida credenciales del usuario en el sistema.
     Inicia sesión exclusivamente mediante correo electrónico.
     """
     email = forms.EmailField(
@@ -52,7 +52,7 @@ class LoginForm(forms.Form):
 
 class RegistroForm(forms.ModelForm):
     """
-    Formulario de registro de nuevas cuentas persistiendo directamente en la BDD (tabla 'usuario').
+    Formulario de registro de nuevas cuentas en la plataforma.
     """
     password = forms.CharField(
         label="Contraseña",
@@ -103,7 +103,7 @@ class RegistroForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Si no existen roles en la BDD, asegurar los roles por defecto
+        # Si no existen roles configurados, asegurar los roles por defecto
         if Rol.objects.count() == 0:
             roles_base = [
                 ('Dueño', 'Gerencia, visualización de dashboard y arqueos de caja'),
@@ -118,7 +118,7 @@ class RegistroForm(forms.ModelForm):
     def clean_username(self):
         username = (self.cleaned_data.get('username') or '').strip()
         if Usuario.objects.filter(username=username).exists():
-            raise forms.ValidationError("Este nombre de usuario ya está registrado en la base de datos.")
+            raise forms.ValidationError("Este nombre de usuario ya se encuentra registrado. Por favor elija otro.")
         return username
 
     def clean_email(self):

@@ -10,6 +10,7 @@ de referencia contable (Z''EM de Altman, Prueba Ácida, etc.).
 
 import os
 import uuid
+import logging
 from decimal import Decimal
 from io import StringIO, BytesIO
 from typing import Tuple, List, Dict, Any, Optional
@@ -23,6 +24,8 @@ from django.utils import timezone
 from .models import CargaFinanciera, RatioFinanciero
 from usuarios.models import Usuario, Empresa
 from AppWeb.models import EstadoCarga
+
+logger = logging.getLogger(__name__)
 
 
 # ==============================================================================
@@ -443,7 +446,11 @@ def procesar_e_ingestar_balance(
         return True, [], resumen
 
     except Exception as e:
-        return False, [f"Error inesperado durante la persistencia en base de datos: {str(e)}"], {}
+        logger.exception("Fallo inesperado durante la persistencia contable en ETL: %s", e)
+        return False, [
+            "Ocurrió un problema temporal al procesar y almacenar la información del documento contable. "
+            "Por favor, verifique el archivo e intente la carga nuevamente."
+        ], {}
 
 
 def limpiar_archivos_y_estado() -> bool:
