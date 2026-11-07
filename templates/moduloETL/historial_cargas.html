@@ -15,9 +15,6 @@
         </p>
     </div>
     <div class="mt-2 mt-md-0 d-flex gap-2">
-        <a href="{% url 'moduloETL:carga_datos' %}" class="btn btn-primary btn-sm shadow-sm">
-            <i class="bi bi-cloud-arrow-up me-1"></i>Cargar Nuevo Balance
-        </a>
         <a href="{% url 'moduloETL:ratios_financieros' %}" class="btn btn-outline-primary btn-sm shadow-sm">
             <i class="bi bi-calculator me-1"></i>Ver Ratios Calculados
         </a>
@@ -28,14 +25,63 @@
 {% block content %}
 <!-- TABLA DE CARGAS FINANCIERAS -->
 <div class="card shadow-sm border-0">
-    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+    <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
         <h5 class="fw-bold mb-0 text-dark">
             <i class="bi bi-journal-text text-secondary me-2"></i>Bitácora de Archivos Procesados
         </h5>
-        <span class="badge bg-light text-dark border">
-            {{ paginator.count|default:cargas.count }} cargas en tu empresa
-        </span>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-light text-dark border">
+                {{ paginator.count|default:cargas.count }} cargas en tu empresa
+            </span>
+        </div>
     </div>
+
+    <!-- Barra de Búsqueda y Ordenamiento por Fecha de Carga -->
+    <div class="p-3 bg-light border-bottom">
+        <form method="GET" action="{% url 'moduloETL:historial_cargas' %}" class="row g-2 align-items-center">
+            <div class="col-12 col-md-6 col-lg-5">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text" 
+                           name="q" 
+                           value="{{ q }}" 
+                           class="form-control border-start-0" 
+                           placeholder="Buscar período, archivo, usuario o estado...">
+                    {% if q %}
+                        <a href="?orden={{ orden }}" class="btn btn-outline-secondary" title="Limpiar búsqueda">
+                            <i class="bi bi-x-lg"></i>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white">
+                        <i class="bi bi-arrow-down-up text-muted me-1"></i>Ordenar por Fecha
+                    </span>
+                    <select name="orden" class="form-select" onchange="this.form.submit()">
+                        <option value="desc" {% if orden != 'asc' %}selected{% endif %}>Más recientes primero</option>
+                        <option value="asc" {% if orden == 'asc' %}selected{% endif %}>Más antiguas primero</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-md-2 col-lg-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-funnel me-1"></i>Buscar
+                </button>
+                {% if q or orden == 'asc' %}
+                    <a href="{% url 'moduloETL:historial_cargas' %}" class="btn btn-outline-secondary btn-sm">
+                        Restablecer
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0 font-monospace small">
@@ -49,7 +95,18 @@
                         <th class="text-end">Patrimonio</th>
                         <th>Estado</th>
                         <th>Cargado Por</th>
-                        <th class="pe-3 text-end">Fecha Carga</th>
+                        <th class="pe-3 text-end">
+                            <a href="?{% if q %}q={{ q|urlencode }}&{% endif %}orden={% if orden == 'asc' %}desc{% else %}asc{% endif %}"
+                               class="text-decoration-none text-muted d-inline-flex align-items-center gap-1 justify-content-end"
+                               title="Alternar orden por fecha de carga">
+                                <span>Fecha Carga</span>
+                                {% if orden == 'asc' %}
+                                    <i class="bi bi-arrow-up text-primary fw-bold"></i>
+                                {% else %}
+                                    <i class="bi bi-arrow-down text-primary fw-bold"></i>
+                                {% endif %}
+                            </a>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -116,12 +173,12 @@
         <ul class="pagination pagination-sm mb-0">
             {% if page_obj.has_previous %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}&orden={{ orden }}">Anterior</a>
                 </li>
             {% endif %}
             {% if page_obj.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Siguiente</a>
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}&orden={{ orden }}">Siguiente</a>
                 </li>
             {% endif %}
         </ul>

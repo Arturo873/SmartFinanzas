@@ -9,6 +9,7 @@ import logging
 from decimal import Decimal
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.db.models import Q
 from django.http import HttpResponse, HttpRequest
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy, reverse
@@ -303,6 +304,7 @@ class HistorialCargasListView(RolRequeridoMixin, ListView):
     """
     Vista de bitácora y trazabilidad de las cargas de balance realizadas
     por o para la empresa del usuario en sesión.
+    Soporta búsqueda por texto y ordenamiento por fecha de carga.
     """
     model = CargaFinanciera
     template_name = 'moduloETL/historial_cargas.html'
@@ -313,11 +315,29 @@ class HistorialCargasListView(RolRequeridoMixin, ListView):
         usuario_db = resolver_usuario_bd(self.request.user)
         empresa_usuario = usuario_db.empresa if usuario_db else None
 
-        qs = CargaFinanciera.objects.select_related('empresa', 'usuario').order_by('-fecha_carga')
+        qs = CargaFinanciera.objects.select_related('empresa', 'usuario')
         if empresa_usuario:
             qs = qs.filter(empresa=empresa_usuario)
         elif not self.request.user.is_superuser:
             qs = qs.none()
+
+        # Búsqueda por texto (período, archivo origen, estado, tipo o usuario)
+        q = (self.request.GET.get('q') or '').strip()
+        if q:
+            qs = qs.filter(
+                Q(periodo__icontains=q) |
+                Q(archivo_origen__icontains=q) |
+                Q(estado__icontains=q) |
+                Q(tipo_carga__icontains=q) |
+                Q(usuario__username__icontains=q)
+            )
+
+        # Ordenamiento por fecha de carga (descendente por defecto)
+        orden = (self.request.GET.get('orden') or 'desc').strip().lower()
+        if orden == 'asc':
+            qs = qs.order_by('fecha_carga', 'id')
+        else:
+            qs = qs.order_by('-fecha_carga', '-id')
 
         return qs
 
@@ -325,6 +345,8 @@ class HistorialCargasListView(RolRequeridoMixin, ListView):
         context = super().get_context_data(**kwargs)
         usuario_db = resolver_usuario_bd(self.request.user)
         context['empresa_usuario'] = usuario_db.empresa if usuario_db else None
+        context['q'] = (self.request.GET.get('q') or '').strip()
+        context['orden'] = (self.request.GET.get('orden') or 'desc').strip().lower()
         return context
 
 
