@@ -20,18 +20,18 @@
         </a>
         {% if ultimo_ratio %}
             {% if tiene_anomalias %}
-                <button type="button" class="btn btn-primary btn-sm shadow-sm d-inline-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#modalAdvertenciaOutliersETL" title="Valores fuera de rango detectados en el balance">
+                <button type="button" class="btn btn-primary btn-sm shadow-sm d-inline-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#modalAdvertenciaOutliersETL" title="Valores fuera de rango detectados en el balance" id="btnEjecutarAnalisisModal">
                     <i class="bi bi-cpu"></i>
-                    <span>Ejecutar Predicción (ML)</span>
+                    <span>Ejecutar Análisis</span>
                     <span class="badge bg-warning text-dark fs-micro py-0.5 px-1.5 rounded-pill">
                         <i class="bi bi-exclamation-triangle-fill me-0.5"></i>{{ total_anomalias }}
                     </span>
                 </button>
             {% else %}
-                <form method="POST" action="{% url 'dashboard:ejecutar_prediccion' %}" class="d-inline m-0">
+                <form method="POST" action="{% url 'moduloETL:ejecutar_analisis' %}" class="d-inline m-0 form-ejecutar-analisis">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-primary btn-sm shadow-sm">
-                        <i class="bi bi-cpu me-1"></i>Ejecutar Predicción (ML)
+                    <button type="submit" class="btn btn-primary btn-sm shadow-sm btn-ejecutar-analisis" id="btnEjecutarAnalisisHeader">
+                        <i class="bi bi-cpu me-1"></i>Ejecutar Análisis
                     </button>
                 </form>
             {% endif %}
@@ -96,7 +96,8 @@
                         <th class="text-end" title="V7: Volatilidad del Flujo de Caja">V7 Volat</th>
                         <th class="text-end" title="Z''EM Altman: Índice de Solvencia Mercados Emergentes">Z''EM</th>
                         <th class="text-end" title="Ref: Prueba Ácida ((Activo Circ - Inv) / Pasivo Circ)">P. Ácida</th>
-                        <th class="pe-3 text-end">Fecha Cálculo</th>
+                        <th class="text-end">Fecha Cálculo</th>
+                        <th class="pe-3 text-center">Acción</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -132,13 +133,22 @@
                             </span>
                         </td>
                         <td class="text-end">{{ r.ref_prueba_acida|floatformat:2 }}</td>
-                        <td class="pe-3 text-end text-muted font-sans-serif" style="font-size: 0.75rem;">
+                        <td class="text-end text-muted font-sans-serif" style="font-size: 0.75rem;">
                             {{ r.fecha_calculo|date:"d/m/Y H:i" }}
+                        </td>
+                        <td class="pe-3 text-center font-sans-serif">
+                            <form method="POST" action="{% url 'moduloETL:ejecutar_analisis' %}" class="d-inline m-0 form-ejecutar-analisis">
+                                {% csrf_token %}
+                                <input type="hidden" name="ratio_id" value="{{ r.id }}">
+                                <button type="submit" class="btn btn-outline-primary btn-sm py-0.5 px-2 shadow-sm btn-ejecutar-analisis" title="Ejecutar Análisis para el período {{ r.periodo }}">
+                                    <i class="bi bi-cpu me-1"></i>Ejecutar Análisis
+                                </button>
+                            </form>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="11" class="text-center py-5 text-muted font-sans-serif">
+                        <td colspan="12" class="text-center py-5 text-muted font-sans-serif">
                             <i class="bi bi-calculator-fill fs-1 d-block mb-2 text-secondary"></i>
                             No hay ratios calculados para tu empresa.<br>
                             <a href="{% url 'moduloETL:carga_datos' %}" class="btn btn-primary btn-sm mt-3">
@@ -243,10 +253,10 @@
                 <a href="{% url 'moduloETL:carga_datos' %}" class="btn btn-outline-secondary btn-sm">
                     <i class="bi bi-pencil-square me-1"></i>Corregir Datos (Cargar Balance)
                 </a>
-                <form method="POST" action="{% url 'dashboard:ejecutar_prediccion' %}" class="m-0">
+                <form method="POST" action="{% url 'moduloETL:ejecutar_analisis' %}" class="m-0 form-ejecutar-analisis">
                     {% csrf_token %}
                     <input type="hidden" name="forzar_ejecucion" value="1">
-                    <button type="submit" class="btn btn-warning btn-sm text-dark fw-semibold shadow-sm">
+                    <button type="submit" class="btn btn-warning btn-sm text-dark fw-semibold shadow-sm btn-ejecutar-analisis">
                         <i class="bi bi-play-fill me-1"></i>Forzar Ejecución (Aceptar Alerta)
                     </button>
                 </form>

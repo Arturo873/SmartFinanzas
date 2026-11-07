@@ -14,4 +14,5 @@ urlpatterns = [
     path('exportar-pdf/', GenerarPDFView.as_view(), name='generar_pdf'),
     path('pdf/', GenerarPDFView.as_view(), name='exportar_pdf'),
     path('ejecutar-prediccion/', EjecutarPrediccionDashboardView.as_view(), name='ejecutar_prediccion'),
+    path('ejecutar-analisis/', EjecutarPrediccionDashboardView.as_view(), name='ejecutar_analisis'),
 ]

@@ -479,6 +479,39 @@
 
     </div>
 
+    <!-- Modal / Spinner y Barra de Carga para Ejecución del Análisis Predictivo (RF-11) -->
+    <div class="modal fade" id="modalCargaAnalisis" tabindex="-1" aria-labelledby="modalCargaAnalisisLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg text-center p-4">
+                <div class="modal-body p-2">
+                    <!-- Spinner de carga animado -->
+                    <div class="d-flex justify-content-center mb-3">
+                        <div class="spinner-border text-primary" style="width: 3.5rem; height: 3.5rem;" role="status">
+                            <span class="visually-hidden">Ejecutando análisis...</span>
+                        </div>
+                    </div>
+
+                    <h5 class="fw-bold text-dark mb-2" id="modalCargaAnalisisLabel">
+                        Ejecutando Modelo de Random Forest
+                    </h5>
+                    <p class="text-muted small mb-3">
+                        Procesando vector de ratios financieros (V1 &ndash; V7) y calculando explicabilidad con SHAP.<br>
+                        Por favor espere un momento mientras se completa la evaluación de riesgo...
+                    </p>
+
+                    <!-- Barra de carga animada (RF-11) -->
+                    <div class="progress mb-2" style="height: 10px;">
+                        <div id="barraProgresoAnalisis" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+
+                    <span class="text-secondary fs-micro font-monospace">
+                        <i class="bi bi-cpu me-1"></i>Inferencia analítica en curso &middot; Tiempo estimado: &lt; 2 segundos
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap 5.3 Bundle JS (incluye Popper) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -504,6 +537,37 @@
                 toggleBtn.addEventListener('click', toggleSidebar);
                 backdrop.addEventListener('click', toggleSidebar);
             }
+
+            // Manejador del botón y formulario "Ejecutar Análisis" (RF-11)
+            const formsEjecutar = document.querySelectorAll('.form-ejecutar-analisis');
+            const modalCargaEl = document.getElementById('modalCargaAnalisis');
+            let modalCargaInstance = null;
+
+            formsEjecutar.forEach(function (form) {
+                form.addEventListener('submit', function (e) {
+                    // Deshabilitar botón para prevenir doble clic y mostrar spinner en botón
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Ejecutando Análisis...';
+                    }
+
+                    // Cerrar cualquier modal abierto (ej. modal de advertencia de outliers)
+                    const modalesAbiertos = document.querySelectorAll('.modal.show');
+                    modalesAbiertos.forEach(function (m) {
+                        const inst = bootstrap.Modal.getInstance(m);
+                        if (inst) inst.hide();
+                    });
+
+                    // Mostrar barra / spinner de carga en modal persistente
+                    if (modalCargaEl && typeof bootstrap !== 'undefined') {
+                        if (!modalCargaInstance) {
+                            modalCargaInstance = new bootstrap.Modal(modalCargaEl, { backdrop: 'static', keyboard: false });
+                        }
+                        modalCargaInstance.show();
+                    }
+                });
+            });
         });
     </script>
 

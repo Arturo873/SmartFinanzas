@@ -319,9 +319,19 @@ class EjecutarPrediccionDashboardView(DashboardRolMixin, View):
         elif not request.user.is_superuser:
             ratios_qs = ratios_qs.none()
 
-        ultimo_ratio = ratios_qs.order_by('-fecha_calculo', '-id').first()
+        ratio_id = request.POST.get('ratio_id')
+        if ratio_id:
+            ratio_a_ejecutar = ratios_qs.filter(id=ratio_id).first()
+            if not ratio_a_ejecutar:
+                messages.error(
+                    request,
+                    "El período o ratio contable seleccionado no existe o no pertenece a su empresa."
+                )
+                return redirect('dashboard:dashboard')
+        else:
+            ratio_a_ejecutar = ratios_qs.order_by('-fecha_calculo', '-id').first()
 
-        if not ultimo_ratio:
+        if not ratio_a_ejecutar:
             messages.warning(
                 request,
                 "No se encontraron ratios financieros cargados para esta empresa. Cargue un balance en el Módulo ETL primero."
@@ -329,7 +339,7 @@ class EjecutarPrediccionDashboardView(DashboardRolMixin, View):
             return redirect('dashboard:dashboard')
 
         # Detección de valores anómalos (outliers) previa a la ejecución (RF-10)
-        anomalias = detectar_anomalias_financieras(ultimo_ratio)
+        anomalias = detectar_anomalias_financieras(ratio_a_ejecutar)
         forzar_ejecucion = request.POST.get('forzar_ejecucion') in ('1', 'true', 'True')
 
         if anomalias and not forzar_ejecucion:
@@ -342,11 +352,12 @@ class EjecutarPrediccionDashboardView(DashboardRolMixin, View):
 
         try:
             prediccion, resultado = ejecutar_y_persistir_prediccion(
-                ratio_obj_o_id=ultimo_ratio,
+                ratio_obj_o_id=ratio_a_ejecutar,
                 usuario=usuario_db,
                 empresa=empresa_usuario
             )
-            msg_exito = f"¡Nueva predicción ejecutada exitosamente! Score: {resultado['score']}% - Nivel: {resultado['nivel']}."
+            periodo_txt = f" para el período '{ratio_a_ejecutar.periodo}'" if ratio_a_ejecutar.periodo else ""
+            msg_exito = f"¡Ejecución de Análisis completada exitosamente{periodo_txt}! Score: {resultado['score']}% - Nivel: {resultado['nivel']}."
             if anomalias and forzar_ejecucion:
                 msg_exito += f" (Se forzó la ejecución aceptando {len(anomalias)} valor(es) anómalo(s) / outlier(s) detectados)."
             messages.success(request, msg_exito)

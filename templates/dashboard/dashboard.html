@@ -71,19 +71,19 @@
         </a>
         {% if ultimo_ratio %}
             {% if tiene_anomalias %}
-                <button type="button" class="btn btn-primary btn-sm position-relative d-inline-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#modalAdvertenciaOutliers" title="Se detectaron valores anómalos: requiere revisión o confirmación">
-                    <i class="bi bi-arrow-repeat"></i>
-                    <span>Ejecutar Inferencia ML</span>
+                <button type="button" class="btn btn-primary btn-sm position-relative d-inline-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#modalAdvertenciaOutliers" title="Se detectaron valores anómalos: requiere revisión o confirmación" id="btnEjecutarAnalisisDashboardModal">
+                    <i class="bi bi-cpu"></i>
+                    <span>Ejecutar Análisis</span>
                     <span class="badge bg-warning text-dark fs-micro py-0.5 px-1.5 rounded-pill" title="{{ total_anomalias }} valor(es) fuera de rango detectado(s)">
                         <i class="bi bi-exclamation-triangle-fill me-0.5"></i>{{ total_anomalias }}
                     </span>
                 </button>
             {% else %}
-                <form method="POST" action="{% url 'dashboard:ejecutar_prediccion' %}" class="d-inline m-0">
+                <form method="POST" action="{% url 'dashboard:ejecutar_prediccion' %}" class="d-inline m-0 form-ejecutar-analisis">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-primary btn-sm" title="Ejecuta inferencia ML sobre el último balance cargado">
-                        <i class="bi bi-arrow-repeat"></i>
-                        <span>Ejecutar Inferencia ML</span>
+                    <button type="submit" class="btn btn-primary btn-sm btn-ejecutar-analisis" id="btnEjecutarAnalisisDashboard" title="Ejecuta inferencia ML sobre el último balance cargado">
+                        <i class="bi bi-cpu me-1"></i>
+                        <span>Ejecutar Análisis</span>
                     </button>
                 </form>
             {% endif %}
@@ -468,13 +468,13 @@
                         {% if ultimo_ratio %}
                             {% if tiene_anomalias %}
                                 <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAdvertenciaOutliers">
-                                    <i class="bi bi-arrow-repeat me-1"></i>Calcular Predicción
+                                    <i class="bi bi-cpu me-1"></i>Ejecutar Análisis
                                 </button>
                             {% else %}
-                                <form method="POST" action="{% url 'dashboard:ejecutar_prediccion' %}">
+                                <form method="POST" action="{% url 'dashboard:ejecutar_prediccion' %}" class="form-ejecutar-analisis">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn btn-primary btn-sm">
-                                        <i class="bi bi-arrow-repeat me-1"></i>Calcular Predicción
+                                    <button type="submit" class="btn btn-primary btn-sm btn-ejecutar-analisis">
+                                        <i class="bi bi-cpu me-1"></i>Ejecutar Análisis
                                     </button>
                                 </form>
                             {% endif %}
@@ -666,10 +666,10 @@
                 <a href="{% url 'moduloETL:carga_datos' %}" class="btn btn-outline-secondary btn-sm">
                     <i class="bi bi-pencil-square me-1"></i>Corregir Datos (Cargar Balance)
                 </a>
-                <form method="POST" action="{% url 'dashboard:ejecutar_prediccion' %}" class="m-0">
+                <form method="POST" action="{% url 'dashboard:ejecutar_prediccion' %}" class="m-0 form-ejecutar-analisis">
                     {% csrf_token %}
                     <input type="hidden" name="forzar_ejecucion" value="1">
-                    <button type="submit" class="btn btn-warning btn-sm text-dark fw-semibold shadow-sm">
+                    <button type="submit" class="btn btn-warning btn-sm text-dark fw-semibold shadow-sm btn-ejecutar-analisis">
                         <i class="bi bi-play-fill me-1"></i>Forzar Ejecución (Aceptar Alerta)
                     </button>
                 </form>

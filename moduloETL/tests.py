@@ -310,3 +310,103 @@ class ETLIntegrationAndViewsTests(TestCase):
         self.assertContains(resp, 'modalAdvertenciaOutliersETL')
         self.assertContains(resp, 'Valores Anómalos (Outliers) Detectados')
         self.assertContains(resp, 'Forzar Ejecución (Aceptar Alerta)')
+
+    def test_rf11_boton_ejecutar_analisis_y_spinner_carga(self):
+        """
+        [RF-11] Como Contador, quiero iniciar manualmente la ejecución del modelo...
+        Verifica que la interfaz de ratios contables contenga el botón 'Ejecutar Análisis'
+        y el modal con spinner/barra de progreso de carga.
+        """
+        self.client.force_login(self.auth_contador)
+        RatioFinanciero.objects.create(
+            empresa=self.empresa1,
+            periodo='2025-Q4',
+            v1_razon_corriente=Decimal("1.80"),
+            v2_capital_trabajo_activos=Decimal("0.25"),
+            v3_leverage_total=Decimal("0.60"),
+            v4_roa_operacional=Decimal("0.10"),
+            v5_margen_operacional=Decimal("0.12"),
+            v6_rotacion_activos=Decimal("1.20"),
+        )
+
+        resp = self.client.get(reverse('moduloETL:ratios_financieros'))
+        self.assertEqual(resp.status_code, 200)
+
+        # 1. Presencia del botón "Ejecutar Análisis"
+        self.assertContains(resp, 'Ejecutar Análisis')
+
+        # 2. Presencia del componente de spinner y barra de carga (RF-11)
+        self.assertContains(resp, 'modalCargaAnalisis')
+        self.assertContains(resp, 'spinner-border')
+        self.assertContains(resp, 'barraProgresoAnalisis')
+        self.assertContains(resp, 'progress-bar-animated')
+        self.assertContains(resp, 'Ejecutando Modelo de Random Forest')
+
+    def test_rf11_contador_inicia_ejecucion_modelo_random_forest(self):
+        """
+        [RF-11] Verifica que el Contador pueda iniciar manualmente el modelo
+        de Random Forest, el proceso tarde menos de 10s y redirija automáticamente al
+        dashboard con mensaje de éxito y resultados actualizados.
+        """
+        import time
+        from capaAnalitica.models import PrediccionRiesgo
+
+        self.client.force_login(self.auth_contador)
+
+        ratio = RatioFinanciero.objects.create(
+            empresa=self.empresa1,
+            periodo='2025-Q4',
+            v1_razon_corriente=Decimal("1.80"),
+            v2_capital_trabajo_activos=Decimal("0.25"),
+            v3_leverage_total=Decimal("0.60"),
+            v4_roa_operacional=Decimal("0.10"),
+            v5_margen_operacional=Decimal("0.12"),
+            v6_rotacion_activos=Decimal("1.20"),
+        )
+
+        t_inicio = time.time()
+        resp = self.client.post(reverse('moduloETL:ejecutar_analisis'), follow=False)
+        duracion_segundos = time.time() - t_inicio
+
+        # Criterio: El proceso no debe tardar más de 10 segundos
+        self.assertLess(duracion_segundos, 10.0)
+
+        # Criterio: Redirige automáticamente al dashboard del Dueño
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('dashboard:dashboard'))
+
+        # Seguir redirección y verificar mensaje de éxito
+        resp_dashboard = self.client.get(reverse('dashboard:dashboard'))
+        self.assertEqual(resp_dashboard.status_code, 200)
+
+        # Verificar que se creó la predicción en base de datos
+        prediccion = PrediccionRiesgo.objects.filter(empresa=self.empresa1, ratio=ratio).first()
+        self.assertIsNotNone(prediccion)
+        self.assertGreaterEqual(float(prediccion.score_riesgo), 0.0)
+        self.assertIn(prediccion.nivel_semaforo, ['Verde', 'Amarillo', 'Rojo'])
+
+    def test_rf11_ejecutar_analisis_periodo_especifico(self):
+        """[RF-11] Verifica la ejecución manual especificando un 'ratio_id' de período."""
+        from capaAnalitica.models import PrediccionRiesgo
+
+        self.client.force_login(self.auth_contador)
+
+        ratio_q1 = RatioFinanciero.objects.create(
+            empresa=self.empresa1,
+            periodo='2025-Q1',
+            v1_razon_corriente=Decimal("1.50"),
+            v2_capital_trabajo_activos=Decimal("0.20"),
+            v3_leverage_total=Decimal("0.80"),
+            v4_roa_operacional=Decimal("0.08"),
+            v5_margen_operacional=Decimal("0.10"),
+            v6_rotacion_activos=Decimal("1.10"),
+        )
+
+        resp = self.client.post(
+            reverse('moduloETL:ejecutar_analisis'),
+            {'ratio_id': str(ratio_q1.id)},
+            follow=True
+        )
+        self.assertEqual(resp.status_code, 200)
+        prediccion = PrediccionRiesgo.objects.filter(empresa=self.empresa1, ratio=ratio_q1).first()
+        self.assertIsNotNone(prediccion)

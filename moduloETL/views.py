@@ -5,6 +5,7 @@ y gestionar información financiera perteneciente a su propia empresa.
 """
 
 import os
+import logging
 from decimal import Decimal
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -25,6 +26,9 @@ from .services import (
 )
 from usuarios.models import Usuario, Empresa
 from AppWeb.models import EstadoCarga
+from capaAnalitica.services import ejecutar_y_persistir_prediccion
+
+logger = logging.getLogger(__name__)
 
 
 def resolver_usuario_bd(auth_user):
@@ -217,6 +221,82 @@ class RatiosFinancierosListView(RolRequeridoMixin, ListView):
             'total_anomalias': len(anomalias),
         })
         return context
+
+
+class EjecutarAnalisisView(RolRequeridoMixin, View):
+    """
+    [RF-11] Permite al Contador / Analista Financiero iniciar manualmente
+    la ejecución del modelo predictivo de Random Forest una vez que los datos han sido validados.
+    Al presionar "Ejecutar Análisis", se evalúan las 7 variables del modelo y se
+    redirige automáticamente al Dashboard del Dueño con los resultados actualizados
+    y un mensaje de éxito.
+    """
+
+    def post(self, request: HttpRequest):
+        usuario_db = resolver_usuario_bd(request.user)
+        empresa_usuario = usuario_db.empresa if usuario_db else None
+
+        ratios_qs = RatioFinanciero.objects.all()
+        if empresa_usuario:
+            ratios_qs = ratios_qs.filter(empresa=empresa_usuario)
+        elif not request.user.is_superuser:
+            ratios_qs = ratios_qs.none()
+
+        ratio_id = request.POST.get('ratio_id')
+        if ratio_id:
+            ratio_a_ejecutar = ratios_qs.filter(id=ratio_id).first()
+            if not ratio_a_ejecutar:
+                messages.error(
+                    request,
+                    "El período o ratio contable seleccionado no existe o no pertenece a su empresa."
+                )
+                return redirect('moduloETL:ratios_financieros')
+        else:
+            ratio_a_ejecutar = ratios_qs.order_by('-fecha_calculo', '-id').first()
+
+        if not ratio_a_ejecutar:
+            messages.warning(
+                request,
+                "No se encontraron ratios financieros cargados para esta empresa. Cargue un balance primero."
+            )
+            return redirect('moduloETL:carga_datos')
+
+        # Detección de valores anómalos (outliers) previa a la ejecución (RF-10)
+        anomalias = detectar_anomalias_financieras(ratio_a_ejecutar)
+        forzar_ejecucion = request.POST.get('forzar_ejecucion') in ('1', 'true', 'True')
+
+        if anomalias and not forzar_ejecucion:
+            messages.warning(
+                request,
+                f"Advertencia [RF-10]: Se detectaron {len(anomalias)} valores anómalos o fuera de rango (outliers). "
+                "Para proteger la calidad predictiva, confirme la advertencia en el modal antes de ejecutar o corrija los datos."
+            )
+            return redirect('moduloETL:ratios_financieros')
+
+        try:
+            prediccion, resultado = ejecutar_y_persistir_prediccion(
+                ratio_obj_o_id=ratio_a_ejecutar,
+                usuario=usuario_db,
+                empresa=empresa_usuario
+            )
+            periodo_txt = f" para el período '{ratio_a_ejecutar.periodo}'" if ratio_a_ejecutar.periodo else ""
+            msg_exito = (
+                f"¡Ejecución de Análisis completada exitosamente{periodo_txt}! "
+                f"Score de Riesgo: {resultado['score']}% - Nivel: {resultado['nivel']}."
+            )
+            if anomalias and forzar_ejecucion:
+                msg_exito += f" (Se forzó la ejecución aceptando {len(anomalias)} valor(es) anómalo(s) / outlier(s) detectados)."
+            messages.success(request, msg_exito)
+        except Exception as exc:
+            logger.exception("Error al ejecutar análisis predictivo desde el módulo ETL: %s", exc)
+            messages.error(
+                request,
+                "No fue posible completar la evaluación del modelo analítico en este momento por una interrupción del servicio. "
+                "Por favor, reintente la operación en unos instantes."
+            )
+            return redirect('moduloETL:ratios_financieros')
+
+        return redirect('dashboard:dashboard')
 
 
 class HistorialCargasListView(RolRequeridoMixin, ListView):

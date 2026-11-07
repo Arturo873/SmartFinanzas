@@ -13,5 +13,6 @@ urlpatterns = [
     path('historial/', views.HistorialCargasListView.as_view(), name='historial_cargas'),
     path('limpiar/', views.LimpiarDatosView.as_view(), name='limpiar_datos'),
     path('plantilla/descargar/', views.DescargarPlantillaView.as_view(), name='descargar_plantilla'),
+    path('ejecutar-analisis/', views.EjecutarAnalisisView.as_view(), name='ejecutar_analisis'),
 ]
 

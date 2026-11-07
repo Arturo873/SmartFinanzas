@@ -381,3 +381,73 @@ class DashboardViewTests(TestCase):
         # Mensaje de éxito informando que se forzó la ejecución
         messages_list = list(response.context['messages'])
         self.assertTrue(any('Se forzó la ejecución aceptando' in str(m) for m in messages_list))
+
+    def test_rf11_boton_ejecutar_analisis_y_spinner_en_dashboard(self):
+        """
+        [RF-11] Verifica que el Dashboard renderice el botón 'Ejecutar Análisis'
+        y el componente modal con barra/spinner de carga.
+        """
+        self.client.login(username='dueno_user', password='password123')
+        session = self.client.session
+        session['usuario_rol'] = 'Dueño'
+        session.save()
+
+        # Ratio sin anomalías para habilitar el botón directo
+        RatioFinanciero.objects.create(
+            empresa=self.empresa,
+            periodo='2026-Q1',
+            fecha_calculo=timezone.now(),
+            v1_razon_corriente=Decimal("1.80"),
+            v2_capital_trabajo_activos=Decimal("0.25"),
+            v3_leverage_total=Decimal("0.60"),
+            v4_roa_operacional=Decimal("0.10"),
+            v5_margen_operacional=Decimal("0.12"),
+            v6_rotacion_activos=Decimal("1.20"),
+        )
+
+        response = self.client.get(reverse('dashboard:dashboard'))
+        self.assertEqual(response.status_code, 200)
+
+        content = response.content.decode('utf-8')
+        # Botón "Ejecutar Análisis"
+        self.assertIn('Ejecutar Análisis', content)
+        # Spinner y barra de carga animada (RF-11)
+        self.assertIn('modalCargaAnalisis', content)
+        self.assertIn('spinner-border', content)
+        self.assertIn('barraProgresoAnalisis', content)
+        self.assertIn('progress-bar-animated', content)
+
+    def test_rf11_ejecutar_analisis_dashboard_tiempo_inferior_10s(self):
+        """
+        [RF-11] Verifica que la ejecución del análisis predictivo con Random Forest
+        tarde estrictamente menos de 10 segundos y redirija con mensaje exitoso.
+        """
+        import time
+
+        self.client.login(username='dueno_user', password='password123')
+        session = self.client.session
+        session['usuario_rol'] = 'Dueño'
+        session.save()
+
+        RatioFinanciero.objects.create(
+            empresa=self.empresa,
+            periodo='2026-Q1',
+            fecha_calculo=timezone.now(),
+            v1_razon_corriente=Decimal("1.80"),
+            v2_capital_trabajo_activos=Decimal("0.25"),
+            v3_leverage_total=Decimal("0.60"),
+            v4_roa_operacional=Decimal("0.10"),
+            v5_margen_operacional=Decimal("0.12"),
+            v6_rotacion_activos=Decimal("1.20"),
+        )
+
+        t_inicio = time.time()
+        response = self.client.post(reverse('dashboard:ejecutar_analisis'), follow=False)
+        duracion = time.time() - t_inicio
+
+        # Proceso no debe tardar más de 10 segundos
+        self.assertLess(duracion, 10.0)
+
+        # Redirige automáticamente al dashboard
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('dashboard:dashboard'))
