@@ -170,15 +170,25 @@ class RatiosFinancierosListView(RolRequeridoMixin, ListView):
         usuario_db = resolver_usuario_bd(self.request.user)
         empresa_usuario = usuario_db.empresa if usuario_db else None
 
-        qs = RatioFinanciero.objects.select_related('carga', 'empresa', 'validado_por_usuario').order_by('-fecha_calculo')
+        qs = RatioFinanciero.objects.select_related('carga', 'empresa', 'validado_por_usuario')
         if empresa_usuario:
             qs = qs.filter(empresa=empresa_usuario)
         elif not self.request.user.is_superuser:
             qs = qs.none()
 
-        periodo = self.request.GET.get('periodo')
+        periodo = (self.request.GET.get('periodo') or self.request.GET.get('q') or '').strip()
         if periodo:
-            qs = qs.filter(periodo__icontains=periodo.strip())
+            qs = qs.filter(
+                Q(periodo__icontains=periodo) |
+                Q(carga__archivo_origen__icontains=periodo)
+            )
+
+        # Ordenamiento por fecha de cálculo (descendente por defecto)
+        orden = (self.request.GET.get('orden') or 'desc').strip().lower()
+        if orden == 'asc':
+            qs = qs.order_by('fecha_calculo', 'id')
+        else:
+            qs = qs.order_by('-fecha_calculo', '-id')
 
         return qs
 
@@ -209,9 +219,14 @@ class RatiosFinancierosListView(RolRequeridoMixin, ListView):
         ultimo_ratio = ratios_qs.first()
         anomalias = detectar_anomalias_financieras(ultimo_ratio) if ultimo_ratio else []
 
+        periodo = (self.request.GET.get('periodo') or self.request.GET.get('q') or '').strip()
+        orden = (self.request.GET.get('orden') or 'desc').strip().lower()
+
         context.update({
             'empresa_usuario': empresa_usuario,
-            'periodo_busqueda': self.request.GET.get('periodo', ''),
+            'periodo_busqueda': periodo,
+            'q': periodo,
+            'orden': orden,
             'total_registros': total,
             'avg_liquidez': avg_liquidez,
             'avg_leverage': avg_leverage,

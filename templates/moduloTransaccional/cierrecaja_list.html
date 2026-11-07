@@ -29,13 +29,90 @@
 {% endblock %}
 
 {% block content %}
+<!-- Barra de Búsqueda Automática, Selector de Calendario por Día y Ordenamiento -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-3 bg-light rounded">
+        <form method="GET" action="{% url 'moduloTransaccional:historial_cierres' %}" class="row g-2 align-items-center" id="formHistorialCierres">
+            <!-- Búsqueda automática por texto -->
+            <div class="col-12 col-md-5 col-lg-4">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text" 
+                           name="q" 
+                           id="inputBusquedaCierres"
+                           value="{{ q }}" 
+                           class="form-control border-start-0" 
+                           placeholder="Buscar por estado o usuario..."
+                           autocomplete="off">
+                    {% if q %}
+                        <a href="?{% if fecha_filtro %}fecha={{ fecha_filtro }}&{% endif %}orden={{ orden }}" class="btn btn-outline-secondary" title="Limpiar texto">
+                            <i class="bi bi-x-lg"></i>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Búsqueda abriendo un Calendario y seleccionando el día -->
+            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                <div class="input-group input-group-sm">
+                    <button type="button" class="btn btn-white bg-white border border-end-0 text-primary d-inline-flex align-items-center gap-1" id="btnAbrirCalendario" title="Abrir calendario para elegir un día">
+                        <i class="bi bi-calendar-event"></i>
+                        <span class="fw-semibold">Día</span>
+                    </button>
+                    <input type="date" 
+                           name="fecha" 
+                           id="inputFechaCierre" 
+                           value="{{ fecha_filtro }}" 
+                           class="form-control" 
+                           title="Seleccionar día en el calendario"
+                           onchange="this.form.submit()">
+                    {% if fecha_filtro %}
+                        <a href="?{% if q %}q={{ q|urlencode }}&{% endif %}orden={{ orden }}" class="btn btn-outline-secondary" title="Limpiar filtro de fecha">
+                            <i class="bi bi-x-lg"></i>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Ordenamiento por Fecha -->
+            <div class="col-12 col-sm-6 col-md-3 col-lg-3">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white">
+                        <i class="bi bi-arrow-down-up text-muted me-1"></i>Ordenar por Fecha
+                    </span>
+                    <select name="orden" class="form-select" onchange="this.form.submit()">
+                        <option value="desc" {% if orden != 'asc' %}selected{% endif %}>Más recientes primero</option>
+                        <option value="asc" {% if orden == 'asc' %}selected{% endif %}>Más antiguas primero</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Botón Restablecer si hay algún filtro o si orden == 'asc' -->
+            {% if q or fecha_filtro or orden == 'asc' %}
+            <div class="col-12 col-sm-6 col-md-12 col-lg-2">
+                <a href="{% url 'moduloTransaccional:historial_cierres' %}" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                    <span>Restablecer</span>
+                </a>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
 <div class="card shadow-sm border-0">
     <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
         <h5 class="fw-bold mb-0 text-dark">
             <i class="bi bi-list-check me-2 text-secondary"></i>Auditoría de Cierres Diarios
         </h5>
         <span class="badge bg-light text-dark border">
-            {{ paginator.count|default:cierres.count }} registros totales
+            {% if q or fecha_filtro %}
+                {{ paginator.count|default:cierres.count }} registros encontrados
+            {% else %}
+                {{ paginator.count|default:cierres.count }} registros totales
+            {% endif %}
         </span>
     </div>
     <div class="card-body p-0">
@@ -43,7 +120,18 @@
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light small text-uppercase">
                     <tr>
-                        <th class="ps-4">Fecha Cierre</th>
+                        <th class="ps-4">
+                            <a href="?{% if q %}q={{ q|urlencode }}&{% endif %}{% if fecha_filtro %}fecha={{ fecha_filtro }}&{% endif %}orden={% if orden == 'asc' %}desc{% else %}asc{% endif %}"
+                               class="text-decoration-none text-muted d-inline-flex align-items-center gap-1"
+                               title="Alternar orden por fecha de cierre">
+                                <span>Fecha Cierre</span>
+                                {% if orden == 'asc' %}
+                                    <i class="bi bi-arrow-up text-primary fw-bold"></i>
+                                {% else %}
+                                    <i class="bi bi-arrow-down text-primary fw-bold"></i>
+                                {% endif %}
+                            </a>
+                        </th>
                         <th>Estado</th>
                         <th class="text-end">Total Sistema</th>
                         <th class="text-end">Retiros Caja</th>
@@ -88,8 +176,15 @@
                     {% empty %}
                     <tr>
                         <td colspan="8" class="text-center py-5 text-muted">
-                            <i class="bi bi-journal-x fs-1 d-block mb-2"></i>
-                            No se han registrado cierres de caja en el sistema.
+                            <i class="bi bi-journal-x fs-1 d-block mb-2 text-secondary"></i>
+                            {% if q or fecha_filtro %}
+                                No se encontraron cierres de caja con los criterios especificados.<br>
+                                <a href="{% url 'moduloTransaccional:historial_cierres' %}" class="btn btn-outline-primary btn-sm mt-3">
+                                    <i class="bi bi-arrow-counterclockwise me-1"></i>Ver todos los cierres
+                                </a>
+                            {% else %}
+                                No se han registrado cierres de caja en el sistema.
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -105,7 +200,7 @@
             <ul class="pagination pagination-sm justify-content-center mb-0">
                 {% if page_obj.has_previous %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if fecha_filtro %}&fecha={{ fecha_filtro }}{% endif %}&orden={{ orden }}">Anterior</a>
                     </li>
                 {% else %}
                     <li class="page-item disabled"><span class="page-link">Anterior</span></li>
@@ -115,13 +210,13 @@
                     {% if page_obj.number == num %}
                         <li class="page-item active"><span class="page-link">{{ num }}</span></li>
                     {% else %}
-                        <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                        <li class="page-item"><a class="page-link" href="?page={{ num }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if fecha_filtro %}&fecha={{ fecha_filtro }}{% endif %}&orden={{ orden }}">{{ num }}</a></li>
                     {% endif %}
                 {% endfor %}
 
                 {% if page_obj.has_next %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">Siguiente</a>
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if fecha_filtro %}&fecha={{ fecha_filtro }}{% endif %}&orden={{ orden }}">Siguiente</a>
                     </li>
                 {% else %}
                     <li class="page-item disabled"><span class="page-link">Siguiente</span></li>
@@ -133,3 +228,67 @@
 </div>
 {% endblock %}
 
+{% block extra_js %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const inputBusqueda = document.getElementById('inputBusquedaCierres');
+    const formBusqueda = document.getElementById('formHistorialCierres');
+    const btnCalendario = document.getElementById('btnAbrirCalendario');
+    const inputFecha = document.getElementById('inputFechaCierre');
+
+    if (!formBusqueda) return;
+
+    // Foco y cursor al final si hay texto buscado
+    if (inputBusqueda && inputBusqueda.value) {
+        inputBusqueda.focus();
+        const len = inputBusqueda.value.length;
+        inputBusqueda.setSelectionRange(len, len);
+    }
+
+    // Búsqueda automática con debounce (400ms tras dejar de escribir)
+    if (inputBusqueda) {
+        let timeoutId = null;
+        const valorInicial = inputBusqueda.value.trim();
+
+        inputBusqueda.addEventListener('input', function () {
+            clearTimeout(timeoutId);
+            const valorActual = this.value.trim();
+
+            timeoutId = setTimeout(function () {
+                if (valorActual !== valorInicial) {
+                    formBusqueda.submit();
+                }
+            }, 400);
+        });
+
+        inputBusqueda.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                clearTimeout(timeoutId);
+                formBusqueda.submit();
+            }
+        });
+    }
+
+    // Abrir calendario al presionar el botón Día o al interactuar con el control
+    function abrirCalendario() {
+        if (inputFecha) {
+            if (typeof inputFecha.showPicker === 'function') {
+                try {
+                    inputFecha.showPicker();
+                } catch (err) {
+                    inputFecha.focus();
+                }
+            } else {
+                inputFecha.focus();
+            }
+        }
+    }
+
+    if (btnCalendario) {
+        btnCalendario.addEventListener('click', abrirCalendario);
+    }
+});
+</script>
+{% endblock %}

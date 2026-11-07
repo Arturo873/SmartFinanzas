@@ -569,24 +569,87 @@ class HistorialCierresListView(RolRequeridoMixin, ListView):
     """
     Vista de consulta y auditoría de Cierres de Caja.
     Permitida para los roles 'Dueño' y 'Contador' (y Administrador).
-    Lista los registros en orden cronológico descendente.
+    Permite búsqueda automática por texto o selección por calendario (día),
+    además de ordenamiento ascendente/descendente por fecha.
     """
     model = CierreCaja
     template_name = 'moduloTransaccional/cierrecaja_list.html'
     context_object_name = 'cierres'
-    ordering = ['-fecha']
     paginate_by = 15
     roles_permitidos = ['Dueño', 'Contador', 'Administrador']
 
     def get_queryset(self):
-        return CierreCaja.objects.all().select_related(
+        usuario_db = resolver_usuario_bd(self.request.user)
+        empresa_usuario = usuario_db.empresa if usuario_db else None
+
+        qs = CierreCaja.objects.all().select_related(
             'cerrado_por_usuario',
-            'revisado_por_usuario'
-        ).order_by('-fecha')
+            'revisado_por_usuario',
+            'empresa'
+        )
+        if empresa_usuario:
+            qs = qs.filter(empresa=empresa_usuario)
+        elif not self.request.user.is_superuser:
+            qs = qs.none()
+
+        # Filtro de búsqueda por fecha seleccionada en calendario (formato YYYY-MM-DD)
+        fecha_filtro = (self.request.GET.get('fecha') or '').strip()
+        if fecha_filtro:
+            try:
+                from datetime import datetime
+                fecha_obj = datetime.strptime(fecha_filtro, '%Y-%m-%d').date()
+                qs = qs.filter(fecha=fecha_obj)
+            except (ValueError, TypeError):
+                pass
+
+        # Búsqueda automática por texto libre (estado, usuario, o fecha escrita)
+        q = (self.request.GET.get('q') or '').strip()
+        if q:
+            filtro_q = (
+                Q(estado__icontains=q) |
+                Q(cerrado_por_usuario__username__icontains=q) |
+                Q(cerrado_por_usuario__email__icontains=q)
+            )
+            try:
+                from datetime import datetime
+                if '/' in q:
+                    fecha_p = datetime.strptime(q, '%d/%m/%Y').date()
+                    filtro_q |= Q(fecha=fecha_p)
+                elif '-' in q and len(q.split('-')[0]) == 4:
+                    fecha_p = datetime.strptime(q, '%Y-%m-%d').date()
+                    filtro_q |= Q(fecha=fecha_p)
+            except Exception:
+                pass
+            qs = qs.filter(filtro_q)
+
+        # Ordenamiento por fecha (descendente por defecto)
+        orden = (self.request.GET.get('orden') or 'desc').strip().lower()
+        if orden == 'asc':
+            qs = qs.order_by('fecha', 'id')
+        else:
+            qs = qs.order_by('-fecha', '-id')
+
+        return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         fecha_hoy = timezone.localdate()
-        context['cierre_hoy_existe'] = CierreCaja.objects.filter(fecha=fecha_hoy).exists()
-        context['fecha_hoy'] = fecha_hoy
+        usuario_db = resolver_usuario_bd(self.request.user)
+        empresa_usuario = usuario_db.empresa if usuario_db else None
+
+        cierre_hoy_qs = CierreCaja.objects.filter(fecha=fecha_hoy)
+        if empresa_usuario:
+            cierre_hoy_qs = cierre_hoy_qs.filter(empresa=empresa_usuario)
+
+        q = (self.request.GET.get('q') or '').strip()
+        fecha_filtro = (self.request.GET.get('fecha') or '').strip()
+        orden = (self.request.GET.get('orden') or 'desc').strip().lower()
+
+        context.update({
+            'cierre_hoy_existe': cierre_hoy_qs.exists(),
+            'fecha_hoy': fecha_hoy,
+            'q': q,
+            'fecha_filtro': fecha_filtro,
+            'orden': orden,
+        })
         return context

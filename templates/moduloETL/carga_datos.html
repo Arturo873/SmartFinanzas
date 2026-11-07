@@ -1,23 +1,20 @@
 {% extends "Principal.html" %}
 
-{% block title %}Ingesta y Carga de Balances (ETL) - SmartFinanzas{% endblock %}
+{% block title %}Carga de Estados (ETL) - SmartFinanzas{% endblock %}
 
 {% block page_header %}
 <div class="d-flex flex-wrap align-items-center justify-content-between pb-3 mb-4 border-bottom">
     <div>
         <h1 class="h3 fw-bold text-dark mb-1">
-            <i class="bi bi-cloud-arrow-up text-primary me-2"></i>Módulo ETL: Ingesta de Estados Financieros
+            <i class="bi bi-cloud-arrow-up text-primary me-2"></i>Módulo ETL: Carga de Estados
         </h1>
         <p class="text-muted mb-0 small">
-            Extracción, saneamiento de tipos y validación matemática de balances contables (.csv, .xlsx).
+            Extracción, saneamiento de tipos y validación matemática de estados financieros (.csv, .xlsx).
         </p>
     </div>
     <div class="mt-2 mt-md-0 d-flex gap-2">
         <a href="{% url 'moduloETL:descargar_plantilla' %}" class="btn btn-outline-primary btn-sm shadow-sm">
             <i class="bi bi-file-earmark-arrow-down me-1"></i>Descargar Plantilla CSV
-        </a>
-        <a href="{% url 'moduloETL:ratios_financieros' %}" class="btn btn-primary btn-sm shadow-sm">
-            <i class="bi bi-calculator me-1"></i>Ver Ratios Calculados
         </a>
     </div>
 </div>
@@ -28,13 +25,10 @@
     <!-- COLUMNA IZQUIERDA: FORMULARIO DE CARGA -->
     <div class="col-lg-7">
         <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <div class="card-header bg-white py-3 border-bottom">
                 <h5 class="fw-bold mb-0 text-dark">
                     <i class="bi bi-upload text-primary me-2"></i>Subir y Procesar Archivo Contable
                 </h5>
-                <span class="badge bg-light text-dark border">
-                    <i class="bi bi-shield-check text-success me-1"></i>Pipeline ETL Activo
-                </span>
             </div>
             <div class="card-body p-4">
                 <!-- Identificación de la Empresa del Usuario en Sesión -->
@@ -174,55 +168,9 @@
                 </h6>
             </div>
             <div class="card-body p-3">
-                <p class="text-muted small mb-3">
-                    El archivo debe incluir obligatoriamente las siguientes <strong>13 columnas</strong>:
+                <p class="text-muted small mb-0">
+                    <i class="bi bi-check2-circle text-primary me-1"></i>Estados Financieros bajo estándar IFRS.
                 </p>
-                <div class="d-flex flex-wrap gap-1 mb-3">
-                    {% for col in columnas_plantilla %}
-                        <span class="badge bg-light text-secondary border font-monospace small py-1 px-2">
-                            {{ col }}
-                        </span>
-                    {% endfor %}
-                </div>
-
-                <div class="alert alert-info py-2 px-3 small mb-0 border-0 shadow-none">
-                    <div class="fw-bold text-primary mb-1">
-                        <i class="bi bi-shield-lock me-1"></i>Reglas de Validación Contable:
-                    </div>
-                    <ul class="mb-0 ps-3">
-                        <li><strong>Ecuación de Balance:</strong> Activo Total = Pasivo Total + Patrimonio Neto (Tolerancia: 1%).</li>
-                        <li><strong>Subcomponentes:</strong> Activo Circulante &le; Activo Total y Pasivo Circulante &le; Pasivo Total.</li>
-                        <li><strong>Ingresos y EBIT:</strong> Deben corresponder a los últimos 12 meses (LTM).</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <!-- Resumen de Métricas ETL -->
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-                <h6 class="fw-bold mb-0 text-dark">
-                    <i class="bi bi-bar-chart me-2 text-primary"></i>Métricas de Tu Empresa
-                </h6>
-                <a href="{% url 'moduloETL:historial_cargas' %}" class="small text-decoration-none">
-                    Ver historial completo &rarr;
-                </a>
-            </div>
-            <div class="card-body p-3">
-                <div class="row g-2 text-center">
-                    <div class="col-6">
-                        <div class="p-3 bg-light rounded border">
-                            <div class="text-muted small">Cargas Registradas</div>
-                            <div class="h4 fw-bold text-dark mb-0">{{ total_cargas_historicas }}</div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="p-3 bg-light rounded border">
-                            <div class="text-muted small">Ratios Calculados</div>
-                            <div class="h4 fw-bold text-primary mb-0">{{ total_ratios_calculados }}</div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -235,7 +183,7 @@
             </div>
             <div class="card-body p-0">
                 <ul class="list-group list-group-flush small">
-                    {% for carga in ultimas_cargas %}
+                    {% for carga in ultimas_cargas|slice:":5" %}
                         <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-3">
                             <div>
                                 <span class="fw-semibold text-dark">{{ carga.periodo }}</span>

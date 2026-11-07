@@ -396,14 +396,12 @@
                 <!-- 3. MÓDULO ETL (Ingesta de Balances) -->
                 <div class="sidebar-heading">Módulo ETL</div>
                 <ul class="sidebar-menu">
-                    {% if not user.is_authenticated or user.perfil.rol == 'Contador' or user.perfil.rol == 'Dueño' %}
                     <li>
                         <a href="{% url 'moduloETL:carga_datos' %}" class="nav-link {% if request.resolver_match.app_name == 'moduloETL' and request.resolver_match.url_name == 'carga_datos' %}active{% endif %}">
                             <i class="bi bi-cloud-arrow-up"></i>
-                            <span>Cargar Balance (ETL)</span>
+                            <span>Carga de Estados</span>
                         </a>
                     </li>
-                    {% endif %}
                     <li>
                         <a href="{% url 'moduloETL:ratios_financieros' %}" class="nav-link {% if request.resolver_match.app_name == 'moduloETL' and request.resolver_match.url_name == 'ratios_financieros' %}active{% endif %}">
                             <i class="bi bi-calculator"></i>
