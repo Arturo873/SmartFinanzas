@@ -22,6 +22,7 @@ from .services import (
     limpiar_archivos_y_estado,
     generar_plantilla_ejemplo_csv,
     calcular_zem_altman,
+    detectar_anomalias_financieras,
 )
 from usuarios.models import Usuario, Empresa, Rol
 from AppWeb.models import PerfilUsuario, EstadoCarga
@@ -106,6 +107,41 @@ class ETLServicesTests(TestCase):
         self.assertAlmostEqual(indicadores['v6_rotacion_activos'], 1.2)
         altman_calculado = calcular_zem_altman(FILA_BALANCE_SANO)
         self.assertAlmostEqual(indicadores['ref_z_altman'], altman_calculado)
+
+    def test_rf10_detectar_anomalias_financieras_outliers(self):
+        """[RF-10] Verifica detección de outliers y cuentas con signos inválidos."""
+        # 1. Caso sin anomalías
+        ratio_sano = RatioFinanciero(
+            v1_razon_corriente=Decimal("1.50"),
+            v2_capital_trabajo_activos=Decimal("0.20"),
+            v3_leverage_total=Decimal("0.80"),
+            v4_roa_operacional=Decimal("0.10"),
+            v5_margen_operacional=Decimal("0.12"),
+            v6_rotacion_activos=Decimal("1.10"),
+        )
+        anomalias_sanas = detectar_anomalias_financieras(ratio_sano)
+        self.assertEqual(len(anomalias_sanas), 0)
+
+        # 2. Caso con ratio outlier extremo (Margen Operacional > 100% y Leverage > 7.0)
+        ratio_outlier = RatioFinanciero(
+            v1_razon_corriente=Decimal("9.50"),
+            v3_leverage_total=Decimal("8.20"),
+            v5_margen_operacional=Decimal("1.50"),
+        )
+        anomalias = detectar_anomalias_financieras(ratio_outlier)
+        self.assertGreaterEqual(len(anomalias), 3)
+        campos = [a['campo'] for a in anomalias]
+        self.assertIn('Razón Corriente (V1)', campos)
+        self.assertIn('Leverage Total (V3)', campos)
+        self.assertIn('Margen Operacional (V5)', campos)
+
+        # 3. Caso con carga con cuenta negativa (Efectivo negativo)
+        carga_invalida = CargaFinanciera(
+            efectivo_equivalentes=Decimal("-50000"),
+            activo_total=Decimal("1000000"),
+        )
+        anomalias_carga = detectar_anomalias_financieras(carga_invalida)
+        self.assertTrue(any(a['campo'] == 'Efectivo y Equivalentes' for a in anomalias_carga))
 
     def test_generar_plantilla_descargable(self):
         csv_bytes = generar_plantilla_ejemplo_csv()
@@ -256,3 +292,21 @@ class ETLIntegrationAndViewsTests(TestCase):
         resp = self.client.post(reverse('moduloETL:limpiar_datos'), follow=True)
         self.assertEqual(resp.status_code, 200)
         self.assertIsNone(EstadoCarga.actual().ruta_csv)
+
+    def test_rf10_vista_ratios_modal_outliers(self):
+        """[RF-10] Verifica que la vista de ratios detecte anomalías y renderice el modal de advertencia."""
+        self.client.force_login(self.auth_contador)
+        # Crear un ratio con anomalía (margen 150%)
+        RatioFinanciero.objects.create(
+            empresa=self.empresa1,
+            periodo='2025-Q4',
+            v1_razon_corriente=Decimal("1.80"),
+            v5_margen_operacional=Decimal("1.50"),
+        )
+        resp = self.client.get(reverse('moduloETL:ratios_financieros'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.context['tiene_anomalias'])
+        self.assertGreaterEqual(resp.context['total_anomalias'], 1)
+        self.assertContains(resp, 'modalAdvertenciaOutliersETL')
+        self.assertContains(resp, 'Valores Anómalos (Outliers) Detectados')
+        self.assertContains(resp, 'Forzar Ejecución (Aceptar Alerta)')

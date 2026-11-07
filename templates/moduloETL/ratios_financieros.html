@@ -18,9 +18,28 @@
         <a href="{% url 'moduloETL:carga_datos' %}" class="btn btn-outline-primary btn-sm shadow-sm">
             <i class="bi bi-cloud-arrow-up me-1"></i>Cargar Nuevo Balance
         </a>
-        <a href="{% url 'prediccion' %}" class="btn btn-primary btn-sm shadow-sm">
-            <i class="bi bi-cpu me-1"></i>Ejecutar Predicción (ML)
-        </a>
+        {% if ultimo_ratio %}
+            {% if tiene_anomalias %}
+                <button type="button" class="btn btn-primary btn-sm shadow-sm d-inline-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#modalAdvertenciaOutliersETL" title="Valores fuera de rango detectados en el balance">
+                    <i class="bi bi-cpu"></i>
+                    <span>Ejecutar Predicción (ML)</span>
+                    <span class="badge bg-warning text-dark fs-micro py-0.5 px-1.5 rounded-pill">
+                        <i class="bi bi-exclamation-triangle-fill me-0.5"></i>{{ total_anomalias }}
+                    </span>
+                </button>
+            {% else %}
+                <form method="POST" action="{% url 'dashboard:ejecutar_prediccion' %}" class="d-inline m-0">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary btn-sm shadow-sm">
+                        <i class="bi bi-cpu me-1"></i>Ejecutar Predicción (ML)
+                    </button>
+                </form>
+            {% endif %}
+        {% else %}
+            <a href="{% url 'moduloETL:carga_datos' %}" class="btn btn-primary btn-sm shadow-sm">
+                <i class="bi bi-cloud-arrow-up me-1"></i>Cargar Balance
+            </a>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
@@ -154,4 +173,86 @@
     </div>
     {% endif %}
 </div>
+
+<!-- ====================================================================== -->
+<!-- MODAL DE ADVERTENCIA: VALORES ANÓMALOS (OUTLIERS) DETECTADOS (RF-10)     -->
+<!-- ====================================================================== -->
+{% if tiene_anomalias and ultimo_ratio %}
+<div class="modal fade" id="modalAdvertenciaOutliersETL" tabindex="-1" aria-labelledby="modalAdvertenciaOutliersETLLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-warning shadow">
+            <div class="modal-header bg-warning bg-opacity-10 border-bottom border-warning border-opacity-25 py-3">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-warning text-dark p-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                        <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-dark fs-6 mb-0" id="modalAdvertenciaOutliersETLLabel">
+                            Advertencia: Valores Anómalos (Outliers) Detectados
+                        </h5>
+                        <span class="text-muted fs-micro">
+                            Período Contable: <strong>{{ ultimo_ratio.periodo|default:"Balance Activo" }}</strong> &middot; Validación Previa a Inferencia (RF-10)
+                        </span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <div class="modal-body p-4">
+                <div class="alert alert-warning d-flex align-items-start gap-2 mb-3 py-2.5 px-3">
+                    <i class="bi bi-shield-exclamation fs-5 flex-shrink-0 text-warning"></i>
+                    <div class="fs-caption">
+                        <strong>Atención Contador / Analista:</strong> Se detectaron <strong>{{ total_anomalias }} valor(es) fuera del rango predefinido de normalidad</strong> en los estados financieros del balance ingresado. Los valores atípicos (outliers) o saldos incompatibles pueden distorsionar el score de insolvencia y las métricas predictivas del modelo.
+                    </div>
+                </div>
+
+                <div class="table-responsive border rounded border-default mb-3">
+                    <table class="table table-hover table-sm align-middle mb-0 fs-caption">
+                        <thead class="table-light fs-micro text-uppercase">
+                            <tr>
+                                <th class="py-2 px-3">Cuenta / Indicador</th>
+                                <th class="py-2 px-3">Valor Detectado</th>
+                                <th class="py-2 px-3">Rango de Normalidad</th>
+                                <th class="py-2 px-3">Motivo / Riesgo Detectado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for anomalia in anomalias_detectadas %}
+                            <tr>
+                                <td class="py-2 px-3 fw-semibold text-dark">{{ anomalia.campo }}</td>
+                                <td class="py-2 px-3">
+                                    <span class="badge {% if anomalia.severidad == 'danger' %}bg-danger{% else %}bg-warning text-dark{% endif %} font-monospace fs-micro">
+                                        {{ anomalia.valor }}
+                                    </span>
+                                </td>
+                                <td class="py-2 px-3 text-muted font-monospace fs-micro">{{ anomalia.rango_esperado }}</td>
+                                <td class="py-2 px-3 text-secondary">{{ anomalia.motivo }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <p class="text-muted fs-caption mb-0">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Puedes <strong>corregir los datos</strong> volviendo a cargar el archivo saneado, o bien <strong>forzar la ejecución</strong> aceptando explícitamente la alerta bajo criterio profesional.
+                </p>
+            </div>
+
+            <div class="modal-footer bg-light py-2 px-3 border-top border-subtle d-flex justify-content-between">
+                <a href="{% url 'moduloETL:carga_datos' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-pencil-square me-1"></i>Corregir Datos (Cargar Balance)
+                </a>
+                <form method="POST" action="{% url 'dashboard:ejecutar_prediccion' %}" class="m-0">
+                    {% csrf_token %}
+                    <input type="hidden" name="forzar_ejecucion" value="1">
+                    <button type="submit" class="btn btn-warning btn-sm text-dark fw-semibold shadow-sm">
+                        <i class="bi bi-play-fill me-1"></i>Forzar Ejecución (Aceptar Alerta)
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

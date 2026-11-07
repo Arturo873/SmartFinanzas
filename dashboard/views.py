@@ -25,6 +25,7 @@ from django.views.generic import TemplateView
 from usuarios.models import Usuario, Empresa
 from AppWeb.models import PerfilUsuario
 from moduloETL.models import RatioFinanciero
+from moduloETL.services import detectar_anomalias_financieras
 from moduloTransaccional.models import Venta
 from capaAnalitica.models import PrediccionRiesgo
 from capaAnalitica.services import MotorRiesgo, ejecutar_y_persistir_prediccion
@@ -205,6 +206,10 @@ class DashboardView(DashboardRolMixin, TemplateView):
 
         ultimo_ratio = ratios_qs.order_by('-fecha_calculo', '-id').first()
 
+        # Detección de valores anómalos (outliers) en el balance activo (RF-10)
+        anomalias_detectadas = detectar_anomalias_financieras(ultimo_ratio) if ultimo_ratio else []
+        tiene_anomalias = bool(anomalias_detectadas)
+
         # 5. Entrega de datos al contexto (incluyendo JSON serializado seguro para Chart.js y UI)
         context.update({
             'empresa_usuario': empresa_usuario,
@@ -218,6 +223,11 @@ class DashboardView(DashboardRolMixin, TemplateView):
             'total_ventas_hoy': total_ventas_hoy,
             'ultimo_ratio': ultimo_ratio,
             'total_predicciones_historicas': predicciones_qs.count(),
+            # Detección de outliers (RF-10)
+            'anomalias_detectadas': anomalias_detectadas,
+            'tiene_anomalias': tiene_anomalias,
+            'total_anomalias': len(anomalias_detectadas),
+            'anomalias_json': json.dumps(anomalias_detectadas, ensure_ascii=False),
             # JSON seguro para el frontend y control interactivo (RF-04)
             'periodos_disponibles': periodos_disponibles,
             'periodos_disponibles_json': json.dumps(periodos_disponibles, ensure_ascii=False),
@@ -318,16 +328,28 @@ class EjecutarPrediccionDashboardView(DashboardRolMixin, View):
             )
             return redirect('dashboard:dashboard')
 
+        # Detección de valores anómalos (outliers) previa a la ejecución (RF-10)
+        anomalias = detectar_anomalias_financieras(ultimo_ratio)
+        forzar_ejecucion = request.POST.get('forzar_ejecucion') in ('1', 'true', 'True')
+
+        if anomalias and not forzar_ejecucion:
+            messages.warning(
+                request,
+                f"Advertencia [RF-10]: Se detectaron {len(anomalias)} valores anómalos o fuera de rango (outliers). "
+                "Para proteger la calidad predictiva, confirme la advertencia en el modal de confirmación o corrija los datos."
+            )
+            return redirect('dashboard:dashboard')
+
         try:
             prediccion, resultado = ejecutar_y_persistir_prediccion(
                 ratio_obj_o_id=ultimo_ratio,
                 usuario=usuario_db,
                 empresa=empresa_usuario
             )
-            messages.success(
-                request,
-                f"¡Nueva predicción ejecutada exitosamente! Score: {resultado['score']}% - Nivel: {resultado['nivel']}."
-            )
+            msg_exito = f"¡Nueva predicción ejecutada exitosamente! Score: {resultado['score']}% - Nivel: {resultado['nivel']}."
+            if anomalias and forzar_ejecucion:
+                msg_exito += f" (Se forzó la ejecución aceptando {len(anomalias)} valor(es) anómalo(s) / outlier(s) detectados)."
+            messages.success(request, msg_exito)
         except Exception as exc:
             logger.exception("Error al ejecutar predicción ML desde el dashboard: %s", exc)
             messages.error(

@@ -269,3 +269,115 @@ class DashboardViewTests(TestCase):
         puntos_filtrados = json.loads(response_filtrado.context['chart_puntos_json'])
         self.assertEqual(len(puntos_filtrados), 1)
         self.assertEqual(puntos_filtrados[0]['periodo'], '2025-Q4')
+
+    def test_rf10_deteccion_outliers_y_render_modal(self):
+        """
+        [RF-10] Verifica que cuando existen valores fuera de rango o outliers en los ratios,
+        el dashboard identifique las anomalías y renderice el modal de advertencia antes de ejecutar.
+        """
+        self.client.login(username='dueno_user', password='password123')
+        session = self.client.session
+        session['usuario_rol'] = 'Dueño'
+        session.save()
+
+        # Ratio con margen operacional anómalo (> 100%) y leverage extremo
+        ratio_anomalo = RatioFinanciero.objects.create(
+            empresa=self.empresa,
+            periodo='2026-Q1',
+            fecha_calculo=timezone.now(),
+            v1_razon_corriente=Decimal("1.50"),
+            v2_capital_trabajo_activos=Decimal("0.20"),
+            v3_leverage_total=Decimal("8.50"),  # Outlier > 7.0
+            v4_roa_operacional=Decimal("0.08"),
+            v5_margen_operacional=Decimal("1.40"),  # Outlier > 100%
+            v6_rotacion_activos=Decimal("1.20"),
+        )
+
+        response = self.client.get(reverse('dashboard:dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['tiene_anomalias'])
+        self.assertGreaterEqual(response.context['total_anomalias'], 2)
+
+        content = response.content.decode('utf-8')
+        self.assertIn('modalAdvertenciaOutliers', content)
+        self.assertIn('Valores Anómalos (Outliers) Detectados', content)
+        self.assertIn('Forzar Ejecución (Aceptar Alerta)', content)
+        self.assertIn('Corregir Datos (Cargar Balance)', content)
+
+    def test_rf10_bloqueo_ejecucion_si_hay_outliers_sin_confirmacion(self):
+        """
+        [RF-10] Verifica que intentar ejecutar el modelo predictivo con datos anómalos
+        sin enviar la confirmación explícita ('forzar_ejecucion') sea bloqueado preventivamente.
+        """
+        self.client.login(username='dueno_user', password='password123')
+        session = self.client.session
+        session['usuario_rol'] = 'Dueño'
+        session.save()
+
+        # Crear ratio con outlier
+        RatioFinanciero.objects.create(
+            empresa=self.empresa,
+            periodo='2026-Q1',
+            fecha_calculo=timezone.now(),
+            v1_razon_corriente=Decimal("1.50"),
+            v2_capital_trabajo_activos=Decimal("0.20"),
+            v3_leverage_total=Decimal("8.50"),
+            v4_roa_operacional=Decimal("0.08"),
+            v5_margen_operacional=Decimal("1.40"),
+            v6_rotacion_activos=Decimal("1.20"),
+        )
+
+        total_predicciones_antes = PrediccionRiesgo.objects.filter(empresa=self.empresa).count()
+
+        # POST sin 'forzar_ejecucion'
+        response = self.client.post(reverse('dashboard:ejecutar_prediccion'), follow=True)
+        self.assertEqual(response.status_code, 200)
+
+        # No debe haberse generado una nueva predicción
+        total_predicciones_despues = PrediccionRiesgo.objects.filter(empresa=self.empresa).count()
+        self.assertEqual(total_predicciones_despues, total_predicciones_antes)
+
+        # Mensaje de advertencia debe estar en los mensajes flash
+        messages_list = list(response.context['messages'])
+        self.assertTrue(any('Advertencia [RF-10]' in str(m) for m in messages_list))
+
+    def test_rf10_forzar_ejecucion_con_confirmacion_explicita(self):
+        """
+        [RF-10] Verifica que al enviar 'forzar_ejecucion=1' desde el modal de advertencia,
+        el sistema proceda con la inferencia del modelo y notifique la aceptación de la alerta.
+        """
+        self.client.login(username='dueno_user', password='password123')
+        session = self.client.session
+        session['usuario_rol'] = 'Dueño'
+        session.save()
+
+        # Crear ratio con outlier
+        ratio_anomalo = RatioFinanciero.objects.create(
+            empresa=self.empresa,
+            periodo='2026-Q1',
+            fecha_calculo=timezone.now(),
+            v1_razon_corriente=Decimal("1.50"),
+            v2_capital_trabajo_activos=Decimal("0.20"),
+            v3_leverage_total=Decimal("8.50"),
+            v4_roa_operacional=Decimal("0.08"),
+            v5_margen_operacional=Decimal("1.40"),
+            v6_rotacion_activos=Decimal("1.20"),
+        )
+
+        total_predicciones_antes = PrediccionRiesgo.objects.filter(empresa=self.empresa).count()
+
+        # POST con 'forzar_ejecucion=1'
+        response = self.client.post(
+            reverse('dashboard:ejecutar_prediccion'),
+            {'forzar_ejecucion': '1'},
+            follow=True
+        )
+        self.assertEqual(response.status_code, 200)
+
+        # Debe haberse generado una nueva predicción
+        total_predicciones_despues = PrediccionRiesgo.objects.filter(empresa=self.empresa).count()
+        self.assertEqual(total_predicciones_despues, total_predicciones_antes + 1)
+
+        # Mensaje de éxito informando que se forzó la ejecución
+        messages_list = list(response.context['messages'])
+        self.assertTrue(any('Se forzó la ejecución aceptando' in str(m) for m in messages_list))

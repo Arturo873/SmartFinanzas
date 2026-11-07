@@ -20,6 +20,7 @@ from .services import (
     procesar_e_ingestar_balance,
     limpiar_archivos_y_estado,
     generar_plantilla_ejemplo_csv,
+    detectar_anomalias_financieras,
     COLUMNAS_PLANTILLA,
 )
 from usuarios.models import Usuario, Empresa
@@ -138,6 +139,15 @@ class CargaArchivoView(RolRequeridoMixin, FormView):
             f"para {empresa_usuario.razon_social if empresa_usuario else 'tu empresa'} "
             f"y se calcularon automáticamente sus ratios predictivos (V1-V7) y de solvencia."
         )
+
+        total_anomalias = resumen.get('anomalias_detectadas', 0)
+        if total_anomalias > 0:
+            messages.warning(
+                self.request,
+                f"Alerta [RF-10]: Se detectaron {total_anomalias} valor(es) fuera del rango normal (outliers) en las cuentas ingresadas. "
+                "El sistema solicitará confirmación mediante un modal de advertencia antes de ejecutar el modelo de insolvencia."
+            )
+
         return redirect('moduloETL:ratios_financieros')
 
 
@@ -190,6 +200,10 @@ class RatiosFinancierosListView(RolRequeridoMixin, ListView):
             avg_leverage = round(float(np.mean(v3_vals)), 2) if v3_vals else None
             avg_altman = round(float(np.mean(alt_vals)), 2) if alt_vals else None
 
+        # Detección de outliers para el último ratio (RF-10)
+        ultimo_ratio = ratios_qs.first()
+        anomalias = detectar_anomalias_financieras(ultimo_ratio) if ultimo_ratio else []
+
         context.update({
             'empresa_usuario': empresa_usuario,
             'periodo_busqueda': self.request.GET.get('periodo', ''),
@@ -197,6 +211,10 @@ class RatiosFinancierosListView(RolRequeridoMixin, ListView):
             'avg_liquidez': avg_liquidez,
             'avg_leverage': avg_leverage,
             'avg_altman': avg_altman,
+            'ultimo_ratio': ultimo_ratio,
+            'anomalias_detectadas': anomalias,
+            'tiene_anomalias': bool(anomalias),
+            'total_anomalias': len(anomalias),
         })
         return context
 

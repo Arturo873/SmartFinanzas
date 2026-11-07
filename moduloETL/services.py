@@ -217,6 +217,177 @@ def calcular_indicadores_completos(fila: Dict[str, Any], empresa: Optional[Empre
     }
 
 
+def detectar_anomalias_financieras(objeto_financiero) -> List[Dict[str, Any]]:
+    """
+    [RF-10] Detecta valores fuera del rango predefinido de normalidad (outliers)
+    o inconsistencias de signo en cuentas contables antes de ejecutar el modelo.
+
+    Parámetros:
+        objeto_financiero: Instancia de RatioFinanciero, CargaFinanciera o dict con cuentas y ratios.
+
+    Retorna:
+        Lista de diccionarios con las anomalías detectadas:
+        - campo: Nombre entendible de la cuenta o ratio
+        - valor: Valor numérico formateado
+        - rango_esperado: Rango normal aceptable
+        - motivo: Explicación de la anomalía o riesgo de distorsión
+        - tipo: 'Outlier' o 'Signo Inválido'
+        - severidad: 'warning' o 'danger'
+    """
+    anomalias = []
+    if not objeto_financiero:
+        return anomalias
+
+    carga = getattr(objeto_financiero, 'carga', None) or (objeto_financiero if hasattr(objeto_financiero, 'activo_total') else None)
+    ratio = objeto_financiero if hasattr(objeto_financiero, 'v1_razon_corriente') else getattr(objeto_financiero, 'ratios', None)
+
+    # 1. Validación de cuentas contables primarias (CargaFinanciera)
+    if carga:
+        cuentas_no_negativas = [
+            ('Efectivo y Equivalentes', getattr(carga, 'efectivo_equivalentes', None), 'Caja y bancos no admiten saldo negativo; los descubiertos deben clasificarse en el pasivo corriente.'),
+            ('Inventarios', getattr(carga, 'inventarios', None), 'El saldo de existencias no puede ser negativo.'),
+            ('Activo Circulante', getattr(carga, 'activo_corriente', None), 'El activo circulante no puede ser negativo.'),
+            ('Pasivo Circulante', getattr(carga, 'pasivo_corriente', None), 'El pasivo circulante no puede ser negativo.'),
+            ('Pasivo Total', getattr(carga, 'pasivo_total', None), 'El pasivo total exigible no puede ser negativo.'),
+            ('Ingresos Netos (Ventas)', getattr(carga, 'ingresos_netos', None), 'Las ventas o ingresos de la operación no pueden ser negativos.'),
+        ]
+
+        for nombre_cuenta, val, motivo_neg in cuentas_no_negativas:
+            if val is not None:
+                val_float = float(val)
+                if val_float < 0:
+                    anomalias.append({
+                        'campo': nombre_cuenta,
+                        'valor': f"${val_float:,.2f}",
+                        'rango_esperado': 'Mayor o igual a $0.00',
+                        'motivo': motivo_neg,
+                        'tipo': 'Signo Inválido',
+                        'severidad': 'danger',
+                    })
+
+        # Activo total no puede ser cero ni negativo
+        act_total = getattr(carga, 'activo_total', None)
+        if act_total is not None and float(act_total) <= 0:
+            anomalias.append({
+                'campo': 'Activo Total',
+                'valor': f"${float(act_total):,.2f}",
+                'rango_esperado': 'Mayor a $0.00',
+                'motivo': 'El activo total de la empresa debe ser estrictamente positivo.',
+                'tipo': 'Signo Inválido',
+                'severidad': 'danger',
+            })
+
+        # Margen EBITDA / Operacional desde cuentas brutas (EBIT vs Ingresos)
+        ebit = getattr(carga, 'ebit', None)
+        ingresos = getattr(carga, 'ingresos_netos', None)
+        if ebit is not None and ingresos is not None:
+            ebit_f = float(ebit)
+            ing_f = float(ingresos)
+            if ing_f > 0:
+                margen_calc = ebit_f / ing_f
+                if margen_calc > 1.0:
+                    anomalias.append({
+                        'campo': 'Margen Operacional / EBITDA',
+                        'valor': f"{margen_calc * 100:.1f}%",
+                        'rango_esperado': '-100% a 100%',
+                        'motivo': f'Margen superior al 100%: el EBIT (${ebit_f:,.0f}) excede los ingresos totales (${ing_f:,.0f}), lo que indica un posible error de digitación o reclasificación contable.',
+                        'tipo': 'Outlier Extremo',
+                        'severidad': 'warning',
+                    })
+                elif margen_calc < -1.0:
+                    anomalias.append({
+                        'campo': 'Margen Operacional / EBITDA',
+                        'valor': f"{margen_calc * 100:.1f}%",
+                        'rango_esperado': '-100% a 100%',
+                        'motivo': f'Pérdida operacional severa: el déficit operacional excede el 100% de la facturación.',
+                        'tipo': 'Outlier Extremo',
+                        'severidad': 'warning',
+                    })
+
+    # 2. Validación de Ratios Financieros calculados (RatioFinanciero)
+    if ratio and hasattr(ratio, 'v1_razon_corriente'):
+        # V1: Razón Corriente (rango normal típico: 0.20x a 8.00x)
+        v1 = getattr(ratio, 'v1_razon_corriente', None)
+        if v1 is not None:
+            v1_f = float(v1)
+            if v1_f >= 8.0:
+                anomalias.append({
+                    'campo': 'Razón Corriente (V1)',
+                    'valor': f"{v1_f:.2f}x",
+                    'rango_esperado': '0.20x a 8.00x',
+                    'motivo': 'Liquidez extremadamente alta: pasivo corriente subdeclarado o acumulación inusual de inventarios/caja.',
+                    'tipo': 'Outlier',
+                    'severidad': 'warning',
+                })
+            elif v1_f < 0.20:
+                anomalias.append({
+                    'campo': 'Razón Corriente (V1)',
+                    'valor': f"{v1_f:.2f}x",
+                    'rango_esperado': '0.20x a 8.00x',
+                    'motivo': 'Liquidez crítica: activos de corto plazo cubren menos del 20% de las deudas inmediatas.',
+                    'tipo': 'Outlier',
+                    'severidad': 'warning',
+                })
+
+        # V3: Leverage Total (Pasivo Total / Patrimonio) (normal 0.0x a 7.0x)
+        v3 = getattr(ratio, 'v3_leverage_total', None)
+        if v3 is not None:
+            v3_f = float(v3)
+            if v3_f >= 7.0:
+                anomalias.append({
+                    'campo': 'Leverage Total (V3)',
+                    'valor': f"{v3_f:.2f}x",
+                    'rango_esperado': '0.00x a 7.00x',
+                    'motivo': 'Endeudamiento desproporcionado: las deudas superan más de 7 veces el patrimonio contable.',
+                    'tipo': 'Outlier',
+                    'severidad': 'warning',
+                })
+
+        # V4: ROA Operacional (EBIT / Activo Total) (normal -50% a 50%)
+        v4 = getattr(ratio, 'v4_roa_operacional', None)
+        if v4 is not None:
+            v4_f = float(v4)
+            if v4_f > 0.60 or v4_f < -0.60:
+                anomalias.append({
+                    'campo': 'ROA Operacional (V4)',
+                    'valor': f"{v4_f * 100:.1f}%",
+                    'rango_esperado': '-50% a 50%',
+                    'motivo': 'Rentabilidad de activos atípica con respecto a la escala operacional del negocio.',
+                    'tipo': 'Outlier',
+                    'severidad': 'warning',
+                })
+
+        # V5: Margen Operacional si no se detectó en carga
+        v5 = getattr(ratio, 'v5_margen_operacional', None)
+        if v5 is not None and not any(a['campo'].startswith('Margen Operacional') for a in anomalias):
+            v5_f = float(v5)
+            if v5_f >= 1.0 or v5_f <= -1.0:
+                anomalias.append({
+                    'campo': 'Margen Operacional (V5)',
+                    'valor': f"{v5_f * 100:.1f}%",
+                    'rango_esperado': '-100% a 100%',
+                    'motivo': 'Margen operacional fuera de rango: excede el 100% de los ingresos ordinarios.',
+                    'tipo': 'Outlier Extremo',
+                    'severidad': 'warning',
+                })
+
+        # V6: Rotación de Activos (normal 0.05x a 6.00x)
+        v6 = getattr(ratio, 'v6_rotacion_activos', None)
+        if v6 is not None:
+            v6_f = float(v6)
+            if v6_f > 6.0:
+                anomalias.append({
+                    'campo': 'Rotación de Activos (V6)',
+                    'valor': f"{v6_f:.2f}x",
+                    'rango_esperado': '0.05x a 6.00x',
+                    'motivo': 'Rotación de activos inusualmente alta: ventas desproporcionadas respecto a la inversión en activos.',
+                    'tipo': 'Outlier',
+                    'severidad': 'warning',
+                })
+
+    return anomalias
+
+
 # ==============================================================================
 # PIPELINE DE EXTRACCIÓN Y VALIDACIÓN DE ARCHIVOS
 # ==============================================================================
@@ -436,10 +607,16 @@ def procesar_e_ingestar_balance(
             estado.ruta_csv = ruta_csv
             estado.save()
 
+        # Conteo de anomalías u outliers detectados en los ratios procesados (RF-10)
+        total_anomalias = 0
+        for r in ratios_creados:
+            total_anomalias += len(detectar_anomalias_financieras(r))
+
         resumen = {
             'total_registros': len(df),
             'cargas_creadas': len(cargas_creadas),
             'ratios_creados': len(ratios_creados),
+            'anomalias_detectadas': total_anomalias,
             'ruta_csv': ruta_csv,
             'nombre_archivo': nombre_archivo,
         }
