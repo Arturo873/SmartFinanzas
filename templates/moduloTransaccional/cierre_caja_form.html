@@ -154,15 +154,96 @@
                         Al confirmar el cierre, todas las ventas ({{ ventas_huerfanas.count }}) y retiros ({{ retiros_huerfanos.count }}) de hoy quedarán vinculados formalmente a este cierre diario de manera irreversible.
                     </div>
 
+                    <!-- Certificación y Términos de Rendición y Arqueo Físico -->
+                    <div class="card bg-light border-0 p-3 mb-4 rounded-3">
+                        <div class="form-check m-0">
+                            <input class="form-check-input" type="checkbox" id="checkTerminosCierre" name="terminos_aceptados" required>
+                            <label class="form-check-label small text-dark" for="checkTerminosCierre">
+                                Certifico bajo fe de arqueo la exactitud del conteo físico y acepto los 
+                                <a href="javascript:void(0)" class="text-primary fw-semibold text-decoration-underline" data-bs-toggle="modal" data-bs-target="#modalTerminosCierre">
+                                    Términos Legales de Rendición de Fondos, Arqueo Físico y Cierre Contable
+                                </a> <span class="text-danger">*</span>
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="d-flex justify-content-end gap-2">
                         <a href="{% url 'home' %}" class="btn btn-outline-secondary px-4">
                             Cancelar
                         </a>
-                        <button type="submit" class="btn btn-success btn-lg px-4 fw-semibold shadow-sm">
+                        <button type="submit" class="btn btn-success btn-lg px-4 fw-semibold shadow-sm" id="btnConfirmarCierre">
                             <i class="bi bi-check-circle-fill me-2"></i>Confirmar y Cerrar Caja
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ====================================================================== -->
+<!-- MODAL DE TÉRMINOS Y CONDICIONES: RENDICIÓN, ARQUEO Y CIERRE CONTABLE   -->
+<!-- ====================================================================== -->
+<div class="modal fade" id="modalTerminosCierre" tabindex="-1" aria-labelledby="modalTerminosCierreLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 980px; width: 92%;">
+        <div class="modal-content shadow-sm border">
+            <div class="modal-header bg-white border-bottom py-2.5 px-4">
+                <div>
+                    <h5 class="modal-title fw-bold text-dark fs-6 mb-0" id="modalTerminosCierreLabel">
+                        Términos Legales de Rendición de Fondos, Arqueo Físico y Cierre Contable
+                    </h5>
+                    <div class="text-secondary" style="font-size: 0.72rem;">
+                        Módulo Transaccional &middot; Código de Comercio (Art. 25-44) / Código del Trabajo (Art. 10 y 58) / NIA 240 / COSO
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <div class="modal-body p-4 text-dark" style="max-height: 50vh; overflow-y: auto; font-size: 0.78rem; line-height: 1.55; color: #111;">
+                <div class="p-2.5 px-3 mb-3 bg-light border rounded text-dark" style="font-size: 0.75rem;">
+                    <strong>Declaración de Certeza y Auditoría Operativa:</strong> Al someter este arqueo, usted certifica la existencia física del efectivo en caja bajo responsabilidad civil, laboral y reglamentaria de la empresa.
+                </div>
+
+                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">1. Fe de Arqueo y Exactitud Probatoria (Código de Comercio de Chile, Art. 25 al 44)</h6>
+                <p class="mb-3 text-dark">
+                    De acuerdo con el mandato de los artículos 25, 27, 33 y 41 del Código de Comercio chileno y las mejores prácticas contables, los libros y registros deben llevarse en orden cronológico, sin raspaduras, mutilaciones ni alteraciones, reflejando fidedignamente la realidad pecuniaria del negocio. El usuario declara bajo fe y juramento administrativo que el monto reportado en el campo <em>"Total Efectivo Físico Contado"</em> representa el inventario físico estricto de dinero efectivo al momento exacto del corte.
+                </p>
+
+                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">2. Deber de Custodia y Responsabilidad Laboral (Código del Trabajo de Chile, Art. 10 N° 7 y Art. 58)</h6>
+                <p class="mb-3 text-dark">
+                    Con arreglo al contrato individual o colectivo de trabajo y a las disposiciones de los artículos 10 y 58 del Código del Trabajo, el cajero o custodio de fondos asume la obligación de resguardo y administración debida de los dineros confiados. Toda retención, reposición o deducción asociada a pérdidas o descuadres se regirá por los convenios de asignación de pérdida de caja pactados y los límites máximos estipulados por el ordenamiento laboral.
+                </p>
+
+                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">3. Protocolo Mandatario ante Descuadres (NIA / ISA 240 y Marco COSO de Control Interno)</h6>
+                <p class="mb-2 text-dark">
+                    En aplicación de la Norma Internacional de Auditoría 240 (<em>Responsabilidades del auditor en la auditoría de estados financieros con respecto al fraude</em>) y los componentes de Control de Actividades del Marco COSO:
+                </p>
+                <ul class="mb-3 ps-3 text-dark">
+                    <li><strong>Justificación Obligatoria:</strong> Ante cualquier diferencia (faltante o sobrante) respecto al saldo calculado por el sistema, es imperativo ingresar una justificación detallada y demostrable (boletas anuladas, vales no procesados, errores de cambio o fallas en terminales POS).</li>
+                    <li><strong>Conciliación Cruzada:</strong> Los registros quedan sujetos a auditoría de conciliación cruzada con reportes diarios de pasarelas de pago (Transbank, Redelcom u otras) y comprobantes de boleta electrónica ante el SII.</li>
+                </ul>
+
+                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">4. Sellado Transaccional e Inmutabilidad de Registros (Código Tributario, Art. 33)</h6>
+                <p class="mb-3 text-dark">
+                    Al presionar <em>"Confirmar y Cerrar Caja"</em>, el sistema ejecutará un sellado atómico e irreversible sobre todas las ventas y retiros de efectivo de la jornada, asignándoles un ID de cierre unívoco y estampilla de tiempo (timestamp). Queda terminantemente bloqueada la alteración retroactiva, eliminación o desvinculación de las operaciones selladas, resguardando la trazabilidad exigida por el Servicio de Impuestos Internos (SII).
+                </p>
+
+                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">5. Prohibición de Ocultamiento y Sanciones Disciplinarias</h6>
+                <p class="mb-0 text-dark">
+                    Cualquier simulación, registro malicioso de montos o sustracción de evidencias durante el proceso de arqueo será considerada una infracción grave a las obligaciones laborales y deberes de confianza empresarial, habilitando la apertura de sumarios internos, término de contrato por causales del artículo 160 del Código del Trabajo y las denuncias penales que pudieran proceder por los delitos de apropiación indebida o estafa.
+                </p>
+            </div>
+
+            <div class="modal-footer bg-light py-2 px-4 border-top d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+                <div class="form-check m-0">
+                    <input class="form-check-input" type="checkbox" id="checkModalCierre">
+                    <label class="form-check-label fw-semibold text-dark" for="checkModalCierre" style="font-size: 0.78rem;">
+                        Certifico la veracidad del arqueo físico y acepto los términos de responsabilidad contable y custodia
+                    </label>
+                </div>
+                <button type="button" class="btn btn-dark btn-sm px-4 fw-semibold" id="btnAceptarModalCierre" disabled>
+                    Aceptar y Marcar Certificación
+                </button>
             </div>
         </div>
     </div>
@@ -243,6 +324,53 @@ document.addEventListener('DOMContentLoaded', function () {
     if (inputArqueo) {
         inputArqueo.addEventListener('input', evaluarCuadratura);
         evaluarCuadratura();
+    }
+
+    // Sincronización de Términos de Arqueo y Cierre (Formulario vs Modal)
+    const checkPrincipalCierre = document.getElementById('checkTerminosCierre');
+    const checkModalCierre = document.getElementById('checkModalCierre');
+    const btnAceptarModalCierre = document.getElementById('btnAceptarModalCierre');
+    const modalElCierre = document.getElementById('modalTerminosCierre');
+    const formCierre = document.getElementById('formCierre');
+
+    // Al abrir el modal, la casilla SIEMPRE debe estar desmarcada y el botón desactivado
+    if (modalElCierre) {
+        modalElCierre.addEventListener('show.bs.modal', function () {
+            if (checkModalCierre) {
+                checkModalCierre.checked = false;
+            }
+            if (btnAceptarModalCierre) {
+                btnAceptarModalCierre.disabled = true;
+            }
+        });
+    }
+
+    if (checkModalCierre && btnAceptarModalCierre) {
+        checkModalCierre.addEventListener('change', function () {
+            btnAceptarModalCierre.disabled = !this.checked;
+        });
+
+        btnAceptarModalCierre.addEventListener('click', function () {
+            if (checkPrincipalCierre) {
+                checkPrincipalCierre.checked = true;
+                checkPrincipalCierre.dispatchEvent(new Event('change'));
+            }
+            if (modalElCierre && typeof bootstrap !== 'undefined') {
+                const modalInstance = bootstrap.Modal.getInstance(modalElCierre) || new bootstrap.Modal(modalElCierre);
+                modalInstance.hide();
+            }
+        });
+    }
+
+    if (formCierre) {
+        formCierre.addEventListener('submit', function (e) {
+            if (checkPrincipalCierre && !checkPrincipalCierre.checked) {
+                e.preventDefault();
+                alert('Debe certificar la exactitud del arqueo físico y aceptar los Términos Legales de Rendición de Fondos y Cierre Contable para continuar.');
+                checkPrincipalCierre.focus();
+                return false;
+            }
+        });
     }
 });
 </script>

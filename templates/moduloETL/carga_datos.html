@@ -110,6 +110,19 @@
                         <div class="form-text small">{{ form.archivo_datos.help_text }}</div>
                     </div>
 
+                    <!-- Aceptación de Términos y Veracidad Contable IFRS -->
+                    <div class="card bg-light border-0 p-3 mb-3 rounded-3">
+                        <div class="form-check m-0">
+                            <input class="form-check-input" type="checkbox" id="checkTerminosETL" name="terminos_aceptados" required>
+                            <label class="form-check-label small text-dark" for="checkTerminosETL">
+                                Certifico la exactitud contable del balance y acepto los 
+                                <a href="javascript:void(0)" class="text-primary fw-semibold text-decoration-underline" data-bs-toggle="modal" data-bs-target="#modalTerminosETL">
+                                    Términos de Ingesta, Veracidad y Validación IFRS
+                                </a> <span class="text-danger">*</span>
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="d-flex justify-content-between align-items-center pt-2 border-top">
                         <a href="{% url 'moduloETL:ratios_financieros' %}" class="btn btn-outline-secondary">
                             Cancelar
@@ -206,6 +219,65 @@
         </div>
     </div>
 </div>
+
+<!-- ====================================================================== -->
+<!-- MODAL DE TÉRMINOS Y CONDICIONES: INGESTA CONTABLE IFRS (ETL)            -->
+<!-- ====================================================================== -->
+<div class="modal fade" id="modalTerminosETL" tabindex="-1" aria-labelledby="modalTerminosETLLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 980px; width: 92%;">
+        <div class="modal-content shadow-sm border">
+            <div class="modal-header bg-white border-bottom py-2.5 px-4">
+                <div>
+                    <h5 class="modal-title fw-bold text-dark fs-6 mb-0" id="modalTerminosETLLabel">
+                        Términos de Ingesta, Veracidad Contable y Validación IFRS
+                    </h5>
+                    <div class="text-secondary" style="font-size: 0.72rem;">
+                        Pipeline ETL &middot; Marco Normativo NIC 1 (IASB) / Normas de la CMF / Código Tributario
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <div class="modal-body p-4 text-dark" style="max-height: 50vh; overflow-y: auto; font-size: 0.78rem; line-height: 1.55; color: #111;">
+                <div class="p-2.5 px-3 mb-3 bg-light border rounded text-dark" style="font-size: 0.75rem;">
+                    <strong>Declaración de Fidedignidad Contable:</strong> La carga de archivos financieros procesa información que sustentará modelos matemáticos predictivos y diagnósticos directivos oficiales.
+                </div>
+
+                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">1. Marco Normativo IFRS y Criterios Contables</h6>
+                <p class="mb-3 text-dark">
+                    El procesamiento automatizado de estados financieros se fundamenta en los criterios de la <strong>Norma Internacional de Contabilidad N° 1 (NIC 1 / IAS 1: Presentación de Estados Financieros)</strong>, adoptada en Chile por la <strong>Comisión para el Mercado Financiero (CMF)</strong>, requiriendo representación fiel de las transacciones, devengo contable y clasificación nítida entre partidas corrientes y no corrientes.
+                </p>
+
+                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">2. Responsabilidad por la Veracidad del Archivo Origen</h6>
+                <p class="mb-3 text-dark">
+                    Conforme al <strong>Artículo 17 y 97 N° 4 del Código Tributario de Chile</strong> y principios generales de contabilidad mercantil, el usuario y la empresa garantizan que el balance general (.xlsx / .csv) incorporado proviene de los libros oficiales y respaldos documentales fidedignos. SmartFinanzas procesa los datos tal como son aportados por el operador.
+                </p>
+
+                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">3. Ecuación Patrimonial y Consistencia Aritmética</h6>
+                <p class="mb-3 text-dark">
+                    El pipeline ETL efectúa validaciones de integridad estricta (Activo Total = Pasivo Total + Patrimonio Neto con tolerancia máxima de 1%), verificación de subcomponentes (Activo Circulante &le; Activo Total) y consistencia temporal de doce meses móviles (LTM) para ventas y EBIT. En caso de detectarse incongruencias severas o saldos incompatibles, el sistema generará advertencias automáticas de anomalías (outliers).
+                </p>
+
+                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">4. Deslinde de Responsabilidad del Motor ETL</h6>
+                <p class="mb-0 text-dark">
+                    La validación algorítmica de la plataforma comprueba consistencia matemática de tipos y fórmulas adimensionales, pero <strong>no reemplaza una auditoría física de inventarios, arqueo pericial ni verificación sustantiva de cartera</strong> por parte de auditores externos independientes.
+                </p>
+            </div>
+
+            <div class="modal-footer bg-light py-2 px-4 border-top d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+                <div class="form-check m-0">
+                    <input class="form-check-input" type="checkbox" id="checkModalETL">
+                    <label class="form-check-label fw-semibold text-dark" for="checkModalETL" style="font-size: 0.78rem;">
+                        Certifico la veracidad contable de los datos y acepto los términos de validación IFRS
+                    </label>
+                </div>
+                <button type="button" class="btn btn-dark btn-sm px-4 fw-semibold" id="btnAceptarModalETL" disabled>
+                    Aceptar y Continuar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -271,6 +343,41 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (inputArchivo) {
         inputArchivo.addEventListener('change', validarArchivo);
+    }
+
+    // Sincronización de Términos de Ingesta Contable (Formulario vs Modal)
+    const checkPrincipalETL = document.getElementById('checkTerminosETL');
+    const checkModalETL = document.getElementById('checkModalETL');
+    const btnAceptarModalETL = document.getElementById('btnAceptarModalETL');
+    const modalElETL = document.getElementById('modalTerminosETL');
+
+    // Al abrir el modal, la casilla SIEMPRE debe estar desmarcada y el botón desactivado
+    if (modalElETL) {
+        modalElETL.addEventListener('show.bs.modal', function () {
+            if (checkModalETL) {
+                checkModalETL.checked = false;
+            }
+            if (btnAceptarModalETL) {
+                btnAceptarModalETL.disabled = true;
+            }
+        });
+    }
+
+    if (checkModalETL && btnAceptarModalETL) {
+        checkModalETL.addEventListener('change', function () {
+            btnAceptarModalETL.disabled = !this.checked;
+        });
+
+        btnAceptarModalETL.addEventListener('click', function () {
+            if (checkPrincipalETL) {
+                checkPrincipalETL.checked = true;
+                checkPrincipalETL.dispatchEvent(new Event('change'));
+            }
+            if (modalElETL && typeof bootstrap !== 'undefined') {
+                const modalInstance = bootstrap.Modal.getInstance(modalElETL) || new bootstrap.Modal(modalElETL);
+                modalInstance.hide();
+            }
+        });
     }
 
     if (formCarga) {

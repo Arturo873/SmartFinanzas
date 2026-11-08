@@ -66,10 +66,10 @@
     </div>
     <div class="mt-3 mt-md-0 d-flex align-items-center gap-2">
         {% if tiene_datos %}
-            <a href="{% url 'dashboard:generar_pdf' %}{% if ultima_prediccion %}?prediccion_id={{ ultima_prediccion.id }}{% endif %}" class="btn btn-outline-secondary btn-sm" title="Descargar Informe Ejecutivo de este período">
+            <button type="button" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#modalTerminosInforme" title="Descargar Informe Ejecutivo oficial en PDF">
                 <i class="bi bi-file-earmark-pdf"></i>
                 <span>Descargar Informe Ejecutivo</span>
-            </a>
+            </button>
             {% if ultimo_ratio %}
                 {% if tiene_anomalias %}
                     <button type="button" class="btn btn-primary btn-sm position-relative d-inline-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#modalAdvertenciaOutliers" title="Se detectaron valores anómalos: requiere revisión o confirmación" id="btnEjecutarAnalisisDashboardModal">
@@ -1224,6 +1224,68 @@
     </div>
 </div>
 {% endif %}
+
+<!-- ====================================================================== -->
+<!-- MODAL DE TÉRMINOS Y DESCARGO DE RESPONSABILIDAD: INFORME ML Y SHAP     -->
+<!-- ====================================================================== -->
+<div class="modal fade" id="modalTerminosInforme" tabindex="-1" aria-labelledby="modalTerminosInformeLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 980px; width: 92%;">
+        <div class="modal-content shadow-sm border">
+            <div class="modal-header bg-white border-bottom py-2.5 px-4">
+                <div>
+                    <h5 class="modal-title fw-bold text-dark fs-6 mb-0" id="modalTerminosInformeLabel">
+                        Descargo de Responsabilidad y Términos de Inferencia Predictiva
+                    </h5>
+                    <div class="text-secondary" style="font-size: 0.72rem;">
+                        Capa Analítica &middot; Principios de IA de la OCDE / Ley N° 21.521 (FinTech) / IEEE Standard 7001
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <div class="modal-body p-4 text-dark" style="max-height: 50vh; overflow-y: auto; font-size: 0.78rem; line-height: 1.55; color: #111;">
+                <div class="p-2.5 px-3 mb-3 bg-light border rounded text-dark" style="font-size: 0.75rem;">
+                    <strong>Aviso Directivo y Legal:</strong> El presente informe compila estimaciones matemáticas asistidas por algoritmos supervisados de Machine Learning y explicabilidad SHAP para soporte exclusivo de la gerencia.
+                </div>
+
+                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">1. Principios de IA Explicable y Fuentes Normativas</h6>
+                <p class="mb-3 text-dark">
+                    La generación del diagnóstico y las atribuciones de importancia factorial se rigen bajo los <strong>Principios de Inteligencia Artificial de la OCDE (OECD Principles on AI, 2019)</strong> y las directrices del <strong>IEEE Standard 7001 para Transparencia en Sistemas Algorítmicos</strong>, garantizando que ninguna decisión se apoye en una "caja negra" inescrutable, sino en variables cuantitativas auditables (X1 a X7).
+                </p>
+
+                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">2. Naturaleza Probabilística y Límite Predictivo</h6>
+                <p class="mb-3 text-dark">
+                    El <strong>Score de Riesgo (0 a 100)</strong> y el <strong>Semáforo de Insolvencia</strong> representan probabilidades estadísticas relativas calibradas sobre muestras históricas de empresas chilenas. En virtud de la <strong>Ley N° 21.521 (Ley FinTech de Chile)</strong>, se deja constancia expresa de que las estimaciones matemáticas no constituyen certeza matemática absoluta sobre el futuro económico de la compañía ni sustituyen contingencias macroeconómicas sobrevinientes.
+                </p>
+
+                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">3. Exención de Asesoría Financiera y Dictamen Pericial</h6>
+                <p class="mb-3 text-dark">
+                    El informe ejecutivo descargado tiene fines exclusivamente informativos y de gobernanza interna. <strong>No constituye asesoría tributaria vinculante, recomendación de inversión en valores ni dictamen pericial judicial</strong> ante el Servicio de Impuestos Internos (SII), la Comisión para el Mercado Financiero (CMF) o tribunales ordinarios de justicia.
+                </p>
+
+                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">4. Deber de Cuidado y Decisión Fiduciaria de la Administración</h6>
+                <p class="mb-0 text-dark">
+                    Conforme al <strong>Artículo 41 de la Ley N° 18.046 sobre Sociedades Anónimas</strong> (aplicable por analogía al estándar general de administración mercantil), la adopción de planes de endeudamiento, recorte de gastos o renegociaciones con acreedores es competencia exclusiva y soberana del Directorio o Representante Legal de la empresa.
+                </p>
+            </div>
+
+            <div class="modal-footer bg-light py-2 px-4 border-top d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+                <div class="form-check m-0">
+                    <input class="form-check-input" type="checkbox" id="checkModalML">
+                    <label class="form-check-label fw-semibold text-dark" for="checkModalML" style="font-size: 0.78rem;">
+                        Entiendo la naturaleza estadística del modelo y acepto los términos de emisión del informe oficial
+                    </label>
+                </div>
+                <a href="{% url 'dashboard:generar_pdf' %}{% if ultima_prediccion %}?prediccion_id={{ ultima_prediccion.id }}{% endif %}" 
+                   class="btn btn-dark btn-sm px-4 fw-semibold disabled" 
+                   id="btnDescargarPdfModal"
+                   target="_blank">
+                    Aceptar y Descargar PDF
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 {% endif %}
 {% endblock %}
 
@@ -1243,6 +1305,46 @@
 <!-- Curva de Tendencia y Control de Períodos Históricos (RF-04) -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    // Control de Aceptación de Términos para Descarga de Informe Ejecutivo
+    const checkModalML = document.getElementById('checkModalML');
+    const btnDescargarPdf = document.getElementById('btnDescargarPdfModal');
+    const modalInformeEl = document.getElementById('modalTerminosInforme');
+
+    // Al abrir el modal, la casilla SIEMPRE debe estar desmarcada y el botón desactivado
+    if (modalInformeEl) {
+        modalInformeEl.addEventListener('show.bs.modal', function () {
+            if (checkModalML) {
+                checkModalML.checked = false;
+            }
+            if (btnDescargarPdf) {
+                btnDescargarPdf.classList.add('disabled');
+            }
+        });
+    }
+
+    if (checkModalML && btnDescargarPdf) {
+        checkModalML.addEventListener('change', function () {
+            if (this.checked) {
+                btnDescargarPdf.classList.remove('disabled');
+            } else {
+                btnDescargarPdf.classList.add('disabled');
+            }
+        });
+
+        btnDescargarPdf.addEventListener('click', function (e) {
+            if (!checkModalML.checked) {
+                e.preventDefault();
+                return;
+            }
+            setTimeout(function () {
+                if (modalInformeEl && typeof bootstrap !== 'undefined') {
+                    const modalInst = bootstrap.Modal.getInstance(modalInformeEl) || new bootstrap.Modal(modalInformeEl);
+                    modalInst.hide();
+                }
+            }, 500);
+        });
+    }
+
     // Inicialización de Tooltips de Bootstrap 5 para métricas y explicabilidad SHAP
     if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
         const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
