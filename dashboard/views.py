@@ -404,26 +404,34 @@ class DashboardView(DashboardRolMixin, TemplateView):
 class GenerarPDFView(DashboardRolMixin, View):
     """
     Controlador para exportar el Informe Ejecutivo en PDF utilizando ReportLab.
-    Permite a los directivos descargar el diagnóstico formal de riesgo y explicabilidad.
+    Permite a los directivos descargar el diagnóstico formal estructurado de riesgo,
+    explicabilidad SHAP completa, ratios financieros y estados contables.
     """
 
     def get(self, request: HttpRequest):
         usuario_db = resolver_usuario_bd(request.user)
         empresa_usuario = usuario_db.empresa if usuario_db else None
 
-        predicciones_qs = PrediccionRiesgo.objects.select_related('empresa', 'ratio')
+        predicciones_qs = PrediccionRiesgo.objects.select_related('empresa', 'ratio', 'ejecutada_por_usuario')
         if empresa_usuario:
             predicciones_qs = predicciones_qs.filter(empresa=empresa_usuario)
         elif not request.user.is_superuser:
             predicciones_qs = predicciones_qs.none()
 
         prediccion_id_param = (request.GET.get('prediccion_id') or '').strip()
+        periodo_param = (request.GET.get('periodo') or '').strip()
+
         ultima_prediccion = None
         if prediccion_id_param and prediccion_id_param.isdigit():
             ultima_prediccion = predicciones_qs.filter(id=int(prediccion_id_param)).first()
+        if not ultima_prediccion and periodo_param:
+            ultima_prediccion = predicciones_qs.filter(
+                Q(ratio__periodo=periodo_param) | Q(ratio__periodo__icontains=periodo_param)
+            ).order_by('-fecha_prediccion', '-id').first()
         if not ultima_prediccion:
             ultima_prediccion = predicciones_qs.order_by('-fecha_prediccion', '-id').first()
 
+        # Variables influyentes SHAP
         top_3_variables = []
         if ultima_prediccion and ultima_prediccion.variables_influyentes:
             try:
@@ -431,6 +439,160 @@ class GenerarPDFView(DashboardRolMixin, View):
             except Exception:
                 top_3_variables = []
 
+        # Ratios de la predicción activa (X1 a X7, Z Altman, Prueba Ácida)
+        ratios_qs = RatioFinanciero.objects.all()
+        if empresa_usuario:
+            ratios_qs = ratios_qs.filter(empresa=empresa_usuario)
+        elif not request.user.is_superuser:
+            ratios_qs = ratios_qs.none()
+
+        ultimo_ratio = (
+            ultima_prediccion.ratio
+            if (ultima_prediccion and ultima_prediccion.ratio)
+            else ratios_qs.order_by('-fecha_calculo', '-id').first()
+        )
+        ratio_asociado_prediccion = ultimo_ratio
+
+        METADATA_ADICIONAL_RATIOS = {
+            'X1': {'formula': 'Activo Corriente / Pasivo Corriente', 'meta': '> 1.50x'},
+            'X2': {'formula': 'Capital de Trabajo / Activo Total', 'meta': '> 0.0%'},
+            'X3': {'formula': 'Pasivo Total / Patrimonio Neto', 'meta': '< 1.00x'},
+            'X4': {'formula': 'Utilidad Operacional / Activo Total', 'meta': '> 5.0%'},
+            'X5': {'formula': 'Utilidad Operacional / Ventas Netas', 'meta': '> 10.0%'},
+            'X6': {'formula': 'Ventas Netas / Activo Total', 'meta': '> 1.00x'},
+            'X7': {'formula': 'Desviación Flujo Diario / Flujo Medio', 'meta': 'Baja dispersión'},
+        }
+
+        shap_dict = {}
+        if ultima_prediccion and ultima_prediccion.impacto_variables:
+            try:
+                raw_impacto = json.loads(ultima_prediccion.impacto_variables)
+                if isinstance(raw_impacto, dict):
+                    shap_dict = raw_impacto
+                elif isinstance(raw_impacto, list):
+                    shap_dict = {item.get('clave', item.get('codigo')): item for item in raw_impacto if isinstance(item, dict)}
+            except Exception as e:
+                logger.warning("Error parseando impacto_variables: %s", e)
+
+        todos_los_ratios_prediccion = []
+        for meta in VARIABLES_FINANCIERAS:
+            cod = meta['codigo']
+            clave = meta['clave']
+            extra = METADATA_ADICIONAL_RATIOS.get(cod, {})
+
+            item = shap_dict.get(clave) or shap_dict.get(cod)
+            if not item:
+                for v in shap_dict.values():
+                    if isinstance(v, dict) and (v.get('codigo') == cod or v.get('clave') == clave):
+                        item = v
+                        break
+
+            if item and isinstance(item, dict):
+                item_copy = dict(item)
+                item_copy['formula'] = extra.get('formula', '')
+                item_copy['meta'] = extra.get('meta', '')
+                item_copy['es_top_3'] = any(t.get('codigo') == cod for t in top_3_variables)
+                todos_los_ratios_prediccion.append(item_copy)
+            else:
+                val = getattr(ratio_asociado_prediccion, meta['clave_etl'], None) if ratio_asociado_prediccion else None
+                val_float = float(val) if val is not None else 0.0
+                texto_desc = meta.get('desc_alza', '') if val_float > 0 else meta.get('desc_baja', '')
+                if not texto_desc:
+                    texto_desc = f"{meta['nombre']}: {val_float:.2f}{meta['unidad']}"
+
+                todos_los_ratios_prediccion.append({
+                    'codigo': cod,
+                    'clave': clave,
+                    'nombre': meta['nombre'],
+                    'grupo': meta['grupo'],
+                    'valor': val_float,
+                    'unidad': meta['unidad'],
+                    'impacto_shap': 0.0,
+                    'impacto_pct': 0.0,
+                    'impacto_abs': 0.0,
+                    'texto': texto_desc,
+                    'texto_resumen': f"Ratio {meta['nombre']}",
+                    'aumenta_riesgo': False,
+                    'formula': extra.get('formula', ''),
+                    'meta': extra.get('meta', ''),
+                    'es_top_3': any(t.get('codigo') == cod for t in top_3_variables),
+                })
+
+        # Información del balance contable del período
+        carga_financiera = None
+        if ratio_asociado_prediccion and ratio_asociado_prediccion.carga:
+            carga_financiera = ratio_asociado_prediccion.carga
+        elif ratio_asociado_prediccion and ratio_asociado_prediccion.periodo:
+            carga_qs = CargaFinanciera.objects.filter(periodo=ratio_asociado_prediccion.periodo)
+            if empresa_usuario:
+                carga_qs = carga_qs.filter(empresa=empresa_usuario)
+            carga_financiera = carga_qs.order_by('-fecha_carga', '-id').first()
+
+        if not carga_financiera and empresa_usuario:
+            carga_financiera = CargaFinanciera.objects.filter(empresa=empresa_usuario).order_by('-fecha_carga', '-id').first()
+
+        info_periodo = None
+        if carga_financiera:
+            act_total = float(carga_financiera.activo_total or 0)
+            pas_total = float(carga_financiera.pasivo_total or 0)
+            patrimonio = float(carga_financiera.patrimonio or 0)
+            act_cte = float(carga_financiera.activo_corriente or 0)
+            pas_cte = float(carga_financiera.pasivo_corriente or 0)
+            act_no_cte = max(0.0, act_total - act_cte)
+            pas_no_cte = max(0.0, pas_total - pas_cte)
+            cap_trabajo = act_cte - pas_cte
+            ingresos = float(carga_financiera.ingresos_netos or 0)
+            ebit = float(carga_financiera.ebit or 0)
+            util_neta = float(carga_financiera.utilidad_neta or 0)
+            efectivo = float(carga_financiera.efectivo_equivalentes or 0)
+            inventarios = float(carga_financiera.inventarios or 0)
+            util_retenidas = float(carga_financiera.utilidades_retenidas or 0)
+
+            dif_cuadre = abs(act_total - (pas_total + patrimonio))
+            cuadrado = dif_cuadre < 2.0
+
+            info_periodo = {
+                'periodo': carga_financiera.periodo,
+                'fecha_carga': carga_financiera.fecha_carga,
+                'archivo_origen': carga_financiera.archivo_origen,
+                'tipo_carga': carga_financiera.tipo_carga,
+                'activo_total': act_total,
+                'pasivo_total': pas_total,
+                'patrimonio': patrimonio,
+                'activo_corriente': act_cte,
+                'pasivo_corriente': pas_cte,
+                'activo_no_corriente': act_no_cte,
+                'pasivo_no_corriente': pas_no_cte,
+                'capital_trabajo': cap_trabajo,
+                'ingresos_netos': ingresos,
+                'ebit': ebit,
+                'utilidad_neta': util_neta,
+                'efectivo_equivalentes': efectivo,
+                'inventarios': inventarios,
+                'utilidades_retenidas': util_retenidas,
+                'cuadrado': cuadrado,
+                'dif_cuadre': dif_cuadre,
+                'ratio_endeudamiento': (pas_total / act_total * 100.0) if act_total else 0.0,
+                'margen_ebit_pct': (ebit / ingresos * 100.0) if ingresos else 0.0,
+                'margen_neto_pct': (util_neta / ingresos * 100.0) if ingresos else 0.0,
+            }
+
+        # Evaluaciones históricas (para mostrar la curva / tendencia de solvencia en tabla)
+        ultimas_predicciones = list(predicciones_qs.order_by('-fecha_prediccion', '-id')[:10])
+        predicciones_cronologicas = list(reversed(ultimas_predicciones))
+        historico_puntos = [
+            {
+                'id': p.id,
+                'periodo': p.ratio.periodo if (p.ratio and p.ratio.periodo) else (p.fecha_prediccion.strftime('%d/%m/%Y') if p.fecha_prediccion else f"#{p.id}"),
+                'fecha': p.fecha_prediccion.strftime('%d/%m/%Y %H:%M') if p.fecha_prediccion else 'N/A',
+                'score': float(p.score_riesgo or 0.0),
+                'nivel': p.nivel_semaforo or ('Rojo' if (p.score_riesgo or 0) > 70 else 'Amarillo' if (p.score_riesgo or 0) > 35 else 'Verde'),
+                'es_actual': bool(ultima_prediccion and p.id == ultima_prediccion.id),
+            }
+            for p in predicciones_cronologicas
+        ]
+
+        # Operaciones de caja y ventas de hoy
         hoy = timezone.localdate()
         ventas_hoy_qs = Venta.objects.filter(fecha__date=hoy)
         if empresa_usuario:
@@ -449,9 +611,16 @@ class GenerarPDFView(DashboardRolMixin, View):
                 ingreso_real_hoy=ingreso_real_hoy,
                 usuario=usuario_db or request.user,
                 total_ventas_hoy=total_ventas_hoy,
+                todos_los_ratios=todos_los_ratios_prediccion,
+                ratio_asociado=ratio_asociado_prediccion,
+                info_periodo=info_periodo,
+                historico_puntos=historico_puntos,
             )
 
-            nombre_archivo = f"informe_ejecutivo_riesgo_{timezone.now().strftime('%Y%m%d_%H%M')}.pdf"
+            per_slug = ""
+            if ultima_prediccion and ultima_prediccion.ratio and ultima_prediccion.ratio.periodo:
+                per_slug = f"_{ultima_prediccion.ratio.periodo}"
+            nombre_archivo = f"informe_ejecutivo_riesgo{per_slug}_{timezone.now().strftime('%Y%m%d_%H%M')}.pdf"
             response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
             return response
