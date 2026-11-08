@@ -6,88 +6,267 @@
 <div class="d-flex flex-wrap align-items-center justify-content-between pb-3 mb-4 border-bottom">
     <div>
         <h1 class="h3 fw-bold text-dark mb-1">
-            <i class="bi bi-cloud-arrow-up text-primary me-2"></i>Módulo ETL: Carga de Estados
+            <i class="bi bi-cpu text-primary me-2"></i>Módulo ETL: Carga de Estados
         </h1>
         <p class="text-muted mb-0 small">
-            Extracción, saneamiento de tipos y validación matemática de estados financieros (.csv, .xlsx).
+            Extracción en memoria de estados financieros (CMF / IFRS / Balances PYME) y generación del vector de 7 razones financieras para Machine Learning.
         </p>
     </div>
     <div class="mt-2 mt-md-0 d-flex gap-2">
-        <a href="{% url 'moduloETL:descargar_plantilla' %}" class="btn btn-outline-primary btn-sm shadow-sm">
+        <a href="{% url 'moduloETL:descargar_plantilla' %}" class="btn btn-outline-secondary btn-sm shadow-sm">
             <i class="bi bi-file-earmark-arrow-down me-1"></i>Descargar Plantilla CSV
+        </a>
+        <a href="{% url 'moduloETL:ratios_financieros' %}" class="btn btn-outline-primary btn-sm shadow-sm">
+            <i class="bi bi-graph-up me-1"></i>Ver Ratios Guardados
         </a>
     </div>
 </div>
 {% endblock %}
 
 {% block content %}
-<div class="row g-4">
-    <!-- COLUMNA IZQUIERDA: FORMULARIO DE CARGA -->
-    <div class="col-lg-7">
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-white py-3 border-bottom">
-                <h5 class="fw-bold mb-0 text-dark">
-                    <i class="bi bi-upload text-primary me-2"></i>Subir y Procesar Archivo Contable
-                </h5>
+{% if etl_resultado %}
+<!-- ====================================================================== -->
+<!-- SECCIÓN DE RESULTADOS EN MEMORIA: RATIOS Y METADATOS EXTRAÍDOS (FULL)  -->
+<!-- ====================================================================== -->
+<div class="card shadow-sm border-0 mb-4 border-start border-4 border-success">
+    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <h5 class="fw-bold mb-0 text-success">
+                <i class="bi bi-check-circle-fill me-2"></i>Extracción ETL Exitosa (In-Memory)
+            </h5>
+            <span class="text-muted small">
+                Datos procesados en memoria listos para inferencia del modelo predictivo de insolvencia.
+            </span>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-outline-secondary" onclick="copiarVectorJSON()" title="Copiar Vector en JSON">
+                <i class="bi bi-clipboard me-1"></i>Copiar JSON
+            </button>
+            <button class="btn btn-sm btn-outline-success" onclick="descargarVectorCSV()" title="Descargar como CSV">
+                <i class="bi bi-download me-1"></i>Exportar CSV
+            </button>
+        </div>
+    </div>
+    <div class="card-body p-4">
+        <!-- Metadatos de la Empresa Detectada -->
+        <div class="row g-3 mb-4">
+            <div class="col-sm-6 col-md-3">
+                <div class="p-3 bg-light rounded-3 border">
+                    <div class="text-muted small">Razón Social:</div>
+                    <div class="fw-bold text-dark text-truncate" title="{{ etl_resultado.metadatos.razon_social }}">
+                        {{ etl_resultado.metadatos.razon_social|default:"N/A" }}
+                    </div>
+                </div>
             </div>
-            <div class="card-body p-4">
-                <!-- Identificación de la Empresa del Usuario en Sesión -->
-                <div class="card bg-light border-0 mb-4">
-                    <div class="card-body p-3 d-flex align-items-center gap-3">
-                        <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-2 text-center" style="width: 42px; height: 42px;">
-                            <i class="bi bi-building fs-5"></i>
-                        </div>
-                        <div>
-                            <div class="text-muted small">Empresa vinculada a tu cuenta:</div>
-                            <div class="fw-bold text-dark fs-6">
-                                {{ empresa_usuario.razon_social|default:"Empresa Asignada" }}
-                                {% if empresa_usuario.rut %}
-                                    <span class="badge bg-secondary-subtle text-secondary font-monospace ms-1">{{ empresa_usuario.rut }}</span>
-                                {% endif %}
-                            </div>
+            <div class="col-sm-6 col-md-3">
+                <div class="p-3 bg-light rounded-3 border">
+                    <div class="text-muted small">RUT:</div>
+                    <div class="fw-bold text-dark font-monospace">
+                        {{ etl_resultado.metadatos.rut|default:"N/A" }}
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <div class="p-3 bg-light rounded-3 border">
+                    <div class="text-muted small">Moneda Reporte:</div>
+                    <div class="fw-bold text-dark">
+                        {{ etl_resultado.metadatos.moneda|default:"CLP" }}
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <div class="p-3 bg-light rounded-3 border">
+                    <div class="text-muted small">Orientación:</div>
+                    <span class="badge {% if etl_resultado.layout == 'horizontal' %}bg-primary-subtle text-primary border border-primary-subtle{% else %}bg-info-subtle text-info border border-info-subtle{% endif %}">
+                        {{ etl_resultado.layout|upper }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advertencias Contables si existen -->
+        {% if etl_resultado.advertencias %}
+            <div class="alert alert-warning shadow-sm mb-4">
+                <div class="fw-bold mb-1">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>Advertencias de Auditoría Detectadas:
+                </div>
+                <ul class="mb-0 ps-3 small">
+                    {% for adv in etl_resultado.advertencias %}
+                        <li>{{ adv }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        <!-- Tabla de los 7 Ratios Financieros para ML -->
+        <h6 class="fw-bold text-dark mb-2">
+            <i class="bi bi-table text-primary me-2"></i>Vector de 7 Ratios Financieros (Insumo ML)
+        </h6>
+        <div class="table-responsive mb-4">
+            <table class="table table-hover table-bordered align-middle text-center small mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="text-start">Período</th>
+                        <th title="V1: Activo Circulante / Pasivo Circulante">V1: Razón Corriente</th>
+                        <th title="V2: (Activo Circulante - Pasivo Circulante) / Activo Total">V2: Cap. Trabajo / AT</th>
+                        <th title="V3: Pasivo Total / Patrimonio Neto">V3: Leverage Total</th>
+                        <th title="V4: EBIT / Activo Total">V4: ROA Operacional</th>
+                        <th title="V5: EBIT / Ventas">V5: Margen Operacional</th>
+                        <th title="V6: Ventas / Activo Total">V6: Rotación Activos</th>
+                        <th title="V7: Volatilidad Flujo Caja">V7: Volatilidad FEO</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in etl_resultado.features_rows %}
+                        <tr>
+                            <td class="fw-bold text-start font-monospace text-primary">{{ row.periodo }}</td>
+                            <td>
+                                <span class="badge {% if row.razon_corriente >= 1.0 %}bg-success-subtle text-success{% else %}bg-danger-subtle text-danger{% endif %} font-monospace">
+                                    {{ row.razon_corriente|floatformat:4 }}
+                                </span>
+                            </td>
+                            <td class="font-monospace">{{ row.capital_trabajo_sobre_activos|floatformat:4 }}</td>
+                            <td>
+                                <span class="badge {% if row.leverage_total >= 10.0 %}bg-danger-subtle text-danger border border-danger-subtle{% else %}bg-secondary-subtle text-dark{% endif %} font-monospace">
+                                    {{ row.leverage_total|floatformat:4 }}
+                                </span>
+                            </td>
+                            <td class="font-monospace">{{ row.roa_operacional|floatformat:4 }}</td>
+                            <td class="font-monospace">{{ row.margen_operacional|floatformat:4 }}</td>
+                            <td class="font-monospace">{{ row.rotacion_activos|floatformat:4 }}</td>
+                            <td class="font-monospace">{{ row.volatilidad_flujo_caja|floatformat:4 }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-muted py-3">No hay registros de ratios generados.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Acordeón de Cuentas Contables Extraídas -->
+        <div class="accordion" id="accordionAuditoria">
+            <div class="accordion-item border rounded-3">
+                <h2 class="accordion-header" id="headingAuditoria">
+                    <button class="accordion-button collapsed fw-semibold text-dark bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAuditoria" aria-expanded="false" aria-controls="collapseAuditoria">
+                        <i class="bi bi-search me-2 text-primary"></i>Ver Cuentas Canónicas IFRS Homologadas (Auditoría)
+                    </button>
+                </h2>
+                <div id="collapseAuditoria" class="accordion-collapse collapse" aria-labelledby="headingAuditoria" data-bs-parent="#accordionAuditoria">
+                    <div class="accordion-body p-3">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped small align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Período</th>
+                                        <th>Activo Circ.</th>
+                                        <th>Pasivo Circ.</th>
+                                        <th>Activo Total</th>
+                                        <th>Pasivo Total</th>
+                                        <th>Patrimonio Neto</th>
+                                        <th>EBIT</th>
+                                        <th>Ingresos Netos</th>
+                                        <th>Flujo Oper.</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in etl_resultado.cuentas_rows %}
+                                        <tr>
+                                            <td class="fw-bold font-monospace">{{ item.periodo }}</td>
+                                            <td>${{ item.Activo_Circulante|floatformat:0 }}</td>
+                                            <td>${{ item.Pasivo_Circulante|floatformat:0 }}</td>
+                                            <td class="fw-semibold text-primary">${{ item.Activo_Total|floatformat:0 }}</td>
+                                            <td>${{ item.Pasivo_Total|floatformat:0 }}</td>
+                                            <td>${{ item.Patrimonio_Neto|floatformat:0 }}</td>
+                                            <td>${{ item.EBIT|floatformat:0 }}</td>
+                                            <td>${{ item.Ingresos_Netos|floatformat:0 }}</td>
+                                            <td>${{ item.Flujo_Operacional|floatformat:0 }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
-                <p class="text-muted small mb-4">
-                    Sube el balance general de tu empresa en formato <strong>.xlsx</strong> o <strong>.csv</strong>.
-                    El motor ETL verificará la consistencia matemática de las cuentas y calculará las 7 variables adimensionales predictivas.
-                </p>
+<div class="row g-4">
+    <!-- COLUMNA IZQUIERDA: FORMULARIO DE CARGA Y ESTADO ACTIVO -->
+    <div class="col-lg-7">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-file-earmark-spreadsheet text-primary me-2"></i>Ingesta de Estados Financieros (.xlsx / .xls / .csv)
+                </h5>
+                <span class="badge bg-primary-subtle text-primary fw-normal">Inferencia ML</span>
+            </div>
+            <div class="card-body p-4">
+                <!-- Identificación de la Empresa -->
+                <div class="card bg-light border-0 mb-4">
+                    <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-2 text-center" style="width: 40px; height: 40px;">
+                                <i class="bi bi-building fs-5"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small">Empresa vinculada a tu cuenta:</div>
+                                <div class="fw-bold text-dark fs-6">
+                                    {{ empresa_usuario.razon_social|default:"Empresa Asignada" }}
+                                    {% if empresa_usuario.rut %}
+                                        <span class="badge bg-secondary-subtle text-secondary font-monospace ms-1">{{ empresa_usuario.rut }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <span class="badge bg-light text-muted border">Modo Autónomo</span>
+                    </div>
+                </div>
 
-                <form method="POST" enctype="multipart/form-data" novalidate id="formCargaETL">
+                <!-- Formulario de Subida -->
+                <form method="POST" action="{% url 'moduloETL:carga_datos' %}" enctype="multipart/form-data" novalidate id="formCargaETL">
                     {% csrf_token %}
 
-                    {% if form.non_field_errors %}
-                        <div class="alert alert-danger shadow-sm mb-3">
-                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                            {% for error in form.non_field_errors %}
-                                <span>{{ error }}</span>
-                            {% endfor %}
+                    {% if error_mensaje %}
+                        <div class="alert alert-danger shadow-sm mb-3 d-flex align-items-start gap-2">
+                            <i class="bi bi-exclamation-triangle-fill fs-5 text-danger flex-shrink-0 mt-1"></i>
+                            <div>
+                                <strong>Error de Ingesta ETL:</strong>
+                                <div>{{ error_mensaje }}</div>
+                            </div>
                         </div>
                     {% endif %}
 
-                    <!-- Tipo de Documento -->
-                    <div class="mb-3">
-                        <label for="{{ form.tipo_documento.id_for_label }}" class="form-label fw-semibold">
-                            {{ form.tipo_documento.label }} <span class="text-danger">*</span>
-                        </label>
-                        {{ form.tipo_documento }}
-                        {% if form.tipo_documento.errors %}
-                            <div class="text-danger small mt-1">
-                                {{ form.tipo_documento.errors|striptags }}
-                            </div>
-                        {% endif %}
-                        <div class="form-text small">{{ form.tipo_documento.help_text }}</div>
-                    </div>
-
-                    <!-- Archivo de Datos -->
+                    <!-- Zona Drag & Drop -->
                     <div class="mb-4">
-                        <label for="{{ form.archivo_datos.id_for_label }}" class="form-label fw-semibold">
-                            {{ form.archivo_datos.label }} <span class="text-danger">*</span>
+                        <label class="form-label fw-semibold text-dark mb-2">
+                            Seleccionar Archivo Contable <span class="text-danger">*</span>
                         </label>
-                        {{ form.archivo_datos }}
+                        <div id="dropZone" class="border border-2 border-dashed rounded-3 p-4 text-center bg-light bg-opacity-50 position-relative transition" style="cursor: pointer;">
+                            <input type="file" name="archivo_datos" id="id_archivo_datos" class="position-absolute top-0 start-0 w-100 h-100 opacity-0" style="cursor: pointer;" accept=".xlsx,.xls,.csv" required>
+                            <div id="dropZoneContent">
+                                <i class="bi bi-cloud-arrow-up-fill text-primary display-4 mb-2 d-block"></i>
+                                <h6 class="fw-bold text-dark mb-1">Arrastra tu archivo aquí o haz clic para explorar</h6>
+                                <p class="text-muted small mb-2">
+                                    Soporta <strong>Excel (.xlsx, .xls)</strong> y <strong>CSV (.csv)</strong> con estados financieros oficiales CMF o balances clasificados.
+                                </p>
+                                <span class="badge bg-secondary-subtle text-secondary">Límite: hasta 25 MB (RNF-10)</span>
+                            </div>
+                            <div id="dropZoneSelected" class="d-none">
+                                <i class="bi bi-file-earmark-check-fill text-success display-4 mb-2 d-block"></i>
+                                <h6 class="fw-bold text-dark mb-1" id="selectedFileName">archivo.xlsx</h6>
+                                <p class="text-muted small mb-2" id="selectedFileSize">0.0 MB</p>
+                                <button type="button" class="btn btn-sm btn-outline-danger" id="btnRemoverArchivo">
+                                    <i class="bi bi-x-circle me-1"></i>Cambiar archivo
+                                </button>
+                            </div>
+                        </div>
 
-                        <!-- Contenedor de advertencia frontend para archivos que superen 25 MB (RNF-10) -->
+                        <!-- Advertencia frontend RNF-10 -->
                         <div id="alertaTamanoArchivo" class="alert alert-danger d-none mt-2 p-2.5 small align-items-center shadow-sm" role="alert">
                             <i class="bi bi-exclamation-triangle-fill fs-5 me-2 flex-shrink-0 text-danger"></i>
                             <div>
@@ -96,22 +275,45 @@
                             </div>
                         </div>
 
-                        <!-- Indicador de archivo válido -->
+                        <!-- Indicador de archivo válido (RNF-10) -->
                         <div id="infoArchivoValido" class="d-none mt-2 text-success small align-items-center">
                             <i class="bi bi-check-circle-fill me-1"></i>
                             <span id="mensajeArchivoValido"></span>
                         </div>
-
-                        {% if form.archivo_datos.errors %}
-                            <div class="text-danger small mt-1">
-                                {{ form.archivo_datos.errors|striptags }}
-                            </div>
-                        {% endif %}
-                        <div class="form-text small">{{ form.archivo_datos.help_text }}</div>
                     </div>
 
-                    <!-- Aceptación de Términos y Veracidad Contable IFRS -->
-                    <div class="card bg-light border-0 p-3 mb-3 rounded-3">
+                    <!-- Selector de Formato / Auto-detección -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-sm-6">
+                            <div class="border rounded-3 p-3 h-100 bg-white shadow-sm">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="orientacion_modo" id="modoAuto" value="auto" checked>
+                                    <label class="form-check-label fw-semibold text-dark" for="modoAuto">
+                                        <i class="bi bi-magic text-primary me-1"></i>Detección Automática (Recomendado)
+                                    </label>
+                                </div>
+                                <div class="text-muted small mt-1 ms-4 ps-1">
+                                    Identifica automáticamente si el reporte es CMF horizontal o PYME vertical.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="border rounded-3 p-3 h-100 bg-white shadow-sm">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="orientacion_modo" id="modoCMF" value="cmf">
+                                    <label class="form-check-label fw-semibold text-dark" for="modoCMF">
+                                        <i class="bi bi-building-check text-success me-1"></i>Estándar CMF Oficial
+                                    </label>
+                                </div>
+                                <div class="text-muted small mt-1 ms-4 ps-1">
+                                    Optimizado para reportes descargados directamente del portal de la CMF.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Aceptación de Términos Contables IFRS -->
+                    <div class="card bg-light border-0 p-3 mb-4 rounded-3">
                         <div class="form-check m-0">
                             <input class="form-check-input" type="checkbox" id="checkTerminosETL" name="terminos_aceptados" required>
                             <label class="form-check-label small text-dark" for="checkTerminosETL">
@@ -123,12 +325,13 @@
                         </div>
                     </div>
 
+                    <!-- Botones de Acción -->
                     <div class="d-flex justify-content-between align-items-center pt-2 border-top">
                         <a href="{% url 'moduloETL:ratios_financieros' %}" class="btn btn-outline-secondary">
                             Cancelar
                         </a>
-                        <button type="submit" class="btn btn-primary px-4 shadow-sm" id="btnSubmit">
-                            <i class="bi bi-play-circle-fill me-1"></i>Procesar e Ingestar Balance
+                        <button type="submit" class="btn btn-primary px-4 shadow-sm fw-semibold" id="btnSubmit">
+                            <i class="bi bi-lightning-charge-fill me-1"></i>Procesar y Extraer Ratios
                         </button>
                     </div>
                 </form>
@@ -171,22 +374,8 @@
         </div>
     </div>
 
-    <!-- COLUMNA DERECHA: REQUISITOS DE VALIDACIÓN Y ESTRUCTURA -->
+    <!-- COLUMNA DERECHA: CARGAS RECIENTES -->
     <div class="col-lg-5">
-        <!-- Requisitos de Validación -->
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-white py-3 border-bottom">
-                <h6 class="fw-bold mb-0 text-dark">
-                    <i class="bi bi-info-circle text-primary me-2"></i>Estructura Requerida de la Plantilla
-                </h6>
-            </div>
-            <div class="card-body p-3">
-                <p class="text-muted small mb-0">
-                    <i class="bi bi-check2-circle text-primary me-1"></i>Estados Financieros bajo estándar IFRS.
-                </p>
-            </div>
-        </div>
-
         <!-- Últimas Cargas Registradas -->
         <div class="card shadow-sm border-0">
             <div class="card-header bg-white py-3 border-bottom">
@@ -224,12 +413,12 @@
 <!-- MODAL DE TÉRMINOS Y CONDICIONES: INGESTA CONTABLE IFRS (ETL)            -->
 <!-- ====================================================================== -->
 <div class="modal fade" id="modalTerminosETL" tabindex="-1" aria-labelledby="modalTerminosETLLabel" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 980px; width: 92%;">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 920px; width: 92%;">
         <div class="modal-content shadow-sm border">
             <div class="modal-header bg-white border-bottom py-2.5 px-4">
                 <div>
                     <h5 class="modal-title fw-bold text-dark fs-6 mb-0" id="modalTerminosETLLabel">
-                        Términos de Ingesta, Veracidad Contable y Validación IFRS
+                        Términos de Ingesta, Veracidad Contable y Validación IFRS / CMF
                     </h5>
                     <div class="text-secondary" style="font-size: 0.72rem;">
                         Pipeline ETL &middot; Marco Normativo NIC 1 (IASB) / Normas de la CMF / Código Tributario
@@ -238,28 +427,28 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
 
-            <div class="modal-body p-4 text-dark" style="max-height: 50vh; overflow-y: auto; font-size: 0.78rem; line-height: 1.55; color: #111;">
+            <div class="modal-body p-4 text-dark" style="max-height: 50vh; overflow-y: auto; font-size: 0.78rem; line-height: 1.55;">
                 <div class="p-2.5 px-3 mb-3 bg-light border rounded text-dark" style="font-size: 0.75rem;">
                     <strong>Declaración de Fidedignidad Contable:</strong> La carga de archivos financieros procesa información que sustentará modelos matemáticos predictivos y diagnósticos directivos oficiales.
                 </div>
 
                 <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">1. Marco Normativo IFRS y Criterios Contables</h6>
-                <p class="mb-3 text-dark">
+                <p class="mb-3">
                     El procesamiento automatizado de estados financieros se fundamenta en los criterios de la <strong>Norma Internacional de Contabilidad N° 1 (NIC 1 / IAS 1: Presentación de Estados Financieros)</strong>, adoptada en Chile por la <strong>Comisión para el Mercado Financiero (CMF)</strong>, requiriendo representación fiel de las transacciones, devengo contable y clasificación nítida entre partidas corrientes y no corrientes.
                 </p>
 
                 <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">2. Responsabilidad por la Veracidad del Archivo Origen</h6>
-                <p class="mb-3 text-dark">
-                    Conforme al <strong>Artículo 17 y 97 N° 4 del Código Tributario de Chile</strong> y principios generales de contabilidad mercantil, el usuario y la empresa garantizan que el balance general (.xlsx / .csv) incorporado proviene de los libros oficiales y respaldos documentales fidedignos. SmartFinanzas procesa los datos tal como son aportados por el operador.
+                <p class="mb-3">
+                    Conforme al <strong>Artículo 17 y 97 N° 4 del Código Tributario de Chile</strong> y principios generales de contabilidad mercantil, el usuario y la empresa garantizan que el balance general (.xlsx / .csv) incorporado proviene de los libros oficiales y respaldos documentales fidedignos.
                 </p>
 
                 <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">3. Ecuación Patrimonial y Consistencia Aritmética</h6>
-                <p class="mb-3 text-dark">
-                    El pipeline ETL efectúa validaciones de integridad estricta (Activo Total = Pasivo Total + Patrimonio Neto con tolerancia máxima de 1%), verificación de subcomponentes (Activo Circulante &le; Activo Total) y consistencia temporal de doce meses móviles (LTM) para ventas y EBIT. En caso de detectarse incongruencias severas o saldos incompatibles, el sistema generará advertencias automáticas de anomalías (outliers).
+                <p class="mb-3">
+                    El pipeline ETL efectúa validaciones de integridad estricta (Activo Total = Pasivo Total + Patrimonio Neto con tolerancia máxima de 5%), verificación de subcomponentes y contención de divisiones por cero.
                 </p>
 
                 <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">4. Deslinde de Responsabilidad del Motor ETL</h6>
-                <p class="mb-0 text-dark">
+                <p class="mb-0">
                     La validación algorítmica de la plataforma comprueba consistencia matemática de tipos y fórmulas adimensionales, pero <strong>no reemplaza una auditoría física de inventarios, arqueo pericial ni verificación sustantiva de cartera</strong> por parte de auditores externos independientes.
                 </p>
             </div>
@@ -293,73 +482,105 @@ document.addEventListener('DOMContentLoaded', function() {
     const mensajeTamano = document.getElementById('mensajeTamanoArchivo');
     const infoValido = document.getElementById('infoArchivoValido');
     const mensajeValido = document.getElementById('mensajeArchivoValido');
+    const dropZone = document.getElementById('dropZone');
+    const dropZoneContent = document.getElementById('dropZoneContent');
+    const dropZoneSelected = document.getElementById('dropZoneSelected');
+    const selectedFileName = document.getElementById('selectedFileName');
+    const selectedFileSize = document.getElementById('selectedFileSize');
+    const btnRemoverArchivo = document.getElementById('btnRemoverArchivo');
 
-    function validarArchivo() {
-        if (!inputArchivo || !inputArchivo.files || inputArchivo.files.length === 0) {
+    function actualizarVistaArchivo(archivo) {
+        if (!archivo) {
+            dropZoneContent.classList.remove('d-none');
+            dropZoneSelected.classList.add('d-none');
+            dropZone.classList.remove('border-success', 'bg-success', 'bg-opacity-10');
             if (alertaTamano) alertaTamano.classList.add('d-none');
             if (infoValido) infoValido.classList.add('d-none');
             if (btnSubmit) btnSubmit.disabled = false;
-            return true;
+            return;
         }
 
-        const archivo = inputArchivo.files[0];
-        const tamanoBytes = archivo.size;
-        const tamanoMB = (tamanoBytes / (1024 * 1024)).toFixed(2);
+        const tamanoMB = (archivo.size / (1024 * 1024)).toFixed(2);
 
-        // Validación frontend inmediata: si excede 25 MB, bloquear inmediatamente (RNF-10)
-        if (tamanoBytes > LIMITE_MAX_BYTES) {
+        if (archivo.size > LIMITE_MAX_BYTES) {
             if (mensajeTamano) {
-                mensajeTamano.textContent = `El archivo seleccionado ("${archivo.name}") pesa ${tamanoMB} MB, lo cual supera el límite máximo permitido de ${LIMITE_MAX_MB} MB. Seleccione un archivo de hasta 25 MB para continuar sin saturar el servidor.`;
+                mensajeTamano.textContent = `El archivo seleccionado ("${archivo.name}") pesa ${tamanoMB} MB, superando el límite de ${LIMITE_MAX_MB} MB permitido.`;
             }
             if (alertaTamano) {
                 alertaTamano.classList.remove('d-none');
                 alertaTamano.classList.add('d-flex');
             }
             if (infoValido) infoValido.classList.add('d-none');
-
-            // Limpiar input y deshabilitar botón de procesamiento para no saturar el backend
             inputArchivo.value = '';
-            inputArchivo.classList.add('is-invalid');
+            dropZoneContent.classList.remove('d-none');
+            dropZoneSelected.classList.add('d-none');
+            dropZone.classList.remove('border-success', 'bg-success', 'bg-opacity-10');
             if (btnSubmit) btnSubmit.disabled = true;
-            return false;
-        } else {
-            // Archivo válido dentro del límite (< 25 MB)
-            if (alertaTamano) {
-                alertaTamano.classList.add('d-none');
-                alertaTamano.classList.remove('d-flex');
-            }
-            inputArchivo.classList.remove('is-invalid');
-            inputArchivo.classList.add('is-valid');
-
-            if (infoValido && mensajeValido) {
-                mensajeValido.textContent = `Archivo seleccionado correctamente: "${archivo.name}" (${tamanoMB} MB / ${LIMITE_MAX_MB} MB máx).`;
-                infoValido.classList.remove('d-none');
-                infoValido.classList.add('d-flex');
-            }
-            if (btnSubmit) btnSubmit.disabled = false;
-            return true;
+            return;
         }
+
+        if (alertaTamano) alertaTamano.classList.add('d-none');
+        if (infoValido && mensajeValido) {
+            mensajeValido.textContent = `Archivo seleccionado correctamente: "${archivo.name}" (${tamanoMB} MB / ${LIMITE_MAX_MB} MB máx).`;
+            infoValido.classList.remove('d-none');
+            infoValido.classList.add('d-flex');
+        }
+        selectedFileName.textContent = archivo.name;
+        selectedFileSize.textContent = `${tamanoMB} MB`;
+        dropZoneContent.classList.add('d-none');
+        dropZoneSelected.classList.remove('d-none');
+        dropZone.classList.add('border-success', 'bg-success', 'bg-opacity-10');
+        if (btnSubmit) btnSubmit.disabled = false;
     }
 
     if (inputArchivo) {
-        inputArchivo.addEventListener('change', validarArchivo);
+        inputArchivo.addEventListener('change', function() {
+            if (this.files && this.files.length > 0) {
+                actualizarVistaArchivo(this.files[0]);
+            } else {
+                actualizarVistaArchivo(null);
+            }
+        });
     }
 
-    // Sincronización de Términos de Ingesta Contable (Formulario vs Modal)
+    if (btnRemoverArchivo) {
+        btnRemoverArchivo.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (inputArchivo) inputArchivo.value = '';
+            actualizarVistaArchivo(null);
+        });
+    }
+
+    // Drag and drop visual cues
+    if (dropZone) {
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.add('border-primary', 'bg-primary', 'bg-opacity-10');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('border-primary', 'bg-primary', 'bg-opacity-10');
+            }, false);
+        });
+    }
+
+    // Sincronización Modal Términos IFRS
     const checkPrincipalETL = document.getElementById('checkTerminosETL');
     const checkModalETL = document.getElementById('checkModalETL');
     const btnAceptarModalETL = document.getElementById('btnAceptarModalETL');
     const modalElETL = document.getElementById('modalTerminosETL');
 
-    // Al abrir el modal, la casilla SIEMPRE debe estar desmarcada y el botón desactivado
     if (modalElETL) {
         modalElETL.addEventListener('show.bs.modal', function () {
-            if (checkModalETL) {
-                checkModalETL.checked = false;
-            }
-            if (btnAceptarModalETL) {
-                btnAceptarModalETL.disabled = true;
-            }
+            if (checkModalETL) checkModalETL.checked = false;
+            if (btnAceptarModalETL) btnAceptarModalETL.disabled = true;
         });
     }
 
@@ -380,6 +601,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Spinner en submit
     if (formCarga) {
         formCarga.addEventListener('submit', function(e) {
             if (inputArchivo && inputArchivo.files && inputArchivo.files.length > 0) {
@@ -387,17 +609,45 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (archivo.size > LIMITE_MAX_BYTES) {
                     e.preventDefault();
                     e.stopPropagation();
-                    validarArchivo();
                     return false;
                 }
             }
-
             if (btnSubmit) {
                 btnSubmit.disabled = true;
-                btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Validando balance contable...';
+                btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Extrayendo y procesando ratios en memoria...';
             }
         });
     }
 });
+
+// Funciones de utilidad para copiar y descargar vector de características
+function copiarVectorJSON() {
+    {% if etl_resultado.json_features %}
+        const jsonStr = {{ etl_resultado.json_features|safe }};
+        navigator.clipboard.writeText(JSON.stringify(jsonStr, null, 2)).then(() => {
+            alert("¡Vector de características copiado al portapapeles en formato JSON!");
+        }).catch(err => {
+            console.error("Error al copiar JSON:", err);
+        });
+    {% else %}
+        alert("No hay vector disponible para copiar.");
+    {% endif %}
+}
+
+function descargarVectorCSV() {
+    {% if etl_resultado.csv_features %}
+        const csvContent = {{ etl_resultado.csv_features|safe }};
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", "ratios_financieros_ml_{{ etl_resultado.metadatos.rut|default:'empresa' }}.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    {% else %}
+        alert("No hay vector disponible para descargar.");
+    {% endif %}
+}
 </script>
 {% endblock %}

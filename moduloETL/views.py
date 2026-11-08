@@ -82,18 +82,14 @@ class RolRequeridoMixin(LoginRequiredMixin, UserPassesTestMixin):
         return rol in self.roles_permitidos
 
 
-class CargaArchivoView(RolRequeridoMixin, FormView):
+class CargaArchivoView(RolRequeridoMixin, View):
     """
-    Vista principal de Ingesta y Carga de Archivos Contables.
-    Gestiona el formulario de subida, ejecuta el pipeline ETL y asocia los datos
-    exclusivamente a la empresa del usuario autenticado.
+    Vista principal de Ingesta y Carga de Archivos Contables (carga_datos.html).
+    Impulsada por FinancialETLProcessor en memoria con soporte multi-formato (CMF / PYME).
     """
     template_name = 'moduloETL/carga_datos.html'
-    form_class = CargaArchivoForm
-    success_url = reverse_lazy('moduloETL:ratios_financieros')
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
         estado = EstadoCarga.actual()
         archivo_activo = bool(estado.ruta_csv and os.path.exists(estado.ruta_csv))
 
@@ -109,7 +105,7 @@ class CargaArchivoView(RolRequeridoMixin, FormView):
             cargas_qs = cargas_qs.none()
             ratios_qs = ratios_qs.none()
 
-        context.update({
+        context = {
             'empresa_usuario': empresa_usuario,
             'columnas_plantilla': COLUMNAS_PLANTILLA,
             'archivo_activo': archivo_activo,
@@ -117,50 +113,122 @@ class CargaArchivoView(RolRequeridoMixin, FormView):
             'ultimas_cargas': cargas_qs.select_related('empresa', 'usuario').order_by('-fecha_carga')[:5],
             'total_cargas_historicas': cargas_qs.count(),
             'total_ratios_calculados': ratios_qs.count(),
-        })
+            'etl_resultado': None,
+            'error_mensaje': None,
+        }
+        context.update(kwargs)
         return context
 
-    def form_valid(self, form):
-        archivo = form.cleaned_data['archivo_datos']
-        tipo_documento = form.cleaned_data['tipo_documento']
+    def get(self, request: HttpRequest):
+        context = self.get_context_data()
+        return render(request, self.template_name, context)
 
-        usuario_db = resolver_usuario_bd(self.request.user)
+    def post(self, request: HttpRequest):
+        context = self.get_context_data()
+        archivo = request.FILES.get('archivo_datos')
+        if not archivo:
+            context['error_mensaje'] = 'Debe seleccionar un archivo Excel (.xlsx, .xls) o CSV (.csv) para procesar.'
+            return render(request, self.template_name, context)
+
+        if archivo.size > 25 * 1024 * 1024:
+            context['error_mensaje'] = 'El archivo supera el límite de 25 MB permitido (RNF-10).'
+            return render(request, self.template_name, context)
+
+        orientacion_modo = request.POST.get('orientacion_modo', 'auto')
+        modo_layout = 'horizontal' if orientacion_modo == 'cmf' else None
+
+        usuario_db = resolver_usuario_bd(request.user)
         empresa_usuario = usuario_db.empresa if usuario_db else None
 
-        # Ejecución del Pipeline ETL vinculado a la empresa del usuario
-        exito, errores, resumen = procesar_e_ingestar_balance(
-            archivo=archivo,
-            tipo_documento=tipo_documento,
-            usuario_db=usuario_db,
-            empresa_default=empresa_usuario
-        )
+        # 1. Procesamiento desacoplado en memoria con FinancialETLProcessor
+        try:
+            processor = FinancialETLProcessor(source=archivo, force_layout=modo_layout, auto_process=True)
+            features_df = processor.get_features_df()
+            audit_report = processor.get_audit_report()
 
-        if not exito:
-            for error in errores:
-                messages.error(self.request, error)
-            messages.warning(
-                self.request,
-                "El archivo no fue persistido debido a los errores detectados. Por favor corrija el documento y reintente."
+            features_rows = []
+            for periodo, row in features_df.iterrows():
+                features_rows.append({
+                    'periodo': str(periodo),
+                    'razon_corriente': float(row['razon_corriente']),
+                    'capital_trabajo_sobre_activos': float(row['capital_trabajo_sobre_activos']),
+                    'leverage_total': float(row['leverage_total']),
+                    'roa_operacional': float(row['roa_operacional']),
+                    'margen_operacional': float(row['margen_operacional']),
+                    'rotacion_activos': float(row['rotacion_activos']),
+                    'volatilidad_flujo_caja': float(row['volatilidad_flujo_caja']),
+                })
+
+            cuentas_rows = []
+            cuentas_extraidas = audit_report.get('cuentas_extraidas', {})
+            for per, ctas in cuentas_extraidas.items():
+                item = {'periodo': str(per)}
+                item.update(ctas)
+                cuentas_rows.append(item)
+
+            json_features = json.dumps(features_df.to_dict(orient='index'))
+            csv_features = json.dumps(features_df.to_csv(index=True))
+
+            etl_resultado = {
+                'metadatos': audit_report.get('metadatos', {}) or audit_report.get('metadata', {}),
+                'layout': audit_report.get('layout_detectado', 'horizontal'),
+                'advertencias': audit_report.get('advertencias', []) or audit_report.get('alertas', []),
+                'features_rows': features_rows,
+                'cuentas_rows': cuentas_rows,
+                'json_features': json_features,
+                'csv_features': csv_features,
+            }
+
+            # Si el archivo también es un CSV con las columnas clásicas de plantilla, ejecutar persistencia si aplica
+            tipo_documento = request.POST.get('tipo_documento', 'Balance General')
+            try:
+                archivo.seek(0)
+                exito, errores, resumen = procesar_e_ingestar_balance(
+                    archivo=archivo,
+                    tipo_documento=tipo_documento,
+                    usuario_db=usuario_db,
+                    empresa_default=empresa_usuario
+                )
+                if exito:
+                    cargas_qs = CargaFinanciera.objects.all()
+                    ratios_qs = RatioFinanciero.objects.all()
+                    if empresa_usuario:
+                        cargas_qs = cargas_qs.filter(empresa=empresa_usuario)
+                        ratios_qs = ratios_qs.filter(empresa=empresa_usuario)
+                    context['ultimas_cargas'] = cargas_qs.select_related('empresa', 'usuario').order_by('-fecha_carga')[:5]
+                    context['total_cargas_historicas'] = cargas_qs.count()
+                    context['total_ratios_calculados'] = ratios_qs.count()
+            except Exception:
+                pass
+
+            # Guardar el CSV generado en el EstadoCarga
+            try:
+                ruta_csv_generada = os.path.join('data', f"etl_features_{usuario_db.id if usuario_db else 'anon'}.csv")
+                os.makedirs('data', exist_ok=True)
+                features_df.to_csv(ruta_csv_generada)
+                estado = EstadoCarga.actual()
+                estado.ruta_csv = ruta_csv_generada
+                estado.save()
+                context['archivo_activo'] = True
+                context['ruta_archivo_activo'] = ruta_csv_generada
+            except Exception as e:
+                logger.warning(f"No se pudo actualizar EstadoCarga: {e}")
+
+            context['etl_resultado'] = etl_resultado
+            messages.success(
+                request,
+                f"¡Archivo «{archivo.name}» procesado exitosamente! Se extrajeron {len(features_rows)} período(s) "
+                f"con las 7 razones financieras para Machine Learning."
             )
-            return self.form_invalid(form)
+            return render(request, self.template_name, context)
 
-        messages.success(
-            self.request,
-            f"¡Archivo «{resumen['nombre_archivo']}» ingestó y procesó exitosamente! "
-            f"Se validaron y cargaron {resumen['cargas_creadas']} registro(s) contable(s) "
-            f"para {empresa_usuario.razon_social if empresa_usuario else 'tu empresa'} "
-            f"y se calcularon automáticamente sus ratios predictivos (V1-V7) y de solvencia."
-        )
-
-        total_anomalias = resumen.get('anomalias_detectadas', 0)
-        if total_anomalias > 0:
-            messages.warning(
-                self.request,
-                f"Alerta [RF-10]: Se detectaron {total_anomalias} valor(es) fuera del rango normal (outliers) en las cuentas ingresadas. "
-                "El sistema solicitará confirmación mediante un modal de advertencia antes de ejecutar el modelo de insolvencia."
-            )
-
-        return redirect('moduloETL:ratios_financieros')
+        except ETLError as exc:
+            context['error_mensaje'] = str(exc)
+            return render(request, self.template_name, context)
+        except Exception as exc:
+            logger.exception("Error no controlado en CargaArchivoView")
+            context['error_mensaje'] = f"Ocurrió un error inesperado al procesar el archivo: {exc}"
+            return render(request, self.template_name, context)
 
 
 class RatiosFinancierosListView(RolRequeridoMixin, ListView):
@@ -408,111 +476,4 @@ class DescargarPlantillaView(RolRequeridoMixin, View):
         response = HttpResponse(contenido_csv, content_type='text/csv; charset=utf-8')
         response['Content-Disposition'] = 'attachment; filename="plantilla_estados_financieros_smartfinanzas.csv"'
         return response
-
-
-class CargaArchivoNuevoView(RolRequeridoMixin, View):
-    """
-    Vista del Nuevo Módulo ETL Desacoplado (carga_datos_nuevo.html).
-    Procesa archivos Excel/CSV puramente en memoria con Pandas y OpenPyXL,
-    generando los 7 ratios financieros para Machine Learning sin alterar la BD.
-    """
-    template_name = 'moduloETL/carga_datos_nuevo.html'
-
-    def get(self, request: HttpRequest):
-        usuario_db = resolver_usuario_bd(request.user)
-        empresa_usuario = usuario_db.empresa if usuario_db else None
-        return render(request, self.template_name, {
-            'empresa_usuario': empresa_usuario,
-            'etl_resultado': None,
-            'error_mensaje': None,
-        })
-
-    def post(self, request: HttpRequest):
-        usuario_db = resolver_usuario_bd(request.user)
-        empresa_usuario = usuario_db.empresa if usuario_db else None
-
-        archivo = request.FILES.get('archivo_datos')
-        if not archivo:
-            return render(request, self.template_name, {
-                'empresa_usuario': empresa_usuario,
-                'etl_resultado': None,
-                'error_mensaje': 'Debe seleccionar un archivo Excel (.xlsx, .xls) o CSV (.csv) para procesar.',
-            })
-
-        if archivo.size > 25 * 1024 * 1024:
-            return render(request, self.template_name, {
-                'empresa_usuario': empresa_usuario,
-                'etl_resultado': None,
-                'error_mensaje': 'El archivo supera el límite de 25 MB permitido (RNF-10).',
-            })
-
-        orientacion_modo = request.POST.get('orientacion_modo', 'auto')
-        modo_layout = 'horizontal' if orientacion_modo == 'cmf' else None
-
-        try:
-            processor = FinancialETLProcessor(source=archivo, force_layout=modo_layout, auto_process=True)
-            features_df = processor.get_features_df()
-            audit_report = processor.get_audit_report()
-
-            # Formatear filas de features para renderizado limpio
-            features_rows = []
-            for periodo, row in features_df.iterrows():
-                features_rows.append({
-                    'periodo': str(periodo),
-                    'razon_corriente': float(row['razon_corriente']),
-                    'capital_trabajo_sobre_activos': float(row['capital_trabajo_sobre_activos']),
-                    'leverage_total': float(row['leverage_total']),
-                    'roa_operacional': float(row['roa_operacional']),
-                    'margen_operacional': float(row['margen_operacional']),
-                    'rotacion_activos': float(row['rotacion_activos']),
-                    'volatilidad_flujo_caja': float(row['volatilidad_flujo_caja']),
-                })
-
-            # Formatear cuentas contables extraídas
-            cuentas_rows = []
-            cuentas_extraidas = audit_report.get('cuentas_extraidas', {})
-            for per, ctas in cuentas_extraidas.items():
-                item = {'periodo': str(per)}
-                item.update(ctas)
-                cuentas_rows.append(item)
-
-            # Preparar payload JSON y CSV para exportación rápida en frontend
-            json_features = json.dumps(features_df.to_dict(orient='index'))
-            csv_features = json.dumps(features_df.to_csv(index=True))
-
-            etl_resultado = {
-                'metadatos': audit_report.get('metadatos', {}),
-                'layout': audit_report.get('layout_detectado', 'horizontal'),
-                'advertencias': audit_report.get('advertencias', []),
-                'features_rows': features_rows,
-                'cuentas_rows': cuentas_rows,
-                'json_features': json_features,
-                'csv_features': csv_features,
-            }
-
-            messages.success(
-                request,
-                f"¡Archivo procesado exitosamente en memoria! Se extrajeron {len(features_rows)} período(s) "
-                f"con las 7 razones financieras para Machine Learning."
-            )
-
-            return render(request, self.template_name, {
-                'empresa_usuario': empresa_usuario,
-                'etl_resultado': etl_resultado,
-                'error_mensaje': None,
-            })
-
-        except ETLError as exc:
-            return render(request, self.template_name, {
-                'empresa_usuario': empresa_usuario,
-                'etl_resultado': None,
-                'error_mensaje': str(exc),
-            })
-        except Exception as exc:
-            logger.exception("Error no controlado en CargaArchivoNuevoView")
-            return render(request, self.template_name, {
-                'empresa_usuario': empresa_usuario,
-                'etl_resultado': None,
-                'error_mensaje': f"Ocurrió un error inesperado al procesar el archivo: {exc}",
-            })
 

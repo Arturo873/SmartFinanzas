@@ -3,13 +3,14 @@ Rutas URL para el Módulo ETL de SmartFinanzas.
 """
 
 from django.urls import path
+from django.views.generic import RedirectView
 from . import views
 
 app_name = 'moduloETL'
 
 urlpatterns = [
     path('carga/', views.CargaArchivoView.as_view(), name='carga_datos'),
-    path('carga-nueva/', views.CargaArchivoNuevoView.as_view(), name='carga_datos_nuevo'),
+    path('carga-nueva/', RedirectView.as_view(pattern_name='moduloETL:carga_datos', permanent=False), name='carga_datos_nuevo'),
     path('ratios/', views.RatiosFinancierosListView.as_view(), name='ratios_financieros'),
     path('historial/', views.HistorialCargasListView.as_view(), name='historial_cargas'),
     path('limpiar/', views.LimpiarDatosView.as_view(), name='limpiar_datos'),

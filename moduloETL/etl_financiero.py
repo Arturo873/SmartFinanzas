@@ -353,11 +353,18 @@ class FinancialETLProcessor:
                 grid.append(list(row))
             return grid, ws.title
         except Exception:
-            # Fallback a lectura CSV delimitado
+            # Fallback a lectura CSV delimitado (soporte de comas y punto y coma)
             if hasattr(file_obj, 'seek'):
                 file_obj.seek(0)
             try:
-                df = pd.read_csv(file_obj, header=None, dtype=str)
+                sample = file_obj.read(2048)
+                if hasattr(file_obj, 'seek'):
+                    file_obj.seek(0)
+                if isinstance(sample, bytes):
+                    sample = sample.decode('utf-8', errors='ignore')
+                first_line = sample.split('\n')[0] if sample else ''
+                sep = ';' if ';' in first_line else ','
+                df = pd.read_csv(file_obj, sep=sep, header=None, dtype=str)
                 return df.fillna('').values.tolist(), "CSV_Fallback"
             except Exception as exc:
                 raise InvalidFormatError(f"No fue posible leer el archivo como Excel (.xlsx/.xls) ni como CSV: {exc}")
