@@ -1,5 +1,6 @@
 from decimal import Decimal
 from django import forms
+from django.db.models import Q
 from .models import Venta, MetodoPago, CierreCaja
 
 
@@ -62,10 +63,13 @@ class VentaForm(forms.ModelForm):
             'total_bruto': 'Total Bruto ($)'
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, empresa=None, **kwargs):
         super().__init__(*args, **kwargs)
-        # Mostrar solo los métodos de pago activos
-        self.fields['metodo_pago'].queryset = MetodoPago.objects.filter(activo=True)
+        # Mostrar solo los métodos de pago activos pertenecientes a la empresa o globales
+        metodos_qs = MetodoPago.objects.filter(activo=True)
+        if empresa:
+            metodos_qs = metodos_qs.filter(Q(empresa=empresa) | Q(empresa__isnull=True))
+        self.fields['metodo_pago'].queryset = metodos_qs
         self.fields['metodo_pago'].empty_label = "-- Seleccione Método de Pago --"
 
     def clean_total_bruto(self):
@@ -114,7 +118,7 @@ class VentaForm(forms.ModelForm):
 class CierreCajaForm(forms.ModelForm):
     """
     Formulario de Cierre de Caja y Arqueo Diario.
-    Recibe el 'total_sistema' por kwargs y fuerza la justificación si hay descuadre.
+    Controla la cuadratura física de gaveta (Efectivo) separada de la conciliación electrónica de tarjetas.
     """
     justificacion = forms.CharField(
         required=False,
@@ -122,10 +126,10 @@ class CierreCajaForm(forms.ModelForm):
             'class': 'form-control',
             'id': 'id_justificacion',
             'rows': 3,
-            'placeholder': 'Describa el motivo del descuadre detectado (requerido si hay diferencia)...'
+            'placeholder': 'Describa el motivo del descuadre detectado en gaveta (requerido si hay diferencia)...'
         }),
-        label="Justificación de Descuadre",
-        help_text="Requerido obligatoriamente si el dinero en arqueo no coincide con el total del sistema."
+        label="Justificación de Descuadre en Gaveta",
+        help_text="Requerido obligatoriamente si el dinero físico en gaveta no coincide con el efectivo esperado del sistema."
     )
 
     class Meta:
@@ -140,19 +144,27 @@ class CierreCajaForm(forms.ModelForm):
             })
         }
         labels = {
-            'total_arqueo': 'Total Arqueo Físico ($)'
+            'total_arqueo': 'Efectivo Físico en Gaveta ($)'
         }
 
-    def __init__(self, *args, total_sistema=None, **kwargs):
-        self.total_sistema = total_sistema if total_sistema is not None else Decimal('0.00')
+    def __init__(self, *args, efectivo_esperado=None, total_sistema=None, total_electronico=None, **kwargs):
+        if efectivo_esperado is not None:
+            self.efectivo_esperado = Decimal(str(efectivo_esperado))
+        elif total_sistema is not None:
+            self.efectivo_esperado = Decimal(str(total_sistema))
+        else:
+            self.efectivo_esperado = Decimal('0.00')
+
+        self.total_sistema = Decimal(str(total_sistema)) if total_sistema is not None else self.efectivo_esperado
+        self.total_electronico = Decimal(str(total_electronico)) if total_electronico is not None else Decimal('0.00')
         super().__init__(*args, **kwargs)
 
     def clean_total_arqueo(self):
         total_arqueo = self.cleaned_data.get('total_arqueo')
         if total_arqueo is None:
-            raise forms.ValidationError("Debe ingresar el monto de arqueo físico contado en caja.")
+            raise forms.ValidationError("Debe ingresar el monto de efectivo físico contado en la gaveta.")
         if total_arqueo < Decimal('0.00'):
-            raise forms.ValidationError("El total de arqueo físico no puede ser un valor negativo.")
+            raise forms.ValidationError("El total de efectivo físico no puede ser un valor negativo.")
         return total_arqueo
 
     def clean(self):
@@ -162,20 +174,24 @@ class CierreCajaForm(forms.ModelForm):
 
         if total_arqueo is not None:
             if total_arqueo < Decimal('0.00'):
-                self.add_error('total_arqueo', forms.ValidationError("El monto de arqueo físico no puede ser negativo."))
+                self.add_error('total_arqueo', forms.ValidationError("El monto de efectivo físico no puede ser negativo."))
                 return cleaned_data
 
-            descuadre = total_arqueo - self.total_sistema
+            descuadre = total_arqueo - self.efectivo_esperado
+            # Tolerancia contable para moneda sin centavos (CLP): diferencias menores a $1 peso se consideran cuadradas
+            if abs(descuadre) < Decimal('1.00'):
+                descuadre = Decimal('0.00')
+
             cleaned_data['descuadre_calculado'] = descuadre
 
-            # Si hay descuadre matemático, la justificación es obligatoria
+            # Si hay descuadre en gaveta, la justificación es obligatoria
             if descuadre != Decimal('0.00'):
                 if not justificacion:
-                    signo = "+" if descuadre > 0 else "-"
+                    signo = "+" if descuadre > Decimal('0.00') else "-"
                     self.add_error(
                         'justificacion',
                         forms.ValidationError(
-                            f"Se ha detectado un descuadre de {signo}${abs(descuadre):,.2f}. "
+                            f"Se ha detectado un descuadre en gaveta de {signo}${abs(descuadre):,.0f}. "
                             f"Debe justificar obligatoriamente el motivo de la diferencia para cerrar la caja."
                         )
                     )

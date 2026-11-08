@@ -254,3 +254,64 @@ class ModuloTransaccionalDefensiveTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(CierreCaja.objects.count(), 0)
         self.assertTrue(response.context['form'].has_error('total_arqueo'))
+
+    def test_cierre_caja_opcion_a_cuadratura_efectivo_y_tarjetas(self):
+        """
+        Verifica que según la Opción A:
+        El arqueo físico ingresado solo concilie contra el efectivo en gaveta,
+        permitiendo que la caja quede 'Cuadrado' sin falsos faltantes por ventas con tarjeta.
+        """
+        user_dueno2 = User.objects.create_user(username='dueno_opcion_a', password='password123')
+        PerfilUsuario.objects.create(user=user_dueno2, rol='Dueño')
+        Usuario.objects.create(
+            username='dueno_opcion_a',
+            email='dueno_a@test.cl',
+            rol=self.rol_dueno,
+            empresa=self.empresa,
+        )
+        self.client.login(username='dueno_opcion_a', password='password123')
+
+        # 1. Crear venta en efectivo de $10.000
+        Venta.objects.create(
+            fecha=timezone.now(),
+            total_bruto=Decimal('10000.00'),
+            descuento_monto=Decimal('0.00'),
+            total_cobrado=Decimal('10000.00'),
+            ingreso_real=Decimal('10000.00'),
+            comision_aplicada=Decimal('0.00'),
+            metodo_pago=self.metodo_efectivo,
+            empresa=self.empresa,
+            usuario=self.usuario_db
+        )
+
+        # 2. Crear venta con tarjeta de $19.883
+        Venta.objects.create(
+            fecha=timezone.now(),
+            total_bruto=Decimal('20000.00'),
+            descuento_monto=Decimal('0.00'),
+            total_cobrado=Decimal('20000.00'),
+            ingreso_real=Decimal('19883.00'),
+            comision_aplicada=Decimal('117.00'),
+            metodo_pago=self.metodo_tarjeta,
+            empresa=self.empresa,
+            usuario=self.usuario_db
+        )
+
+        # 3. El cajero cuenta físicamente $10.000 en la gaveta
+        datos = {
+            'total_arqueo': '10000.00',
+            'terminos_aceptados': 'on',
+            'pos_conciliado': 'on',
+            'justificacion': ''
+        }
+        response = self.client.post(self.url_cierre_caja, datos, follow=True)
+        self.assertEqual(response.status_code, 200)
+
+        cierre = CierreCaja.objects.filter(empresa=self.empresa).first()
+        self.assertIsNotNone(cierre)
+        # La caja debe quedar Cuadrada con $0 de descuadre
+        self.assertEqual(cierre.estado, 'Cuadrado')
+        self.assertEqual(cierre.descuadre_total, Decimal('0.00'))
+        # Total sistema consolidado ($10.000 efectivo + $19.883 débito = $29.883)
+        self.assertEqual(cierre.total_sistema, Decimal('29883.00'))
+        self.assertEqual(cierre.total_arqueo, Decimal('29883.00'))

@@ -25,55 +25,102 @@
 
 {% block content %}
 <div class="row g-4">
-    <!-- PANEL DESTACADO: Resumen de Liquidez del Sistema (Card) -->
+    <!-- PANEL DESTACADO: Resumen de Efectivo vs. Ventas Electrónicas (Opción A) -->
     <div class="col-lg-5">
-        <div class="card shadow-sm border-0 mb-4 bg-primary text-white">
+        <!-- TARJETA 1: Efectivo Físico en Gaveta (Base de Cuadratura del Arqueo) -->
+        <div class="card shadow-sm border-0 mb-4 bg-white border-start border-success border-4">
             <div class="card-body p-4">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span class="text-white-50 text-uppercase fw-bold small">Saldo Esperado en Sistema</span>
-                    <i class="bi bi-calculator-fill fs-3 text-white-50"></i>
+                    <span class="text-uppercase fw-bold text-success small" style="letter-spacing: 0.5px;">
+                        <i class="bi bi-cash-stack me-1"></i>Efectivo Esperado en Gaveta
+                    </span>
+                    <span class="badge bg-success bg-opacity-10 text-success fw-bold px-2.5 py-1">
+                        Base del Arqueo Físico
+                    </span>
                 </div>
-                <h2 class="display-5 fw-bold mb-3" id="displayTotalSistema" data-valor="{{ total_sistema }}">
-                    ${{ total_sistema|floatformat:0 }}
+                <h2 class="display-5 fw-bold mb-3 text-dark font-monospace" id="displayEfectivoEsperado" data-valor="{{ efectivo_esperado|stringformat:".2f" }}">
+                    ${{ efectivo_esperado|floatformat:0 }}
                 </h2>
-                <div class="border-top border-white border-opacity-25 pt-3">
-                    <div class="d-flex justify-content-between small text-white-50 mb-1">
-                        <span>(+) Ventas Netas Reales:</span>
-                        <strong class="text-white">${{ total_ingreso_real|floatformat:0 }}</strong>
+                <div class="border-top pt-3">
+                    <div class="d-flex justify-content-between small text-muted mb-2">
+                        <span>(+) Ventas en Efectivo ({{ cantidad_ventas_efectivo }}):</span>
+                        <strong class="text-dark font-monospace">${{ total_efectivo_ventas|floatformat:0 }}</strong>
                     </div>
-                    <div class="d-flex justify-content-between small text-white-50 mb-1">
-                        <span>(-) Retiros Caja Chica:</span>
-                        <strong class="text-white">-${{ total_retiros|floatformat:0 }}</strong>
+                    <div class="d-flex justify-content-between small text-muted mb-2">
+                        <span>(-) Retiros Caja Chica ({{ retiros_huerfanos.count }}):</span>
+                        <strong class="text-danger font-monospace">-${{ total_retiros|floatformat:0 }}</strong>
                     </div>
-                    <div class="d-flex justify-content-between small text-white-50">
-                        <span>Ventas Brutas Totales:</span>
-                        <span class="text-white">${{ total_ventas_bruto|floatformat:0 }}</span>
+                    <div class="d-flex justify-content-between small text-muted">
+                        <span>Saldo Neto a Rendir en Efectivo:</span>
+                        <span class="text-success fw-bold font-monospace">${{ efectivo_esperado|floatformat:0 }}</span>
                     </div>
+                </div>
+                <div class="alert alert-light border mt-3 mb-0 py-2 px-3 small text-muted">
+                    <i class="bi bi-info-circle text-success me-1"></i>
+                    <strong>Regla de Cuadratura:</strong> Este es el único saldo que debe coincidir con los billetes y monedas que cuentes en la caja física.
                 </div>
             </div>
         </div>
 
-        <!-- Desglose por Método de Pago -->
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-white py-3 border-bottom">
-                <h6 class="fw-bold mb-0 text-dark">
-                    <i class="bi bi-pie-chart-fill text-secondary me-2"></i>Composición por Método de Pago
-                </h6>
-            </div>
-            <div class="card-body p-0">
-                <ul class="list-group list-group-flush">
-                    {% for m in resumen_metodos %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
-                        <div>
-                            <strong>{{ m.metodo.nombre }}</strong>
-                            <div class="small text-muted">{{ m.cantidad }} transacción(es)</div>
+        <!-- TARJETA 2: Conciliación Electrónica POS (Tarjetas Débito / Crédito / Transferencias) -->
+        <div class="card shadow-sm border-0 mb-4 bg-white border-start border-primary border-4">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-uppercase fw-bold text-primary small" style="letter-spacing: 0.5px;">
+                        <i class="bi bi-credit-card-2-front-fill me-1"></i>Ventas Electrónicas y POS
+                    </span>
+                    <span class="badge bg-primary bg-opacity-10 text-primary fw-bold px-2.5 py-1">
+                        Abono a Cuenta Bancaria
+                    </span>
+                </div>
+                <h2 class="display-6 fw-bold mb-3 text-dark font-monospace" id="displayTotalElectronico" data-valor="{{ total_electronico_ventas|stringformat:".2f" }}">
+                    ${{ total_electronico_ventas|floatformat:0 }}
+                </h2>
+                <div class="border-top pt-3">
+                    {% if resumen_metodos_electronicos %}
+                        {% for m in resumen_metodos_electronicos %}
+                        <div class="d-flex justify-content-between align-items-center mb-2 small text-muted">
+                            <div>
+                                <strong class="text-dark">{{ m.metodo.nombre }}</strong>
+                                <span class="badge bg-light text-secondary border ms-1">{{ m.cantidad }} transac.</span>
+                            </div>
+                            <strong class="text-dark font-monospace">${{ m.total_ingreso_real|floatformat:0 }}</strong>
                         </div>
-                        <span class="badge bg-light text-dark fs-6 border">
-                            ${{ m.total_ingreso_real|floatformat:0 }}
-                        </span>
-                    </li>
-                    {% endfor %}
-                </ul>
+                        {% endfor %}
+                    {% else %}
+                        <p class="small text-muted mb-0">No se registraron cobros con tarjeta ni transferencias en este turno.</p>
+                    {% endif %}
+                </div>
+                <div class="alert alert-primary bg-opacity-10 border-0 mt-3 mb-0 py-2 px-3 small text-primary">
+                    <i class="bi bi-receipt me-1"></i>
+                    <strong>Conciliación POS:</strong> No queda dinero en gaveta. Verifica que este total coincida con el <em>Cierre de Lote</em> emitido por tu terminal POS.
+                </div>
+            </div>
+        </div>
+
+        <!-- TARJETA 3: Consolidado Total de Facturación del Turno -->
+        <div class="card shadow-sm border-0 mb-4 bg-white">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-clipboard-data text-secondary me-2"></i>Facturación Consolidada del Turno
+                </h6>
+                <span class="badge bg-light text-dark font-monospace fs-6 border" id="displayTotalSistema" data-valor="{{ total_sistema|stringformat:".2f" }}">
+                    Total: ${{ total_sistema|floatformat:0 }}
+                </span>
+            </div>
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between small text-muted mb-1">
+                    <span>Ventas Brutas Totales:</span>
+                    <strong class="text-secondary font-monospace">${{ total_ventas_bruto|floatformat:0 }}</strong>
+                </div>
+                <div class="d-flex justify-content-between small text-muted mb-1">
+                    <span>Ventas Netas Totales (Efectivo + Tarjetas):</span>
+                    <strong class="text-dark font-monospace">${{ total_ingreso_real|floatformat:0 }}</strong>
+                </div>
+                <div class="d-flex justify-content-between small text-muted">
+                    <span>Retiros de Caja Chica:</span>
+                    <strong class="text-danger font-monospace">-${{ total_retiros|floatformat:0 }}</strong>
+                </div>
             </div>
         </div>
     </div>
@@ -83,7 +130,7 @@
         <div class="card shadow-sm border-0">
             <div class="card-header bg-white py-3 border-bottom">
                 <h5 class="fw-bold mb-0 text-dark">
-                    <i class="bi bi-cash-coin text-success me-2"></i>Validación y Arqueo Físico
+                    <i class="bi bi-cash-coin text-success me-2"></i>Validación y Cuadratura de Caja Física
                 </h5>
             </div>
             <div class="card-body p-4">
@@ -99,7 +146,7 @@
                         </div>
                     {% endif %}
 
-                    <!-- Total Arqueo Físico -->
+                    <!-- Total Arqueo Físico de Gaveta -->
                     <div class="mb-4">
                         <label for="{{ form.total_arqueo.id_for_label }}" class="form-label fw-bold fs-6">
                             {{ form.total_arqueo.label }} <span class="text-danger">*</span>
@@ -114,7 +161,7 @@
                             </div>
                         {% endif %}
                         <div class="form-text small">
-                            Ingrese el monto total en efectivo y comprobantes físicos contados en gaveta.
+                            Ingrese únicamente el monto total en dinero físico (billetes y monedas) contado en gaveta. Las tarjetas se concilian por separado.
                         </div>
                     </div>
 
@@ -125,10 +172,10 @@
                         </div>
                         <div class="flex-grow-1">
                             <div class="fw-bold" id="textoDiferencia">
-                                Ingrese el arqueo físico para calcular la cuadratura.
+                                Ingrese el conteo de efectivo físico para calcular la cuadratura.
                             </div>
                             <small class="text-muted" id="subtextoDiferencia">
-                                Comparación automática contra el Total del Sistema (${{ total_sistema|floatformat:0 }}).
+                                Comparación automática contra el Efectivo en Gaveta (${{ efectivo_esperado|floatformat:0 }}).
                             </small>
                         </div>
                     </div>
@@ -136,7 +183,7 @@
                     <!-- Campo Justificación (Se oculta/muestra reactivamente vía JS) -->
                     <div id="contenedorJustificacion" class="mb-4 {% if not form.justificacion.errors %}d-none{% endif %}">
                         <label for="{{ form.justificacion.id_for_label }}" class="form-label fw-bold text-danger">
-                            <i class="bi bi-shield-exclamation me-1"></i>Justificación de Descuadre Obligatoria <span class="text-danger">*</span>
+                            <i class="bi bi-shield-exclamation me-1"></i>Justificación de Descuadre en Gaveta <span class="text-danger">*</span>
                         </label>
                         {{ form.justificacion }}
                         {% if form.justificacion.errors %}
@@ -145,9 +192,21 @@
                             </div>
                         {% endif %}
                         <div class="form-text text-danger small">
-                            <i class="bi bi-info-circle me-1"></i>Existe una discrepancia con el saldo calculado por el sistema. Es mandatario indicar el motivo (faltante, error de vuelto, boleta manual, etc.).
+                            <i class="bi bi-info-circle me-1"></i>Existe una discrepancia con el efectivo esperado en gaveta. Es mandatario indicar el motivo (faltante, error de vuelto, boleta manual, etc.).
                         </div>
                     </div>
+
+                    <!-- Conciliación de Tarjetas y Terminal POS -->
+                    {% if total_electronico_ventas > 0 %}
+                    <div class="card bg-primary bg-opacity-10 border-primary border-opacity-25 p-3 mb-4 rounded-3">
+                        <div class="form-check m-0">
+                            <input class="form-check-input" type="checkbox" id="checkConciliacionPOS" name="pos_conciliado" checked>
+                            <label class="form-check-label small text-dark fw-semibold" for="checkConciliacionPOS">
+                                <i class="bi bi-patch-check-fill text-primary me-1"></i>Certifico que el reporte de Cierre de Lote del terminal POS coincide con las ventas electrónicas registradas (${{ total_electronico_ventas|floatformat:0 }}).
+                            </label>
+                        </div>
+                    </div>
+                    {% endif %}
 
                     <div class="alert alert-warning small py-2 px-3 border-start border-warning border-4 mb-4">
                         <i class="bi bi-lock-fill me-1"></i><strong>Garantía de Integridad:</strong>
@@ -157,7 +216,7 @@
                     <!-- Certificación y Términos de Rendición y Arqueo Físico -->
                     <div class="card bg-light border-0 p-3 mb-4 rounded-3">
                         <div class="form-check m-0">
-                            <input class="form-check-input" type="checkbox" id="checkTerminosCierre" name="terminos_aceptados" required>
+                            <input class="form-check-input" type="checkbox" id="checkTerminosCierre" name="terminos_aceptados" {% if request.POST.terminos_aceptados %}checked{% endif %} required>
                             <label class="form-check-label small text-dark" for="checkTerminosCierre">
                                 Certifico bajo fe de arqueo la exactitud del conteo físico y acepto los 
                                 <a href="javascript:void(0)" class="text-primary fw-semibold text-decoration-underline" data-bs-toggle="modal" data-bs-target="#modalTerminosCierre">
@@ -251,10 +310,11 @@
 {% endblock %}
 
 {% block extra_js %}
-<!-- Reactividad pura en Vanilla JS para detectar descuadre y forzar justificación -->
+<!-- Reactividad controlada en Vanilla JS: las alertas de descuadre y justificación solo se activan al confirmar el cierre -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const inputArqueo = document.getElementById('id_total_arqueo');
+    const displayEfectivoEsperado = document.getElementById('displayEfectivoEsperado');
     const displayTotalSistema = document.getElementById('displayTotalSistema');
     const panelDiferencia = document.getElementById('panelDiferencia');
     const iconoDiferencia = document.getElementById('iconoDiferencia');
@@ -262,28 +322,31 @@ document.addEventListener('DOMContentLoaded', function () {
     const subtextoDiferencia = document.getElementById('subtextoDiferencia');
     const contenedorJustificacion = document.getElementById('contenedorJustificacion');
     const textareaJustificacion = document.getElementById('id_justificacion');
+    const formCierre = document.getElementById('formCierre');
 
-    const totalSistema = parseFloat(displayTotalSistema.getAttribute('data-valor')) || 0;
+    // La cuadratura física (Opción A) se realiza estrictamente contra el Efectivo Físico en Gaveta
+    const efectivoEsperado = parseFloat(displayEfectivoEsperado ? displayEfectivoEsperado.getAttribute('data-valor') : 0) || 0;
+    const totalSistema = parseFloat(displayTotalSistema ? displayTotalSistema.getAttribute('data-valor') : 0) || 0;
+    const tieneErroresServidor = {% if form.errors %}true{% else %}false{% endif %};
 
-    function formatearDinero(valor) {
-        return new Intl.NumberFormat('es-CL', {
-            style: 'currency',
-            currency: 'CLP',
-            maximumFractionDigits: 0
-        }).format(valor);
+    function formatearMonto(valor) {
+        return '$' + Math.abs(Math.round(valor)).toLocaleString('es-CL');
     }
 
-    function evaluarCuadratura() {
-        const valorTexto = inputArqueo.value.trim();
+    // Bandera para saber si el usuario ya intentó confirmar y se le detectó descuadre
+    let intentoConfirmarConDescuadre = tieneErroresServidor;
+
+    function evaluarCuadratura(alConfirmar = false) {
+        const valorTexto = inputArqueo ? inputArqueo.value.trim() : '';
 
         if (valorTexto === '') {
             panelDiferencia.className = 'alert alert-secondary py-3 px-3 shadow-sm d-flex align-items-center gap-3';
             iconoDiferencia.innerHTML = '<i class="bi bi-dash-circle"></i>';
-            textoDiferencia.textContent = 'Ingrese el arqueo físico para calcular la cuadratura.';
-            subtextoDiferencia.textContent = `Comparación automática contra el Total del Sistema (${formatearDinero(totalSistema)}).`;
+            textoDiferencia.textContent = 'Ingrese el conteo de efectivo físico para calcular la cuadratura.';
+            subtextoDiferencia.textContent = `Comparación automática contra el Efectivo en Gaveta (${formatearMonto(efectivoEsperado)}).`;
             
-            // Si no hay errores del servidor previos, ocultar justificación
-            if (!textareaJustificacion.classList.contains('is-invalid')) {
+            // Ocultar justificación si no hay errores de servidor ni justificación previa
+            if (!tieneErroresServidor && (!textareaJustificacion || textareaJustificacion.value.trim() === '')) {
                 contenedorJustificacion.classList.add('d-none');
                 textareaJustificacion.removeAttribute('required');
             }
@@ -291,39 +354,76 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const arqueoFisico = parseFloat(valorTexto) || 0;
-        const diferencia = arqueoFisico - totalSistema;
+        const diferencia = arqueoFisico - efectivoEsperado;
 
-        if (Math.abs(diferencia) < 0.01) {
+        // Tolerancia contable (CLP sin centavos): diferencia menor a $1 peso se considera exactamente cuadrada
+        if (Math.abs(diferencia) < 1.0) {
             // CAJA EXACTAMENTE CUADRADA
+            intentoConfirmarConDescuadre = false;
             panelDiferencia.className = 'alert alert-success py-3 px-3 shadow-sm d-flex align-items-center gap-3';
             iconoDiferencia.innerHTML = '<i class="bi bi-check-circle-fill text-success"></i>';
             textoDiferencia.innerHTML = '<strong>Caja Cuadrada Perfecta</strong>';
-            subtextoDiferencia.textContent = 'El dinero físico coincide exactamente con el saldo teórico del sistema ($0 descuadre).';
+            subtextoDiferencia.textContent = 'El dinero físico coincide con el efectivo esperado en gaveta ($0 de descuadre).';
             
-            // Ocultar y desmarcar requerimiento
+            // Ocultar campo de justificación y desmarcar requerimiento
             contenedorJustificacion.classList.add('d-none');
             textareaJustificacion.removeAttribute('required');
         } else {
-            // DESCUADRE DETECTADO (Faltante o Sobrante)
-            const esFaltante = diferencia < 0;
-            const tipo = esFaltante ? 'Faltante de Caja' : 'Sobrante de Caja';
-            const colorClase = esFaltante ? 'alert-danger' : 'alert-warning';
-            const iconoColor = esFaltante ? 'text-danger' : 'text-warning';
+            // Hay descuadre físico en gaveta
+            // Solo mostramos la alarma y el campo de justificación SI el usuario le dio a "Confirmar y Cerrar",
+            // o si el formulario ya vino con errores desde el servidor, o si el usuario ya tiene justificación escrita
+            const tieneJustificacionEscrita = textareaJustificacion && textareaJustificacion.value.trim() !== '';
 
-            panelDiferencia.className = `alert ${colorClase} py-3 px-3 shadow-sm d-flex align-items-center gap-3`;
-            iconoDiferencia.innerHTML = `<i class="bi bi-exclamation-triangle-fill ${iconoColor}"></i>`;
-            textoDiferencia.innerHTML = `<strong>${tipo}: ${formatearDinero(diferencia)}</strong>`;
-            subtextoDiferencia.textContent = 'Existe una anomalía contable entre el físico y el sistema. La justificación es obligatoria.';
+            if (alConfirmar || tieneErroresServidor || (intentoConfirmarConDescuadre && tieneJustificacionEscrita)) {
+                intentoConfirmarConDescuadre = true;
+                const esFaltante = diferencia < 0;
+                const tipo = esFaltante ? 'Faltante en Gaveta' : 'Sobrante en Gaveta';
+                const signo = esFaltante ? '-' : '+';
+                const colorClase = esFaltante ? 'alert-danger' : 'alert-warning';
+                const iconoColor = esFaltante ? 'text-danger' : 'text-warning';
 
-            // Mostrar campo de justificación y volverlo required en el DOM
-            contenedorJustificacion.classList.remove('d-none');
-            textareaJustificacion.setAttribute('required', 'required');
+                panelDiferencia.className = `alert ${colorClase} py-3 px-3 shadow-sm d-flex align-items-center gap-3`;
+                iconoDiferencia.innerHTML = `<i class="bi bi-exclamation-triangle-fill ${iconoColor}"></i>`;
+                textoDiferencia.innerHTML = `<strong>${tipo}: ${signo}${formatearMonto(diferencia)}</strong>`;
+                subtextoDiferencia.textContent = `Existe una discrepancia con el efectivo esperado en gaveta (${formatearMonto(efectivoEsperado)}). Ingrese la justificación obligatoria o ajuste el conteo físico.`;
+
+                // Mostrar campo de justificación y volverlo required en el DOM
+                contenedorJustificacion.classList.remove('d-none');
+                textareaJustificacion.setAttribute('required', 'required');
+            } else {
+                // Mientras el usuario escribe antes de confirmar, mantener el estado neutral sin alarmas invasivas
+                panelDiferencia.className = 'alert alert-light border py-3 px-3 shadow-sm d-flex align-items-center gap-3';
+                iconoDiferencia.innerHTML = '<i class="bi bi-calculator text-primary"></i>';
+                textoDiferencia.textContent = `Efectivo contado: ${formatearMonto(arqueoFisico)}`;
+                subtextoDiferencia.textContent = `Efectivo esperado en gaveta: ${formatearMonto(efectivoEsperado)}. Presione «Confirmar y Cerrar Caja» para validar el cuadre.`;
+
+                // NO mostrar la justificación todavía si no hay texto ni errores
+                if (!tieneJustificacionEscrita && !tieneErroresServidor) {
+                    contenedorJustificacion.classList.add('d-none');
+                    textareaJustificacion.removeAttribute('required');
+                }
+            }
         }
     }
 
     if (inputArqueo) {
-        inputArqueo.addEventListener('input', evaluarCuadratura);
-        evaluarCuadratura();
+        inputArqueo.addEventListener('input', function () {
+            // Si el usuario edita el arqueo para cuadrarlo y no tiene texto de justificación,
+            // desactivamos la alarma roja hasta que vuelva a pulsar confirmar
+            if (textareaJustificacion && textareaJustificacion.value.trim() === '') {
+                intentoConfirmarConDescuadre = false;
+            }
+            evaluarCuadratura(false);
+        });
+        evaluarCuadratura(false);
+    }
+
+    if (textareaJustificacion) {
+        textareaJustificacion.addEventListener('input', function () {
+            if (this.value.trim() !== '') {
+                intentoConfirmarConDescuadre = true;
+            }
+        });
     }
 
     // Sincronización de Términos de Arqueo y Cierre (Formulario vs Modal)
@@ -331,7 +431,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const checkModalCierre = document.getElementById('checkModalCierre');
     const btnAceptarModalCierre = document.getElementById('btnAceptarModalCierre');
     const modalElCierre = document.getElementById('modalTerminosCierre');
-    const formCierre = document.getElementById('formCierre');
 
     // Al abrir el modal, la casilla SIEMPRE debe estar desmarcada y el botón desactivado
     if (modalElCierre) {
@@ -364,11 +463,36 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (formCierre) {
         formCierre.addEventListener('submit', function (e) {
+            // 1. Validar certificación y términos legales
             if (checkPrincipalCierre && !checkPrincipalCierre.checked) {
                 e.preventDefault();
                 alert('Debe certificar la exactitud del arqueo físico y aceptar los Términos Legales de Rendición de Fondos y Cierre Contable para continuar.');
                 checkPrincipalCierre.focus();
                 return false;
+            }
+
+            // 2. Validar que se haya ingresado el monto de arqueo
+            const valorTexto = inputArqueo ? inputArqueo.value.trim() : '';
+            if (valorTexto === '') {
+                e.preventDefault();
+                alert('Debe ingresar el monto de efectivo físico contado en la gaveta.');
+                if (inputArqueo) inputArqueo.focus();
+                return false;
+            }
+
+            const arqueoFisico = parseFloat(valorTexto) || 0;
+            const diferencia = arqueoFisico - efectivoEsperado;
+
+            // 3. Si hay descuadre en gaveta y aún no hay justificación escrita, detener y mostrar alarma para cuadrarlo
+            if (Math.abs(diferencia) >= 1.0) {
+                const justificacionTexto = textareaJustificacion ? textareaJustificacion.value.trim() : '';
+                if (justificacionTexto === '') {
+                    e.preventDefault(); // Detener el envío y devolver al cierre para cuadrarlo
+                    evaluarCuadratura(true); // Activa la visualización del faltante/sobrante y muestra el campo de justificación
+                    panelDiferencia.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    if (textareaJustificacion) textareaJustificacion.focus();
+                    return false;
+                }
             }
         });
     }

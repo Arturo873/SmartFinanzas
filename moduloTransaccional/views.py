@@ -96,9 +96,18 @@ class VentaCreateView(RolRequeridoMixin, CreateView):
     roles_permitidos = ['Trabajador', 'Administrador']
 
     def dispatch(self, request, *args, **kwargs):
-        # Verificación defensiva previa: comprobar si la caja de hoy ya fue cerrada
+        # Verificación defensiva previa: comprobar si la caja de hoy ya fue cerrada para la empresa
         fecha_hoy = timezone.localdate()
-        cierre_hoy = CierreCaja.objects.filter(fecha=fecha_hoy).first()
+        usuario_db = resolver_usuario_bd(request.user)
+        empresa_usuario = usuario_db.empresa if usuario_db else None
+
+        cierre_hoy_qs = CierreCaja.objects.filter(fecha=fecha_hoy)
+        if empresa_usuario:
+            cierre_hoy_qs = cierre_hoy_qs.filter(empresa=empresa_usuario)
+        elif not request.user.is_superuser:
+            cierre_hoy_qs = cierre_hoy_qs.none()
+
+        cierre_hoy = cierre_hoy_qs.first()
         if cierre_hoy and request.method == 'POST':
             messages.error(
                 request,
@@ -110,14 +119,28 @@ class VentaCreateView(RolRequeridoMixin, CreateView):
             return redirect(self.success_url)
         return super().dispatch(request, *args, **kwargs)
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        usuario_db = resolver_usuario_bd(self.request.user)
+        if usuario_db and usuario_db.empresa:
+            kwargs['empresa'] = usuario_db.empresa
+        return kwargs
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         fecha_hoy = timezone.localdate()
+        usuario_db = resolver_usuario_bd(self.request.user)
+        empresa_usuario = usuario_db.empresa if usuario_db else None
+
         try:
-            # Consulta segura con límite defensivo y captura de excepciones
-            context['ventas_hoy'] = Venta.objects.filter(
-                fecha__date=fecha_hoy
-            ).select_related('metodo_pago').order_by('-fecha')[:10]
+            # Consulta segura con límite defensivo y aislamiento multi-tenant
+            ventas_qs = Venta.objects.filter(fecha__date=fecha_hoy)
+            if empresa_usuario:
+                ventas_qs = ventas_qs.filter(empresa=empresa_usuario)
+            elif not self.request.user.is_superuser:
+                ventas_qs = ventas_qs.none()
+
+            context['ventas_hoy'] = ventas_qs.select_related('metodo_pago').order_by('-fecha')[:10]
         except Exception as e:
             logger.error(f"Error al consultar historial de ventas del día: {e}", exc_info=True)
             context['ventas_hoy'] = []
@@ -128,7 +151,12 @@ class VentaCreateView(RolRequeridoMixin, CreateView):
             )
 
         context['fecha_hoy'] = fecha_hoy
-        context['cierre_hoy'] = CierreCaja.objects.filter(fecha=fecha_hoy).first()
+        cierre_hoy_qs = CierreCaja.objects.filter(fecha=fecha_hoy)
+        if empresa_usuario:
+            cierre_hoy_qs = cierre_hoy_qs.filter(empresa=empresa_usuario)
+        elif not self.request.user.is_superuser:
+            cierre_hoy_qs = cierre_hoy_qs.none()
+        context['cierre_hoy'] = cierre_hoy_qs.first()
         return context
 
     def form_invalid(self, form):
@@ -359,24 +387,36 @@ class CierreCajaCreateView(RolRequeridoMixin, CreateView):
     roles_permitidos = ['Dueño', 'Administrador']
 
     def dispatch(self, request, *args, **kwargs):
-        # Bloqueo de Doble Cierre: Si ya existe un cierre con la fecha de hoy, bloquear
+        # Bloqueo de Doble Cierre: Si ya existe un cierre de la empresa con la fecha de hoy, bloquear
         fecha_hoy = timezone.localdate()
-        cierre_existente = CierreCaja.objects.filter(fecha=fecha_hoy).first()
+        usuario_db = resolver_usuario_bd(request.user)
+        empresa_usuario = usuario_db.empresa if usuario_db else None
+
+        cierre_existente_qs = CierreCaja.objects.filter(fecha=fecha_hoy)
+        if empresa_usuario:
+            cierre_existente_qs = cierre_existente_qs.filter(empresa=empresa_usuario)
+        elif not request.user.is_superuser:
+            cierre_existente_qs = cierre_existente_qs.none()
+
+        cierre_existente = cierre_existente_qs.first()
         if cierre_existente:
             messages.error(
                 request,
                 f"El Cierre de Caja del día de hoy ({fecha_hoy.strftime('%d/%m/%Y')}) ya fue registrado "
                 f"(ID #{cierre_existente.pk} - Estado: {cierre_existente.estado}). "
-                f"No está permitido realizar múltiples cierres en una misma fecha."
+                f"No está permitido realizar múltiples cierres en una misma fecha para tu empresa."
             )
             return redirect('moduloTransaccional:historial_cierres')
         return super().dispatch(request, *args, **kwargs)
 
     def _obtener_datos_del_dia(self):
         """
-        Calcula las ventas e ingresos del día huérfanos (sin cierre asignado).
+        Calcula las ventas e ingresos del día huérfanos (sin cierre asignado) para la empresa en sesión.
         """
         fecha_hoy = timezone.localdate()
+        usuario_db = resolver_usuario_bd(self.request.user)
+        empresa_usuario = usuario_db.empresa if usuario_db else None
+
         ventas_huerfanas = Venta.objects.filter(
             cierre__isnull=True,
             fecha__date=fecha_hoy
@@ -385,11 +425,28 @@ class CierreCajaCreateView(RolRequeridoMixin, CreateView):
             cierre__isnull=True,
             fecha__date=fecha_hoy
         )
+        if empresa_usuario:
+            ventas_huerfanas = ventas_huerfanas.filter(empresa=empresa_usuario)
+            retiros_huerfanos = retiros_huerfanos.filter(empresa=empresa_usuario)
+        elif not self.request.user.is_superuser:
+            ventas_huerfanas = ventas_huerfanas.none()
+            retiros_huerfanos = retiros_huerfanos.none()
 
         total_ventas_bruto = ventas_huerfanas.aggregate(tot=Sum('total_bruto'))['tot'] or Decimal('0.00')
         total_ingreso_real = ventas_huerfanas.aggregate(tot=Sum('ingreso_real'))['tot'] or Decimal('0.00')
         total_retiros = retiros_huerfanos.aggregate(tot=Sum('monto'))['tot'] or Decimal('0.00')
         total_sistema = total_ingreso_real - total_retiros
+
+        # 1. Separación de Efectivo Físico en Gaveta (Base de Arqueo)
+        ventas_efectivo = ventas_huerfanas.filter(metodo_pago__nombre__iexact='Efectivo')
+        total_efectivo_ventas = ventas_efectivo.aggregate(tot=Sum('ingreso_real'))['tot'] or Decimal('0.00')
+        cantidad_ventas_efectivo = ventas_efectivo.count()
+        efectivo_esperado = total_efectivo_ventas - total_retiros
+
+        # 2. Separación de Ventas Electrónicas (Tarjetas Débito / Crédito / Transferencia)
+        ventas_electronicas = ventas_huerfanas.exclude(metodo_pago__nombre__iexact='Efectivo')
+        total_electronico_ventas = ventas_electronicas.aggregate(tot=Sum('ingreso_real'))['tot'] or Decimal('0.00')
+        cantidad_ventas_electronicas = ventas_electronicas.count()
 
         return {
             'fecha_hoy': fecha_hoy,
@@ -399,12 +456,21 @@ class CierreCajaCreateView(RolRequeridoMixin, CreateView):
             'total_ingreso_real': total_ingreso_real,
             'total_retiros': total_retiros,
             'total_sistema': total_sistema,
+            'ventas_efectivo': ventas_efectivo,
+            'total_efectivo_ventas': total_efectivo_ventas,
+            'cantidad_ventas_efectivo': cantidad_ventas_efectivo,
+            'efectivo_esperado': efectivo_esperado,
+            'ventas_electronicas': ventas_electronicas,
+            'total_electronico_ventas': total_electronico_ventas,
+            'cantidad_ventas_electronicas': cantidad_ventas_electronicas,
         }
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         datos = self._obtener_datos_del_dia()
+        kwargs['efectivo_esperado'] = datos['efectivo_esperado']
         kwargs['total_sistema'] = datos['total_sistema']
+        kwargs['total_electronico'] = datos['total_electronico_ventas']
         return kwargs
 
     def get_context_data(self, **kwargs):
@@ -412,18 +478,38 @@ class CierreCajaCreateView(RolRequeridoMixin, CreateView):
         datos = self._obtener_datos_del_dia()
         context.update(datos)
 
+        usuario_db = resolver_usuario_bd(self.request.user)
+        empresa_usuario = usuario_db.empresa if usuario_db else None
+
         # Desglose de ventas por método de pago para el resumen del arqueo
+        resumen_metodos_efectivo = []
+        resumen_metodos_electronicos = []
         resumen_metodos = []
-        for mp in MetodoPago.objects.filter(activo=True):
+        metodos_qs = MetodoPago.objects.filter(activo=True)
+        if empresa_usuario:
+            metodos_qs = metodos_qs.filter(Q(empresa=empresa_usuario) | Q(empresa__isnull=True))
+
+        for mp in metodos_qs:
             ventas_mp = datos['ventas_huerfanas'].filter(metodo_pago=mp)
             tot_mp = ventas_mp.aggregate(tot=Sum('ingreso_real'))['tot'] or Decimal('0.00')
             cant_mp = ventas_mp.count()
-            resumen_metodos.append({
+            es_efectivo = (mp.nombre.strip().lower() == 'efectivo')
+            item = {
                 'metodo': mp,
                 'cantidad': cant_mp,
-                'total_ingreso_real': tot_mp
-            })
+                'total_ingreso_real': tot_mp,
+                'es_efectivo': es_efectivo,
+            }
+            if cant_mp > 0 or es_efectivo:
+                resumen_metodos.append(item)
+            if es_efectivo:
+                resumen_metodos_efectivo.append(item)
+            elif cant_mp > 0:
+                resumen_metodos_electronicos.append(item)
+
         context['resumen_metodos'] = resumen_metodos
+        context['resumen_metodos_efectivo'] = resumen_metodos_efectivo
+        context['resumen_metodos_electronicos'] = resumen_metodos_electronicos
         return context
 
     def form_invalid(self, form):
@@ -462,41 +548,31 @@ class CierreCajaCreateView(RolRequeridoMixin, CreateView):
         total_sistema = datos['total_sistema']
         total_retiros = datos['total_retiros']
         fecha_hoy = datos['fecha_hoy']
+        efectivo_esperado = datos['efectivo_esperado']
+        total_electronico_ventas = datos['total_electronico_ventas']
 
         total_arqueo = form.cleaned_data.get('total_arqueo')
         if total_arqueo is None:
-            form.add_error('total_arqueo', "El total de arqueo físico es obligatorio.")
-            messages.error(
-                self.request,
-                "Validación de datos fallida: No se ingresó el monto de arqueo físico. "
-                "Solución: Realice el recuento de efectivo en caja e ingrese el total."
-            )
+            form.add_error('total_arqueo', "El efectivo físico en gaveta es obligatorio.")
             return self.form_invalid(form)
 
         if total_arqueo < Decimal('0.00'):
-            form.add_error('total_arqueo', "El arqueo físico no puede ser negativo.")
-            messages.error(
-                self.request,
-                "Operación ilógica rechazada: El arqueo físico no puede ser un monto negativo. "
-                "Solución: Ingrese un valor mayor o igual a $0."
-            )
+            form.add_error('total_arqueo', "El efectivo físico no puede ser un monto negativo.")
             return self.form_invalid(form)
 
         justificacion = (form.cleaned_data.get('justificacion') or '').strip()
-        descuadre = total_arqueo - total_sistema
+        # Cuadratura física estricta sobre el dinero en gaveta (Opción A)
+        descuadre = total_arqueo - efectivo_esperado
+        # Tolerancia contable: diferencias menores a $1 peso se consideran exactamente cuadradas
+        if abs(descuadre) < Decimal('1.00'):
+            descuadre = Decimal('0.00')
 
         if descuadre != Decimal('0.00') and not justificacion:
             signo = "+" if descuadre > Decimal('0.00') else "-"
-            form.add_error('justificacion', "Debe justificar obligatoriamente el descuadre detectado.")
-            messages.error(
-                self.request,
-                f"Validación de auditoría requerida: Se detectó un descuadre de {signo}${abs(descuadre):,.2f}. "
-                f"Motivo: La normativa interna exige un registro explicativo de cualquier diferencia con el sistema. "
-                f"Solución: Complete el campo 'Justificación de Descuadre' indicando el motivo de la discrepancia."
-            )
+            form.add_error('justificacion', f"Debe justificar obligatoriamente el descuadre detectado en gaveta ({signo}${abs(descuadre):,.0f}).")
             return self.form_invalid(form)
 
-        # 2. Transaccionalidad ACID y manejo robusto de excepciones
+        # 2. Transaccionalidad ACID y persistencia segura
         try:
             with transaction.atomic():
                 cierre = form.save(commit=False)
@@ -504,7 +580,8 @@ class CierreCajaCreateView(RolRequeridoMixin, CreateView):
                 cierre.estado = 'Cuadrado' if descuadre == Decimal('0.00') else 'Descuadrado'
                 cierre.total_sistema = total_sistema
                 cierre.total_retiros = total_retiros
-                cierre.total_arqueo = total_arqueo
+                # El total arqueo consolidado del negocio suma el dinero físico contado más los pagos electrónicos validados
+                cierre.total_arqueo = total_arqueo + total_electronico_ventas
                 cierre.descuadre_total = descuadre
                 usuario_db = resolver_usuario_bd(self.request.user)
                 cierre.cerrado_por_usuario = usuario_db
@@ -513,39 +590,40 @@ class CierreCajaCreateView(RolRequeridoMixin, CreateView):
                 cierre.fecha_confirmacion = timezone.now()
                 cierre.save()
 
-                # 1. Asociar todas las Ventas huérfanas de hoy al nuevo cierre
-                ventas_actualizadas = Venta.objects.filter(
-                    cierre__isnull=True,
-                    fecha__date=fecha_hoy
-                ).update(cierre=cierre)
+                # 1. Asociar únicamente las Ventas huérfanas de la empresa del usuario
+                ventas_ids = list(datos['ventas_huerfanas'].values_list('id', flat=True))
+                ventas_actualizadas = Venta.objects.filter(id__in=ventas_ids).update(cierre=cierre)
 
-                # 2. Asociar todos los Retiros huérfanos de hoy al nuevo cierre
-                retiros_actualizados = RetiroCajaChica.objects.filter(
-                    cierre__isnull=True,
-                    fecha__date=fecha_hoy
-                ).update(cierre=cierre)
+                # 2. Asociar únicamente los Retiros huérfanos de la empresa del usuario
+                retiros_ids = list(datos['retiros_huerfanos'].values_list('id', flat=True))
+                retiros_actualizados = RetiroCajaChica.objects.filter(id__in=retiros_ids).update(cierre=cierre)
 
                 # 3. Crear detalles por cada método de pago para auditoría
-                for mp in MetodoPago.objects.filter(activo=True):
+                metodos_qs = MetodoPago.objects.filter(activo=True)
+                if usuario_db and usuario_db.empresa:
+                    metodos_qs = metodos_qs.filter(Q(empresa=usuario_db.empresa) | Q(empresa__isnull=True))
+
+                for mp in metodos_qs:
                     ventas_mp = Venta.objects.filter(cierre=cierre, metodo_pago=mp)
                     tot_mp = ventas_mp.aggregate(tot=Sum('ingreso_real'))['tot'] or Decimal('0.00')
+                    es_efectivo = (mp.nombre.strip().lower() == 'efectivo')
 
                     # Generar detalle si tuvo movimiento o para registrar la cuadratura
-                    if tot_mp > Decimal('0.00') or mp.nombre == 'Efectivo':
+                    if tot_mp > Decimal('0.00') or es_efectivo:
                         DetalleCierrePorMetodo.objects.create(
                             cierre=cierre,
                             metodo_pago=mp,
-                            total_sistema=tot_mp,
-                            total_arqueo=total_arqueo if mp.nombre == 'Efectivo' else tot_mp,
-                            descuadre=descuadre if mp.nombre == 'Efectivo' else Decimal('0.00'),
-                            justificacion=justificacion if (mp.nombre == 'Efectivo' and descuadre != Decimal('0.00')) else None
+                            total_sistema=efectivo_esperado if es_efectivo else tot_mp,
+                            total_arqueo=total_arqueo if es_efectivo else tot_mp,
+                            descuadre=descuadre if es_efectivo else Decimal('0.00'),
+                            justificacion=justificacion if (es_efectivo and descuadre != Decimal('0.00')) else None
                         )
 
             messages.success(
                 self.request,
                 f"✓ Cierre de caja #{cierre.pk} completado con éxito. "
                 f"Ventas consolidadas: {ventas_actualizadas} | Retiros consolidados: {retiros_actualizados} | "
-                f"Estado: {cierre.estado} (Descuadre: ${descuadre:,.2f})."
+                f"Estado: {cierre.estado} (Descuadre en Gaveta: ${descuadre:,.0f})."
             )
             return redirect(self.success_url)
 
