@@ -9,7 +9,7 @@ import logging
 from decimal import Decimal
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.db.models import Q
+from django.db.models import Q, Avg
 from django.http import HttpResponse, HttpRequest
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy, reverse
@@ -35,15 +35,20 @@ logger = logging.getLogger(__name__)
 def resolver_usuario_bd(auth_user):
     """
     Obtiene la instancia de 'Usuario' (tabla usuario) correspondiente
-    al usuario autenticado en la sesión de Django.
+    al usuario autenticado en la sesión de Django con caché en memoria.
     """
     if not auth_user or not auth_user.is_authenticated:
         return None
     if isinstance(auth_user, Usuario):
         return auth_user
-    usuario_db = Usuario.objects.filter(username=auth_user.username).first()
+    if hasattr(auth_user, '_cached_usuario_db'):
+        return auth_user._cached_usuario_db
+
+    usuario_db = Usuario.objects.select_related('empresa', 'rol').filter(username=auth_user.username).first()
     if not usuario_db and hasattr(auth_user, 'email'):
-        usuario_db = Usuario.objects.filter(email=auth_user.email).first()
+        usuario_db = Usuario.objects.select_related('empresa', 'rol').filter(email=auth_user.email).first()
+
+    auth_user._cached_usuario_db = usuario_db
     return usuario_db
 
 
@@ -170,7 +175,7 @@ class RatiosFinancierosListView(RolRequeridoMixin, ListView):
         usuario_db = resolver_usuario_bd(self.request.user)
         empresa_usuario = usuario_db.empresa if usuario_db else None
 
-        qs = RatioFinanciero.objects.select_related('carga', 'empresa', 'validado_por_usuario')
+        qs = RatioFinanciero.objects.all()
         if empresa_usuario:
             qs = qs.filter(empresa=empresa_usuario)
         elif not self.request.user.is_superuser:
@@ -199,24 +204,35 @@ class RatiosFinancierosListView(RolRequeridoMixin, ListView):
         usuario_db = resolver_usuario_bd(self.request.user)
         empresa_usuario = usuario_db.empresa if usuario_db else None
 
-        # KPIs agregados para la empresa del usuario
-        total = ratios_qs.count()
+        # Paginador: aprovechamos el conteo que Django ya realizó para no duplicar consultas
+        paginator = context.get('paginator')
+        total = paginator.count if paginator else ratios_qs.count()
+
         avg_liquidez = None
         avg_leverage = None
         avg_altman = None
 
         if total > 0:
-            import numpy as np
-            v1_vals = [float(r.v1_razon_corriente) for r in ratios_qs if r.v1_razon_corriente is not None]
-            v3_vals = [float(r.v3_leverage_total) for r in ratios_qs if r.v3_leverage_total is not None]
-            alt_vals = [float(r.ref_z_altman) for r in ratios_qs if r.ref_z_altman is not None]
+            # Agregación SQL directa en base de datos: sin cargar objetos a memoria ni bucles Python
+            aggs = ratios_qs.aggregate(
+                avg_v1=Avg('v1_razon_corriente'),
+                avg_v3=Avg('v3_leverage_total'),
+                avg_alt=Avg('ref_z_altman')
+            )
+            avg_liquidez = round(float(aggs['avg_v1']), 2) if aggs['avg_v1'] is not None else None
+            avg_leverage = round(float(aggs['avg_v3']), 2) if aggs['avg_v3'] is not None else None
+            avg_altman = round(float(aggs['avg_alt']), 2) if aggs['avg_alt'] is not None else None
 
-            avg_liquidez = round(float(np.mean(v1_vals)), 2) if v1_vals else None
-            avg_leverage = round(float(np.mean(v3_vals)), 2) if v3_vals else None
-            avg_altman = round(float(np.mean(alt_vals)), 2) if alt_vals else None
+        # Detección de outliers para el último ratio (RF-10) optimizada
+        page_obj = context.get('page_obj')
+        orden = (self.request.GET.get('orden') or 'desc').strip().lower()
 
-        # Detección de outliers para el último ratio (RF-10)
-        ultimo_ratio = ratios_qs.first()
+        # Si estamos en la página 1 con orden descendente, el último ratio ya fue descargado en el bloque visible
+        if page_obj and page_obj.number == 1 and orden != 'asc' and page_obj.object_list:
+            ultimo_ratio = page_obj.object_list[0]
+        else:
+            ultimo_ratio = ratios_qs.order_by('-fecha_calculo', '-id').first()
+
         anomalias = detectar_anomalias_financieras(ultimo_ratio) if ultimo_ratio else []
 
         periodo = (self.request.GET.get('periodo') or self.request.GET.get('q') or '').strip()
@@ -330,7 +346,8 @@ class HistorialCargasListView(RolRequeridoMixin, ListView):
         usuario_db = resolver_usuario_bd(self.request.user)
         empresa_usuario = usuario_db.empresa if usuario_db else None
 
-        qs = CargaFinanciera.objects.select_related('empresa', 'usuario')
+        # Se enlaza únicamente con 'usuario' que es el dato renderizado en la grilla
+        qs = CargaFinanciera.objects.select_related('usuario')
         if empresa_usuario:
             qs = qs.filter(empresa=empresa_usuario)
         elif not self.request.user.is_superuser:

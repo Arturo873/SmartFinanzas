@@ -19,15 +19,20 @@ logger = logging.getLogger(__name__)
 def resolver_usuario_bd(auth_user):
     """
     Obtiene la instancia de 'Usuario' (tabla usuario) correspondiente
-    al usuario autenticado en la sesión de Django.
+    al usuario autenticado en la sesión de Django con caché en memoria.
     """
     if not auth_user or not auth_user.is_authenticated:
         return None
     if isinstance(auth_user, Usuario):
         return auth_user
-    usuario_db = Usuario.objects.filter(username=auth_user.username).first()
+    if hasattr(auth_user, '_cached_usuario_db'):
+        return auth_user._cached_usuario_db
+
+    usuario_db = Usuario.objects.select_related('empresa', 'rol').filter(username=auth_user.username).first()
     if not usuario_db and hasattr(auth_user, 'email'):
-        usuario_db = Usuario.objects.filter(email=auth_user.email).first()
+        usuario_db = Usuario.objects.select_related('empresa', 'rol').filter(email=auth_user.email).first()
+
+    auth_user._cached_usuario_db = usuario_db
     return usuario_db
 
 
@@ -582,11 +587,8 @@ class HistorialCierresListView(RolRequeridoMixin, ListView):
         usuario_db = resolver_usuario_bd(self.request.user)
         empresa_usuario = usuario_db.empresa if usuario_db else None
 
-        qs = CierreCaja.objects.all().select_related(
-            'cerrado_por_usuario',
-            'revisado_por_usuario',
-            'empresa'
-        )
+        # Solo se enlaza con 'cerrado_por_usuario' que es el único mostrado en la vista tabular
+        qs = CierreCaja.objects.select_related('cerrado_por_usuario')
         if empresa_usuario:
             qs = qs.filter(empresa=empresa_usuario)
         elif not self.request.user.is_superuser:

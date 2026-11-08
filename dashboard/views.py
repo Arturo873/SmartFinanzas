@@ -36,15 +36,20 @@ logger = logging.getLogger(__name__)
 
 def resolver_usuario_bd(auth_user):
     """
-    Obtiene la entidad Usuario del sistema a partir del usuario Django en sesión.
+    Obtiene la entidad Usuario del sistema a partir del usuario Django en sesión con caché en memoria.
     """
     if not auth_user or not auth_user.is_authenticated:
         return None
     if isinstance(auth_user, Usuario):
         return auth_user
-    usuario_db = Usuario.objects.filter(username=auth_user.username).first()
+    if hasattr(auth_user, '_cached_usuario_db'):
+        return auth_user._cached_usuario_db
+
+    usuario_db = Usuario.objects.select_related('empresa', 'rol').filter(username=auth_user.username).first()
     if not usuario_db and hasattr(auth_user, 'email'):
-        usuario_db = Usuario.objects.filter(email=auth_user.email).first()
+        usuario_db = Usuario.objects.select_related('empresa', 'rol').filter(email=auth_user.email).first()
+
+    auth_user._cached_usuario_db = usuario_db
     return usuario_db
 
 
