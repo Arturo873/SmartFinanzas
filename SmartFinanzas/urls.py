@@ -3,7 +3,7 @@ URL configuration for SmartFinanzas project.
 """
 from django.contrib import admin
 from django.urls import path, include
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, RedirectView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -13,6 +13,8 @@ urlpatterns = [
     path('base/', TemplateView.as_view(template_name='Principal.html'), name='base_preview'),
     path('transaccional/', include('moduloTransaccional.urls')),
     path('etl/', include('moduloETL.urls')),
+    path('moduloETL/<path:subpath>', RedirectView.as_view(url='/etl/%(subpath)s', permanent=False)),
+    path('moduloETL/', RedirectView.as_view(url='/etl/carga-nueva/', permanent=False)),
     path('dashboard/', include('dashboard.urls')),
     path('app/', include('AppWeb.urls')),
     path('', include('usuarios.urls')),
