@@ -154,3 +154,11 @@ STATIC_URL = 'static/'
 DATA_UPLOAD_MAX_MEMORY_SIZE = 30 * 1024 * 1024  # 31,457,280 bytes (~30 MB)
 FILE_UPLOAD_MAX_MEMORY_SIZE = 30 * 1024 * 1024  # 31,457,280 bytes (~30 MB)
 
+# ==============================================================================
+# CONFIGURACIÓN DEL MODELO DE MACHINE LEARNING (Capa Analítica)
+# ==============================================================================
+# Nombre del archivo del modelo pre-entrenado (.joblib) configurado en .env
+MODELO_ML_NOMBRE = os.getenv('MODELO_ML_NOMBRE') or os.getenv('ML_MODEL_NAME', 'modelo_riesgo_v11.joblib')
+ML_MODEL_NAME = MODELO_ML_NOMBRE
+
+

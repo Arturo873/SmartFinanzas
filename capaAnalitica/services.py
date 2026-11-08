@@ -137,12 +137,35 @@ class MotorRiesgo:
         if model_path and os.path.exists(model_path):
             return str(model_path)
 
-        rutas_candidatas = [
+        # Nombre del modelo configurado en el archivo .env / settings de Django
+        nombre_env = (
+            getattr(settings, 'MODELO_ML_NOMBRE', None)
+            or getattr(settings, 'ML_MODEL_NAME', None)
+            or os.getenv('MODELO_ML_NOMBRE')
+            or os.getenv('ML_MODEL_NAME')
+        )
+
+        rutas_candidatas = []
+        if nombre_env:
+            nombre_env = nombre_env.strip()
+            p = Path(nombre_env)
+            if p.is_absolute() and p.exists():
+                return str(p)
+            # Buscar el archivo indicado en .env dentro de las carpetas de modelos del proyecto
+            rutas_candidatas.extend([
+                settings.BASE_DIR / 'capaAnalitica' / 'modelo' / nombre_env,
+                settings.BASE_DIR / 'capaAnalitica' / nombre_env,
+                settings.BASE_DIR / 'AppWeb' / 'modelo_oficial' / nombre_env,
+                settings.BASE_DIR / nombre_env,
+            ])
+
+        # Rutas candidatas de respaldo
+        rutas_candidatas.extend([
             settings.BASE_DIR / 'capaAnalitica' / 'modelo' / 'modelo_riesgo_v11.joblib',
             settings.BASE_DIR / 'capaAnalitica' / 'modelo' / 'random_forest_model.joblib',
             settings.BASE_DIR / 'AppWeb' / 'modelo_oficial' / 'modelo_riesgo_v11.joblib',
             settings.BASE_DIR / 'capaAnalitica' / 'random_forest_model.joblib',
-        ]
+        ])
 
         for ruta in rutas_candidatas:
             if ruta.exists():
@@ -152,7 +175,8 @@ class MotorRiesgo:
             return str(model_path)
 
         # Retornar la ruta canónica por defecto en la capa analítica
-        return str(settings.BASE_DIR / 'capaAnalitica' / 'modelo' / 'modelo_riesgo_v11.joblib')
+        nombre_final = nombre_env or 'modelo_riesgo_v11.joblib'
+        return str(settings.BASE_DIR / 'capaAnalitica' / 'modelo' / nombre_final)
 
     def _resolver_ruta_metricas(self):
         rutas = [

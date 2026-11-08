@@ -14,7 +14,22 @@ _modelo_oficial_cache = {}
 
 def _cargar_modelo_oficial():
     if not _modelo_oficial_cache:
-        _modelo_oficial_cache['clf'] = joblib.load(os.path.join(MODELO_OFICIAL_DIR, 'modelo_riesgo_v11.joblib'))
+        from django.conf import settings
+        nombre_modelo = (
+            getattr(settings, 'MODELO_ML_NOMBRE', None)
+            or getattr(settings, 'ML_MODEL_NAME', None)
+            or os.getenv('MODELO_ML_NOMBRE')
+            or os.getenv('ML_MODEL_NAME')
+            or 'modelo_riesgo_v11.joblib'
+        )
+        ruta_modelo = os.path.join(MODELO_OFICIAL_DIR, nombre_modelo)
+        if not os.path.exists(ruta_modelo):
+            alt_ruta = os.path.join(str(settings.BASE_DIR), 'capaAnalitica', 'modelo', nombre_modelo)
+            if os.path.exists(alt_ruta):
+                ruta_modelo = alt_ruta
+            else:
+                ruta_modelo = os.path.join(MODELO_OFICIAL_DIR, 'modelo_riesgo_v11.joblib')
+        _modelo_oficial_cache['clf'] = joblib.load(ruta_modelo)
         _modelo_oficial_cache['metricas'] = joblib.load(os.path.join(MODELO_OFICIAL_DIR, 'metricas_v11.joblib'))
     return _modelo_oficial_cache['clf'], _modelo_oficial_cache['metricas']
 
