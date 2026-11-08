@@ -207,7 +207,7 @@ class ETLIntegrationAndViewsTests(TestCase):
         self.client.force_login(self.auth_contador)
         resp = self.client.get(reverse('moduloETL:carga_datos'))
         self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, 'Módulo ETL: Ingesta de Estados Financieros')
+        self.assertContains(resp, 'Módulo ETL: Carga de Estados')
         self.assertContains(resp, 'Nstock Importaciones')
         # Verificar que NO existe selector de empresas en el formulario
         self.assertNotContains(resp, 'name="empresa"')

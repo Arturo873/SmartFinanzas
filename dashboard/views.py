@@ -152,8 +152,13 @@ class DashboardView(DashboardRolMixin, TemplateView):
                 periodos_disponibles.append(per)
             periodos_disponibles.sort()
 
-        # Hasta 20 evaluaciones históricas para graficación y filtrado dinámico
-        ultimas_predicciones = list(predicciones_qs.order_by('-fecha_prediccion', '-id')[:20])
+        # Hasta 20 evaluaciones históricas para graficación y filtrado dinámico (RF-04)
+        predicciones_curva = predicciones_qs
+        if periodo_param:
+            predicciones_curva = predicciones_curva.filter(
+                Q(ratio__periodo=periodo_param) | Q(ratio__periodo__icontains=periodo_param)
+            )
+        ultimas_predicciones = list(predicciones_curva.order_by('-fecha_prediccion', '-id')[:20])
         # Invertir a orden cronológico ascendente para el eje horizontal del gráfico
         predicciones_cronologicas = list(reversed(ultimas_predicciones))
 

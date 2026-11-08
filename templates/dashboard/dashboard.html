@@ -847,7 +847,7 @@
             <div class="d-flex align-items-center gap-2 mb-1">
                 <h2 class="h6 fw-semibold text-main mb-0">Información Contable del Período (Balance & Resultados)</h2>
                 <span class="badge border font-monospace badge-status-neutral fs-micro">
-                    Período {{ info_periodo.periodo|default:ratio_asociado_prediccion.periodo|default:"Balance Activo" }}
+                    Período {% if info_periodo and info_periodo.periodo %}{{ info_periodo.periodo }}{% elif ratio_asociado_prediccion and ratio_asociado_prediccion.periodo %}{{ ratio_asociado_prediccion.periodo }}{% else %}Balance Activo{% endif %}
                 </span>
                 {% if info_periodo %}
                     {% if info_periodo.cuadrado %}
