@@ -7,6 +7,7 @@ y gestionar información financiera perteneciente a su propia empresa.
 import os
 import json
 import logging
+from datetime import timedelta
 from decimal import Decimal
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -14,6 +15,7 @@ from django.db.models import Q, Avg
 from django.http import HttpResponse, HttpRequest
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy, reverse
+from django.utils import timezone
 from django.views import View
 from django.views.generic import ListView, FormView
 
@@ -167,7 +169,9 @@ class CargaArchivoView(RolRequeridoMixin, View):
                 cuentas_rows.append(item)
 
             json_features = json.dumps(features_df.to_dict(orient='index'))
+            json_cuentas = json.dumps(cuentas_extraidas)
             csv_features = json.dumps(features_df.to_csv(index=True))
+            nombre_archivo_subido = getattr(archivo, 'name', 'balance_financiero.xlsx')
 
             etl_resultado = {
                 'metadatos': audit_report.get('metadatos', {}) or audit_report.get('metadata', {}),
@@ -175,7 +179,10 @@ class CargaArchivoView(RolRequeridoMixin, View):
                 'advertencias': audit_report.get('advertencias', []) or audit_report.get('alertas', []),
                 'features_rows': features_rows,
                 'cuentas_rows': cuentas_rows,
+                'cuentas_dict': cuentas_extraidas,
                 'json_features': json_features,
+                'json_cuentas': json_cuentas,
+                'archivo_nombre': nombre_archivo_subido,
                 'csv_features': csv_features,
             }
 
@@ -215,6 +222,7 @@ class CargaArchivoView(RolRequeridoMixin, View):
                 logger.warning(f"No se pudo actualizar EstadoCarga: {e}")
 
             context['etl_resultado'] = etl_resultado
+            request.session['etl_resultado'] = etl_resultado
             messages.success(
                 request,
                 f"¡Archivo «{archivo.name}» procesado exitosamente! Se extrajeron {len(features_rows)} período(s) "
@@ -329,14 +337,163 @@ class EjecutarAnalisisView(RolRequeridoMixin, View):
     """
     [RF-11] Permite al Contador / Analista Financiero iniciar manualmente
     la ejecución del modelo predictivo de Random Forest una vez que los datos han sido validados.
-    Al presionar "Ejecutar Análisis", se evalúan las 7 variables del modelo y se
-    redirige automáticamente al Dashboard del Dueño con los resultados actualizados
-    y un mensaje de éxito.
+    Soporta ejecución individual o en lote (período por período) a partir de los datos
+    del ETL en memoria o de registros existentes de RatioFinanciero.
+    Redirige automáticamente al Dashboard con las predicciones actualizadas.
     """
 
     def post(self, request: HttpRequest):
         usuario_db = resolver_usuario_bd(request.user)
         empresa_usuario = usuario_db.empresa if usuario_db else None
+
+        # 1. Comprobar si se enviaron características ETL (in-memory) con períodos seleccionados
+        features_json_raw = request.POST.get('features_json')
+        if not features_json_raw and 'etl_resultado' in request.session:
+            session_etl = request.session.get('etl_resultado')
+            if isinstance(session_etl, dict) and 'json_features' in session_etl:
+                if request.POST.getlist('periodos'):
+                    features_json_raw = session_etl['json_features']
+
+        cuentas_json_raw = request.POST.get('cuentas_json')
+        if not cuentas_json_raw and 'etl_resultado' in request.session:
+            session_etl = request.session.get('etl_resultado')
+            if isinstance(session_etl, dict):
+                cuentas_json_raw = session_etl.get('json_cuentas')
+
+        cuentas_dict = {}
+        if cuentas_json_raw:
+            try:
+                cuentas_dict = json.loads(cuentas_json_raw) if isinstance(cuentas_json_raw, str) else cuentas_json_raw
+            except Exception:
+                cuentas_dict = {}
+
+        archivo_nombre = request.POST.get('archivo_nombre')
+        if not archivo_nombre and 'etl_resultado' in request.session:
+            session_etl = request.session.get('etl_resultado')
+            if isinstance(session_etl, dict):
+                archivo_nombre = session_etl.get('archivo_nombre')
+        if not archivo_nombre:
+            archivo_nombre = 'balance_financiero.xlsx'
+
+        periodos_seleccionados = request.POST.getlist('periodos')
+
+        if features_json_raw:
+            try:
+                if isinstance(features_json_raw, str):
+                    features_dict = json.loads(features_json_raw)
+                else:
+                    features_dict = features_json_raw
+
+                # Si no se especificaron períodos o viene vacío, usar todos los períodos disponibles
+                if not periodos_seleccionados:
+                    periodos_seleccionados = list(features_dict.keys())
+
+                periodos_a_procesar = [p for p in periodos_seleccionados if p in features_dict]
+                if not periodos_a_procesar and features_dict:
+                    periodos_a_procesar = list(features_dict.keys())
+
+                if not periodos_a_procesar:
+                    messages.warning(request, "No se seleccionó ningún período válido para ejecutar la predicción.")
+                    return redirect('moduloETL:carga_datos')
+
+                if not empresa_usuario and usuario_db and usuario_db.empresa:
+                    empresa_usuario = usuario_db.empresa
+                if not empresa_usuario and hasattr(request.user, 'empresa'):
+                    empresa_usuario = request.user.empresa
+                if not empresa_usuario:
+                    empresa_usuario = Empresa.objects.first()
+
+                predicciones_exitosas = []
+                hora_base = timezone.now()
+
+                # Procesar cada período de forma estrictamente individual e independiente
+                for i, per in enumerate(periodos_a_procesar):
+                    ratios_data = features_dict[per]
+                    fecha_periodo = hora_base + timedelta(milliseconds=i * 50)
+                    cta = cuentas_dict.get(per, {}) or cuentas_dict.get(str(per), {})
+
+                    # Registrar la información contable en el Historial de Ingesta y Cargas Contables
+                    act_circ = Decimal(str(round(float(cta['Activo_Circulante']), 2))) if ('Activo_Circulante' in cta and cta['Activo_Circulante'] is not None) else None
+                    pas_circ = Decimal(str(round(float(cta['Pasivo_Circulante']), 2))) if ('Pasivo_Circulante' in cta and cta['Pasivo_Circulante'] is not None) else None
+                    act_tot = Decimal(str(round(float(cta['Activo_Total']), 2))) if ('Activo_Total' in cta and cta['Activo_Total'] is not None) else None
+                    pas_tot = Decimal(str(round(float(cta['Pasivo_Total']), 2))) if ('Pasivo_Total' in cta and cta['Pasivo_Total'] is not None) else None
+                    patrim = Decimal(str(round(float(cta['Patrimonio_Neto']), 2))) if ('Patrimonio_Neto' in cta and cta['Patrimonio_Neto'] is not None) else None
+                    ing_net = Decimal(str(round(float(cta['Ingresos_Netos']), 2))) if ('Ingresos_Netos' in cta and cta['Ingresos_Netos'] is not None) else None
+                    ebit_val = Decimal(str(round(float(cta['EBIT']), 2))) if ('EBIT' in cta and cta['EBIT'] is not None) else None
+
+                    carga_obj, _ = CargaFinanciera.objects.update_or_create(
+                        empresa=empresa_usuario,
+                        periodo=str(per),
+                        defaults={
+                            'fecha_carga': fecha_periodo,
+                            'archivo_origen': archivo_nombre,
+                            'tipo_carga': 'Balance General',
+                            'activo_corriente': act_circ,
+                            'pasivo_corriente': pas_circ,
+                            'activo_total': act_tot,
+                            'pasivo_total': pas_tot,
+                            'patrimonio': patrim,
+                            'ingresos_netos': ing_net,
+                            'ebit': ebit_val,
+                            'estado': 'PROCESADO',
+                            'usuario': usuario_db,
+                        }
+                    )
+
+                    ratio_obj, _ = RatioFinanciero.objects.update_or_create(
+                        empresa=empresa_usuario,
+                        periodo=str(per),
+                        defaults={
+                            'carga': carga_obj,
+                            'fecha_calculo': fecha_periodo,
+                            'v1_razon_corriente': Decimal(str(round(float(ratios_data.get('razon_corriente', 1.0)), 4))),
+                            'v2_capital_trabajo_activos': Decimal(str(round(float(ratios_data.get('capital_trabajo_sobre_activos', 0.0)), 4))),
+                            'v3_leverage_total': Decimal(str(round(float(ratios_data.get('leverage_total', 1.0)), 4))),
+                            'v4_roa_operacional': Decimal(str(round(float(ratios_data.get('roa_operacional', 0.0)), 4))),
+                            'v5_margen_operacional': Decimal(str(round(float(ratios_data.get('margen_operacional', 0.0)), 4))),
+                            'v6_rotacion_activos': Decimal(str(round(float(ratios_data.get('rotacion_activos', 1.0)), 4))),
+                            'v7_volatilidad_flujo': Decimal(str(round(float(ratios_data.get('volatilidad_flujo_caja', 0.0)), 4))),
+                            'validado': True,
+                            'validado_por_usuario': usuario_db,
+                            'fecha_validacion': fecha_periodo,
+                        }
+                    )
+
+                    prediccion, resultado = ejecutar_y_persistir_prediccion(
+                        ratio_obj_o_id=ratio_obj,
+                        usuario=usuario_db,
+                        empresa=empresa_usuario
+                    )
+                    predicciones_exitosas.append((per, resultado))
+
+                # Al completar la predicción, limpiar el balance cargado en sesión activa
+                limpiar_archivos_y_estado()
+                request.session.pop('etl_resultado', None)
+                request.session.pop('ultimo_resultado', None)
+
+                if len(predicciones_exitosas) == 1:
+                    per_nom, res = predicciones_exitosas[0]
+                    msg_exito = (
+                        f"¡Predicción completada exitosamente para el período '{per_nom}'! "
+                        f"Score de Riesgo: {res['score']}% - Nivel: {res['nivel']}."
+                    )
+                else:
+                    nombres = ", ".join([str(p[0]) for p in predicciones_exitosas])
+                    msg_exito = (
+                        f"¡Se ejecutaron exitosamente {len(predicciones_exitosas)} predicciones independientes "
+                        f"para los períodos: {nombres}! Cada período cuenta con su evaluación predictiva en el Dashboard."
+                    )
+
+                messages.success(request, msg_exito)
+                return redirect('dashboard:dashboard')
+
+            except Exception as exc:
+                logger.exception("Error al ejecutar predicciones de períodos ETL: %s", exc)
+                messages.error(
+                    request,
+                    f"No fue posible completar la predicción para los períodos seleccionados: {exc}"
+                )
+                return redirect('moduloETL:carga_datos')
 
         ratios_qs = RatioFinanciero.objects.all()
         if empresa_usuario:
@@ -389,6 +546,11 @@ class EjecutarAnalisisView(RolRequeridoMixin, View):
             if anomalias and forzar_ejecucion:
                 msg_exito += f" (Se forzó la ejecución aceptando {len(anomalias)} valor(es) anómalo(s) / outlier(s) detectados)."
             messages.success(request, msg_exito)
+
+            # Al completar la predicción, limpiar el balance cargado en sesión activa
+            limpiar_archivos_y_estado()
+            request.session.pop('etl_resultado', None)
+            request.session.pop('ultimo_resultado', None)
         except Exception as exc:
             logger.exception("Error al ejecutar análisis predictivo desde el módulo ETL: %s", exc)
             messages.error(
@@ -459,6 +621,7 @@ class LimpiarDatosView(RolRequeridoMixin, View):
     def post(self, request: HttpRequest):
         exito = limpiar_archivos_y_estado()
         request.session.pop('ultimo_resultado', None)
+        request.session.pop('etl_resultado', None)
         if exito:
             messages.success(request, "Los datos de la carga activa han sido limpiados correctamente.")
         else:

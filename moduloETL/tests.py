@@ -5,6 +5,7 @@ Incluye validación de aislamiento por empresa (multi-tenant).
 
 import io
 import os
+import json
 import pandas as pd
 from decimal import Decimal
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -468,3 +469,68 @@ class ETLIntegrationAndViewsTests(TestCase):
         self.assertIn('25 * 1024 * 1024', content)
         self.assertIn('RNF-10', content)
         self.assertIn('Archivo seleccionado correctamente', content)
+
+    def test_ejecutar_analisis_periodos_multiples_etl(self):
+        """Verifica la ejecución de predicción ML independiente para múltiples períodos extraídos por ETL."""
+        from capaAnalitica.models import PrediccionRiesgo
+        self.client.force_login(self.auth_contador)
+
+        features_dict = {
+            '2026-T1': {
+                'razon_corriente': 1.85,
+                'capital_trabajo_sobre_activos': 0.25,
+                'leverage_total': 0.80,
+                'roa_operacional': 0.12,
+                'margen_operacional': 0.15,
+                'rotacion_activos': 0.95,
+                'volatilidad_flujo_caja': 0.10,
+            },
+            '2026-T2': {
+                'razon_corriente': 2.10,
+                'capital_trabajo_sobre_activos': 0.30,
+                'leverage_total': 0.70,
+                'roa_operacional': 0.14,
+                'margen_operacional': 0.18,
+                'rotacion_activos': 1.05,
+                'volatilidad_flujo_caja': 0.08,
+            }
+        }
+
+        resp = self.client.post(
+            reverse('moduloETL:ejecutar_analisis'),
+            data={
+                'features_json': json.dumps(features_dict),
+                'periodos': ['2026-T1', '2026-T2'],
+            },
+            follow=True
+        )
+        self.assertEqual(resp.status_code, 200)
+
+        # 1. Ratios creados para ambos períodos
+        r1 = RatioFinanciero.objects.filter(empresa=self.empresa1, periodo='2026-T1').first()
+        r2 = RatioFinanciero.objects.filter(empresa=self.empresa1, periodo='2026-T2').first()
+        self.assertIsNotNone(r1)
+        self.assertIsNotNone(r2)
+
+        # 2. Predicciones independientes creadas para cada período
+        p1 = PrediccionRiesgo.objects.filter(empresa=self.empresa1, ratio=r1).first()
+        p2 = PrediccionRiesgo.objects.filter(empresa=self.empresa1, ratio=r2).first()
+        self.assertIsNotNone(p1)
+        self.assertIsNotNone(p2)
+        self.assertNotEqual(p1.id, p2.id)
+
+        # 3. Mensaje de éxito informando las predicciones ejecutadas
+        messages_list = list(resp.context['messages']) if resp.context and 'messages' in resp.context else []
+        self.assertTrue(any('predicciones independientes' in str(m) for m in messages_list))
+
+        # 4. Registros en CargaFinanciera creados para el Historial de Ingesta y Cargas Contables
+        c1 = CargaFinanciera.objects.filter(empresa=self.empresa1, periodo='2026-T1').first()
+        c2 = CargaFinanciera.objects.filter(empresa=self.empresa1, periodo='2026-T2').first()
+        self.assertIsNotNone(c1)
+        self.assertIsNotNone(c2)
+        self.assertEqual(c1.estado, 'PROCESADO')
+        self.assertEqual(c2.estado, 'PROCESADO')
+
+        # 5. Balance activo en sesión limpiado al realizarse la predicción
+        estado = EstadoCarga.actual()
+        self.assertIsNone(estado.ruta_csv)

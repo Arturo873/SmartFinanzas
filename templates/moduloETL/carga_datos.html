@@ -38,13 +38,30 @@
                 Datos procesados en memoria listos para inferencia del modelo predictivo de insolvencia.
             </span>
         </div>
-        <div class="d-flex gap-2">
-            <button class="btn btn-sm btn-outline-secondary" onclick="copiarVectorJSON()" title="Copiar Vector en JSON">
-                <i class="bi bi-clipboard me-1"></i>Copiar JSON
-            </button>
-            <button class="btn btn-sm btn-outline-success" onclick="descargarVectorCSV()" title="Descargar como CSV">
-                <i class="bi bi-download me-1"></i>Exportar CSV
-            </button>
+        <div>
+            {% if etl_resultado.features_rows|length > 1 %}
+                <!-- Múltiples períodos: Abre el Modal de Selección -->
+                <button type="button" class="btn btn-warning text-dark fw-bold shadow-sm d-inline-flex align-items-center gap-2 px-3 py-2" data-bs-toggle="modal" data-bs-target="#modalSeleccionPeriodos" id="btnAbrirModalPeriodos" style="background-color: #ffc107; border-color: #e0a800; color: #111827 !important; font-weight: 600;">
+                    <i class="bi bi-lightning-charge-fill text-dark"></i>
+                    <span>Ejecutar Predicción</span>
+                    <span class="badge bg-dark text-warning ms-1" style="font-size: 0.72rem;">{{ etl_resultado.features_rows|length }} períodos</span>
+                </button>
+            {% else %}
+                <!-- Un solo período: Ejecución Directa -->
+                <form method="POST" action="{% url 'moduloETL:ejecutar_analisis' %}" class="d-inline m-0" id="formPrediccionUnica">
+                    {% csrf_token %}
+                    <textarea name="features_json" class="d-none">{{ etl_resultado.json_features }}</textarea>
+                    <textarea name="cuentas_json" class="d-none">{{ etl_resultado.json_cuentas }}</textarea>
+                    <input type="hidden" name="archivo_nombre" value="{{ etl_resultado.archivo_nombre|default:'balance_financiero.xlsx' }}">
+                    {% for row in etl_resultado.features_rows %}
+                        <input type="hidden" name="periodos" value="{{ row.periodo }}">
+                    {% endfor %}
+                    <button type="submit" class="btn btn-warning text-dark fw-bold shadow-sm d-inline-flex align-items-center gap-2 px-3 py-2" id="btnEjecutarPrediccionUnica" style="background-color: #ffc107; border-color: #e0a800; color: #111827 !important; font-weight: 600;">
+                        <i class="bi bi-lightning-charge-fill text-dark"></i>
+                        <span>Ejecutar Predicción</span>
+                    </button>
+                </form>
+            {% endif %}
         </div>
     </div>
     <div class="card-body p-4">
@@ -196,8 +213,8 @@
 {% endif %}
 
 <div class="row g-4">
-    <!-- COLUMNA IZQUIERDA: FORMULARIO DE CARGA Y ESTADO ACTIVO -->
-    <div class="col-lg-7">
+    <!-- FORMULARIO DE CARGA Y ESTADO ACTIVO -->
+    <div class="col-12">
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
                 <h5 class="fw-bold mb-0 text-dark">
@@ -373,40 +390,6 @@
             </div>
         </div>
     </div>
-
-    <!-- COLUMNA DERECHA: CARGAS RECIENTES -->
-    <div class="col-lg-5">
-        <!-- Últimas Cargas Registradas -->
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white py-3 border-bottom">
-                <h6 class="fw-bold mb-0 text-dark">
-                    <i class="bi bi-clock-history me-2 text-secondary"></i>Cargas Recientes de Tu Empresa
-                </h6>
-            </div>
-            <div class="card-body p-0">
-                <ul class="list-group list-group-flush small">
-                    {% for carga in ultimas_cargas|slice:":5" %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-3">
-                            <div>
-                                <span class="fw-semibold text-dark">{{ carga.periodo }}</span>
-                                <span class="text-muted ms-1">({{ carga.archivo_origen|truncatechars:20 }})</span>
-                                <div class="text-muted" style="font-size: 0.75rem;">
-                                    Cargado por: {{ carga.usuario.username|default:"Sistema" }} &middot; {{ carga.fecha_carga|date:"d/m/Y H:i" }}
-                                </div>
-                            </div>
-                            <span class="badge {% if carga.estado == 'PROCESADO' %}bg-success-subtle text-success border border-success-subtle{% else %}bg-secondary-subtle text-muted{% endif %}">
-                                {{ carga.estado|default:"PROCESADO" }}
-                            </span>
-                        </li>
-                    {% empty %}
-                        <li class="list-group-item text-center text-muted py-3">
-                            No hay cargas registradas todavía para tu empresa.
-                        </li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
-    </div>
 </div>
 
 <!-- ====================================================================== -->
@@ -467,6 +450,141 @@
         </div>
     </div>
 </div>
+
+{% if etl_resultado and etl_resultado.features_rows|length > 1 %}
+<!-- ====================================================================== -->
+<!-- MODAL DE SELECCIÓN DE PERÍODOS PARA PREDICCIÓN ML                      -->
+<!-- ====================================================================== -->
+<div class="modal fade" id="modalSeleccionPeriodos" tabindex="-1" aria-labelledby="modalSeleccionPeriodosLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content shadow-sm border">
+            <div class="modal-header bg-warning bg-opacity-10 border-bottom border-warning border-opacity-25 py-3 px-4">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-warning text-dark p-2 text-center d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                        <i class="bi bi-lightning-charge-fill fs-6"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-dark fs-6 mb-0" id="modalSeleccionPeriodosLabel">
+                            Ejecutar Predicción: Selección de Períodos
+                        </h5>
+                        <div class="text-secondary" style="font-size: 0.75rem;">
+                            Modelo predictivo Random Forest &middot; {{ etl_resultado.features_rows|length }} períodos disponibles
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <form method="POST" action="{% url 'moduloETL:ejecutar_analisis' %}" id="formSeleccionPeriodosML">
+                {% csrf_token %}
+                <textarea name="features_json" class="d-none">{{ etl_resultado.json_features }}</textarea>
+                <textarea name="cuentas_json" class="d-none">{{ etl_resultado.json_cuentas }}</textarea>
+                <input type="hidden" name="archivo_nombre" value="{{ etl_resultado.archivo_nombre|default:'balance_financiero.xlsx' }}">
+
+                <div class="modal-body p-4 text-dark">
+                    <!-- Banner explicativo: cada período es una predicción independiente -->
+                    <div class="alert alert-light border border-warning border-start border-4 border-warning shadow-sm p-3 mb-3">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="bi bi-info-circle-fill text-warning fs-5 flex-shrink-0 mt-0.5"></i>
+                            <div>
+                                <h6 class="fw-bold mb-1 text-dark" style="font-size: 0.85rem;">Predicciones Individuales e Independientes</h6>
+                                <p class="text-muted small mb-0" style="line-height: 1.45;">
+                                    Cada período seleccionado generará una <strong>predicción propia y separada</strong> en el modelo de Machine Learning.
+                                    Los datos <strong>no se unen ni se promedian</strong>, permitiéndote auditar la evolución del riesgo y las variables SHAP período a período en el Dashboard.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Modo de Selección: Juntos o Separados -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark small mb-2 d-flex justify-content-between align-items-center">
+                            <span>¿Cómo deseas predecir los períodos?</span>
+                            <span class="badge bg-light text-secondary border font-monospace" id="contadorSeleccionados">
+                                {{ etl_resultado.features_rows|length }} de {{ etl_resultado.features_rows|length }} seleccionados
+                            </span>
+                        </label>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-sm-6">
+                                <div class="border rounded-3 p-2.5 bg-light bg-opacity-50">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="modo_periodos" id="modoJuntos" value="juntos" checked>
+                                        <label class="form-check-label fw-semibold text-dark small" for="modoJuntos" style="cursor: pointer;">
+                                            <i class="bi bi-collection-fill text-primary me-1"></i>Todos los períodos (Juntos en lote)
+                                        </label>
+                                    </div>
+                                    <div class="text-muted mt-1 ps-4" style="font-size: 0.72rem;">
+                                        Ejecuta una predicción para cada uno de los {{ etl_resultado.features_rows|length }} períodos detectados.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="border rounded-3 p-2.5 bg-light bg-opacity-50">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="modo_periodos" id="modoSeparados" value="separados">
+                                        <label class="form-check-label fw-semibold text-dark small" for="modoSeparados" style="cursor: pointer;">
+                                            <i class="bi bi-check2-square text-success me-1"></i>Personalizado (Separados / Elegir)
+                                        </label>
+                                    </div>
+                                    <div class="text-muted mt-1 ps-4" style="font-size: 0.72rem;">
+                                        Marca o desmarca individualmente solo los períodos que deseas evaluar hoy.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Períodos para marcar -->
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-1.5">
+                            <span class="small fw-semibold text-dark">Marca los períodos a evaluar:</span>
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-secondary py-0.5 px-2" style="font-size: 0.72rem;" id="btnMarcarTodos">Marcar Todos</button>
+                                <button type="button" class="btn btn-outline-secondary py-0.5 px-2" style="font-size: 0.72rem;" id="btnDesmarcarTodos">Desmarcar Todos</button>
+                            </div>
+                        </div>
+
+                        <div class="list-group border rounded-3" style="max-height: 250px; overflow-y: auto;">
+                            {% for row in etl_resultado.features_rows %}
+                                <label class="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-2.5 px-3">
+                                    <div class="form-check m-0 d-flex align-items-center gap-2">
+                                        <input class="form-check-input check-periodo-item" type="checkbox" name="periodos" value="{{ row.periodo }}" id="chk_per_{{ forloop.counter }}" checked>
+                                        <label class="form-check-label fw-bold font-monospace text-dark mb-0" for="chk_per_{{ forloop.counter }}" style="cursor: pointer;">
+                                            {{ row.periodo }}
+                                        </label>
+                                    </div>
+                                    <div class="d-flex gap-2 align-items-center small text-muted font-monospace" style="font-size: 0.75rem;">
+                                        <span title="Razón Corriente">RC: <strong class="text-dark">{{ row.razon_corriente|floatformat:2 }}</strong></span>
+                                        <span>&middot;</span>
+                                        <span title="Leverage Total">Lev: <strong class="text-dark">{{ row.leverage_total|floatformat:2 }}</strong></span>
+                                        <span>&middot;</span>
+                                        <span title="ROA Operacional">ROA: <strong class="text-dark">{{ row.roa_operacional|floatformat:2 }}</strong></span>
+                                    </div>
+                                </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Alerta de validación: al menos uno debe estar seleccionado -->
+                    <div id="alertaPeriodosVacio" class="alert alert-danger py-2 px-3 small d-none mt-2 mb-0">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>Debes marcar al menos un período para ejecutar la predicción.
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light py-2.5 px-4 border-top d-flex justify-content-between align-items-center">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-warning text-dark fw-bold btn-sm px-4 shadow-sm" id="btnEjecutarPrediccionModal" style="background-color: #ffc107; border-color: #e0a800; color: #111827 !important; font-weight: 600;">
+                        <i class="bi bi-lightning-charge-fill me-1 text-dark"></i>Confirmar y Ejecutar Predicción
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
@@ -601,7 +719,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Spinner en submit
+    // Spinner en submit de carga de balance
     if (formCarga) {
         formCarga.addEventListener('submit', function(e) {
             if (inputArchivo && inputArchivo.files && inputArchivo.files.length > 0) {
@@ -618,36 +736,114 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-});
 
-// Funciones de utilidad para copiar y descargar vector de características
-function copiarVectorJSON() {
-    {% if etl_resultado.json_features %}
-        const jsonStr = {{ etl_resultado.json_features|safe }};
-        navigator.clipboard.writeText(JSON.stringify(jsonStr, null, 2)).then(() => {
-            alert("¡Vector de características copiado al portapapeles en formato JSON!");
-        }).catch(err => {
-            console.error("Error al copiar JSON:", err);
+    // ======================================================================
+    // LÓGICA DE SELECCIÓN DE PERÍODOS PARA PREDICCIÓN ML
+    // ======================================================================
+    const formPeriodosML = document.getElementById('formSeleccionPeriodosML');
+    const btnEjecutarModal = document.getElementById('btnEjecutarPrediccionModal');
+    const chkPeriodos = document.querySelectorAll('.check-periodo-item');
+    const modoJuntos = document.getElementById('modoJuntos');
+    const modoSeparados = document.getElementById('modoSeparados');
+    const btnMarcarTodos = document.getElementById('btnMarcarTodos');
+    const btnDesmarcarTodos = document.getElementById('btnDesmarcarTodos');
+    const contadorSeleccionados = document.getElementById('contadorSeleccionados');
+    const alertaVacio = document.getElementById('alertaPeriodosVacio');
+    const formPrediccionUnica = document.getElementById('formPrediccionUnica');
+    const btnPrediccionUnica = document.getElementById('btnEjecutarPrediccionUnica');
+
+    function actualizarContadorPeriodos() {
+        if (!chkPeriodos || chkPeriodos.length === 0) return;
+        let seleccionados = 0;
+        chkPeriodos.forEach(chk => {
+            if (chk.checked) seleccionados++;
         });
-    {% else %}
-        alert("No hay vector disponible para copiar.");
-    {% endif %}
-}
 
-function descargarVectorCSV() {
-    {% if etl_resultado.csv_features %}
-        const csvContent = {{ etl_resultado.csv_features|safe }};
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", "ratios_financieros_ml_{{ etl_resultado.metadatos.rut|default:'empresa' }}.csv");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    {% else %}
-        alert("No hay vector disponible para descargar.");
-    {% endif %}
-}
+        if (contadorSeleccionados) {
+            contadorSeleccionados.textContent = `${seleccionados} de ${chkPeriodos.length} seleccionados`;
+        }
+
+        if (seleccionados === 0) {
+            if (alertaVacio) alertaVacio.classList.remove('d-none');
+            if (btnEjecutarModal) btnEjecutarModal.disabled = true;
+        } else {
+            if (alertaVacio) alertaVacio.classList.add('d-none');
+            if (btnEjecutarModal) btnEjecutarModal.disabled = false;
+        }
+
+        if (modoJuntos && modoSeparados) {
+            if (seleccionados === chkPeriodos.length) {
+                modoJuntos.checked = true;
+            } else {
+                modoSeparados.checked = true;
+            }
+        }
+    }
+
+    if (modoJuntos) {
+        modoJuntos.addEventListener('change', function() {
+            if (this.checked) {
+                chkPeriodos.forEach(chk => chk.checked = true);
+                actualizarContadorPeriodos();
+            }
+        });
+    }
+
+    if (modoSeparados) {
+        modoSeparados.addEventListener('change', function() {
+            actualizarContadorPeriodos();
+        });
+    }
+
+    if (btnMarcarTodos) {
+        btnMarcarTodos.addEventListener('click', function(e) {
+            e.preventDefault();
+            chkPeriodos.forEach(chk => chk.checked = true);
+            actualizarContadorPeriodos();
+        });
+    }
+
+    if (btnDesmarcarTodos) {
+        btnDesmarcarTodos.addEventListener('click', function(e) {
+            e.preventDefault();
+            chkPeriodos.forEach(chk => chk.checked = false);
+            actualizarContadorPeriodos();
+        });
+    }
+
+    chkPeriodos.forEach(chk => {
+        chk.addEventListener('change', actualizarContadorPeriodos);
+    });
+
+    if (formPeriodosML) {
+        formPeriodosML.addEventListener('submit', function(e) {
+            let seleccionados = 0;
+            chkPeriodos.forEach(chk => {
+                if (chk.checked) seleccionados++;
+            });
+
+            if (seleccionados === 0) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (alertaVacio) alertaVacio.classList.remove('d-none');
+                return false;
+            }
+
+            if (btnEjecutarModal) {
+                btnEjecutarModal.disabled = true;
+                btnEjecutarModal.innerHTML = '<span class="spinner-border spinner-border-sm me-2 text-dark" role="status" aria-hidden="true"></span>Evaluando ' + seleccionados + ' predicción(es) ML...';
+            }
+        });
+    }
+
+    if (formPrediccionUnica) {
+        formPrediccionUnica.addEventListener('submit', function() {
+            if (btnPrediccionUnica) {
+                btnPrediccionUnica.disabled = true;
+                btnPrediccionUnica.innerHTML = '<span class="spinner-border spinner-border-sm me-2 text-dark" role="status" aria-hidden="true"></span>Evaluando predicción ML...';
+            }
+        });
+    }
+});
 </script>
 {% endblock %}

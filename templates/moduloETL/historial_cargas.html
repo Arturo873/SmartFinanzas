@@ -82,17 +82,9 @@
             <table class="table table-hover align-middle mb-0 font-monospace small">
                 <thead class="table-light text-uppercase" style="font-size: 0.72rem;">
                     <tr>
-                        <th class="ps-3">Periodo Contable</th>
-                        <th>Archivo Origen</th>
-                        <th>Tipo Carga</th>
-                        <th class="text-end">Activo Total</th>
-                        <th class="text-end">Pasivo Total</th>
-                        <th class="text-end">Patrimonio</th>
-                        <th>Estado</th>
-                        <th>Cargado Por</th>
-                        <th class="pe-3 text-end">
+                        <th class="ps-3">
                             <a href="?{% if q %}q={{ q|urlencode }}&{% endif %}orden={% if orden == 'asc' %}desc{% else %}asc{% endif %}"
-                               class="text-decoration-none text-muted d-inline-flex align-items-center gap-1 justify-content-end"
+                               class="text-decoration-none text-muted d-inline-flex align-items-center gap-1"
                                title="Alternar orden por fecha de carga">
                                 <span>Fecha Carga</span>
                                 {% if orden == 'asc' %}
@@ -102,12 +94,23 @@
                                 {% endif %}
                             </a>
                         </th>
+                        <th>Periodo Contable</th>
+                        <th>Archivo Origen</th>
+                        <th>Tipo Carga</th>
+                        <th class="text-end">Activo Total</th>
+                        <th class="text-end">Pasivo Total</th>
+                        <th class="text-end">Patrimonio</th>
+                        <th>Estado</th>
+                        <th class="pe-3">Cargado Por</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for c in cargas %}
                     <tr>
-                        <td class="ps-3 font-sans-serif">
+                        <td class="ps-3 text-muted font-sans-serif" style="font-size: 0.75rem;">
+                            <i class="bi bi-calendar3 me-1"></i>{{ c.fecha_carga|date:"d/m/Y H:i" }}
+                        </td>
+                        <td class="font-sans-serif">
                             <span class="fw-bold text-dark">{{ c.periodo }}</span>
                         </td>
                         <td class="text-truncate" style="max-width: 180px;" title="{{ c.archivo_origen }}">
@@ -136,11 +139,8 @@
                                 </span>
                             {% endif %}
                         </td>
-                        <td class="font-sans-serif text-muted">
+                        <td class="pe-3 font-sans-serif text-muted">
                             <i class="bi bi-person me-1"></i>{{ c.usuario.username|default:"Sistema" }}
-                        </td>
-                        <td class="pe-3 text-end text-muted font-sans-serif" style="font-size: 0.75rem;">
-                            {{ c.fecha_carga|date:"d/m/Y H:i" }}
                         </td>
                     </tr>
                     {% empty %}

@@ -110,19 +110,9 @@
             <table class="table table-hover align-middle mb-0 font-monospace small">
                 <thead class="table-light text-uppercase" style="font-size: 0.72rem;">
                     <tr>
-                        <th class="ps-3">Periodo Contable</th>
-                        <th class="text-end" title="V1: Razón Corriente (Activo Circulante / Pasivo Circulante)">V1 R.Corr</th>
-                        <th class="text-end" title="V2: Capital de Trabajo / Activos">V2 CapTrab</th>
-                        <th class="text-end" title="V3: Leverage Total (Pasivo Total / Patrimonio)">V3 Lev</th>
-                        <th class="text-end" title="V4: ROA Operacional (EBIT / Activo Total)">V4 ROA</th>
-                        <th class="text-end" title="V5: Margen Operacional (EBIT / Ingresos)">V5 Margen</th>
-                        <th class="text-end" title="V6: Rotación de Activos (Ingresos / Activo Total)">V6 RotAct</th>
-                        <th class="text-end" title="V7: Volatilidad del Flujo de Caja">V7 Volat</th>
-                        <th class="text-end" title="Z''EM Altman: Índice de Solvencia Mercados Emergentes">Z''EM</th>
-                        <th class="text-end" title="Ref: Prueba Ácida ((Activo Circ - Inv) / Pasivo Circ)">P. Ácida</th>
-                        <th class="text-end">
+                        <th class="ps-3">
                             <a href="?{% if periodo_busqueda %}periodo={{ periodo_busqueda|urlencode }}&{% endif %}orden={% if orden == 'asc' %}desc{% else %}asc{% endif %}"
-                               class="text-decoration-none text-muted d-inline-flex align-items-center gap-1 justify-content-end"
+                               class="text-decoration-none text-muted d-inline-flex align-items-center gap-1"
                                title="Alternar orden por fecha de cálculo">
                                 <span>Fecha Cálculo</span>
                                 {% if orden == 'asc' %}
@@ -132,13 +122,26 @@
                                 {% endif %}
                             </a>
                         </th>
+                        <th>Periodo Contable</th>
+                        <th class="text-end" title="V1: Razón Corriente (Activo Circulante / Pasivo Circulante)">V1 R.Corr</th>
+                        <th class="text-end" title="V2: Capital de Trabajo / Activos">V2 CapTrab</th>
+                        <th class="text-end" title="V3: Leverage Total (Pasivo Total / Patrimonio)">V3 Lev</th>
+                        <th class="text-end" title="V4: ROA Operacional (EBIT / Activo Total)">V4 ROA</th>
+                        <th class="text-end" title="V5: Margen Operacional (EBIT / Ingresos)">V5 Margen</th>
+                        <th class="text-end" title="V6: Rotación de Activos (Ingresos / Activo Total)">V6 RotAct</th>
+                        <th class="text-end" title="V7: Volatilidad del Flujo de Caja">V7 Volat</th>
+                        <th class="text-end" title="Z''EM Altman: Índice de Solvencia Mercados Emergentes">Z''EM</th>
+                        <th class="text-end" title="Ref: Prueba Ácida ((Activo Circ - Inv) / Pasivo Circ)">P. Ácida</th>
                         <th class="pe-3 text-center">Acción</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for r in ratios %}
                     <tr>
-                        <td class="ps-3 font-sans-serif">
+                        <td class="ps-3 text-muted font-sans-serif" style="font-size: 0.75rem;">
+                            <i class="bi bi-calendar3 me-1"></i>{{ r.fecha_calculo|date:"d/m/Y H:i" }}
+                        </td>
+                        <td class="font-sans-serif">
                             <span class="fw-bold text-dark">{{ r.periodo }}</span>
                         </td>
                         <td class="text-end">
@@ -168,9 +171,6 @@
                             </span>
                         </td>
                         <td class="text-end">{{ r.ref_prueba_acida|floatformat:2 }}</td>
-                        <td class="text-end text-muted font-sans-serif" style="font-size: 0.75rem;">
-                            {{ r.fecha_calculo|date:"d/m/Y H:i" }}
-                        </td>
                         <td class="pe-3 text-center font-sans-serif">
                             <form method="POST" action="{% url 'moduloETL:ejecutar_analisis' %}" class="d-inline m-0 form-ejecutar-analisis">
                                 {% csrf_token %}
