@@ -137,29 +137,36 @@ class MotorRiesgo:
         if model_path and os.path.exists(model_path):
             return str(model_path)
 
-        # Nombre del modelo configurado en el archivo .env / settings de Django
-        nombre_env = (
+        nombre_config = (
             getattr(settings, 'MODELO_ML_NOMBRE', None)
             or getattr(settings, 'ML_MODEL_NAME', None)
-            or os.getenv('MODELO_ML_NOMBRE')
-            or os.getenv('ML_MODEL_NAME')
+            or 'ModeloSmartfinanzas.joblib'
         )
 
+        nombres_a_buscar = [nombre_config]
+        if not nombre_config.endswith(('.joblib', '.pkl')):
+            nombres_a_buscar.extend([f"{nombre_config}.joblib", f"{nombre_config}.pkl"])
+        else:
+            nombres_a_buscar.append(Path(nombre_config).stem)
+
+        for extra in ['ModeloSmartfinanzas.joblib', 'ModeloSmartfinanzas']:
+            if extra not in nombres_a_buscar:
+                nombres_a_buscar.append(extra)
+
         rutas_candidatas = []
-        if nombre_env:
-            nombre_env = nombre_env.strip()
-            p = Path(nombre_env)
+        for n in nombres_a_buscar:
+            n_clean = n.strip()
+            p = Path(n_clean)
             if p.is_absolute() and p.exists():
                 return str(p)
-            # Buscar el archivo indicado en .env dentro de las carpetas de modelos del proyecto
             rutas_candidatas.extend([
-                settings.BASE_DIR / 'capaAnalitica' / 'modelo' / nombre_env,
-                settings.BASE_DIR / 'capaAnalitica' / nombre_env,
-                settings.BASE_DIR / 'AppWeb' / 'modelo_oficial' / nombre_env,
-                settings.BASE_DIR / nombre_env,
+                settings.BASE_DIR / 'capaAnalitica' / 'modelo' / n_clean,
+                settings.BASE_DIR / 'AppWeb' / 'modelo_oficial' / n_clean,
+                settings.BASE_DIR / 'capaAnalitica' / n_clean,
+                settings.BASE_DIR / n_clean,
             ])
 
-        # Rutas candidatas de respaldo
+        # Rutas candidatas de respaldo histórico
         rutas_candidatas.extend([
             settings.BASE_DIR / 'capaAnalitica' / 'modelo' / 'modelo_riesgo_v11.joblib',
             settings.BASE_DIR / 'capaAnalitica' / 'modelo' / 'random_forest_model.joblib',
@@ -175,8 +182,7 @@ class MotorRiesgo:
             return str(model_path)
 
         # Retornar la ruta canónica por defecto en la capa analítica
-        nombre_final = nombre_env or 'modelo_riesgo_v11.joblib'
-        return str(settings.BASE_DIR / 'capaAnalitica' / 'modelo' / nombre_final)
+        return str(settings.BASE_DIR / 'capaAnalitica' / 'modelo' / 'ModeloSmartfinanzas.joblib')
 
     def _resolver_ruta_metricas(self):
         rutas = [

@@ -15,20 +15,50 @@ _modelo_oficial_cache = {}
 def _cargar_modelo_oficial():
     if not _modelo_oficial_cache:
         from django.conf import settings
-        nombre_modelo = (
+        nombre_config = (
             getattr(settings, 'MODELO_ML_NOMBRE', None)
             or getattr(settings, 'ML_MODEL_NAME', None)
-            or os.getenv('MODELO_ML_NOMBRE')
-            or os.getenv('ML_MODEL_NAME')
-            or 'modelo_riesgo_v11.joblib'
+            or 'ModeloSmartfinanzas.joblib'
         )
-        ruta_modelo = os.path.join(MODELO_OFICIAL_DIR, nombre_modelo)
-        if not os.path.exists(ruta_modelo):
-            alt_ruta = os.path.join(str(settings.BASE_DIR), 'capaAnalitica', 'modelo', nombre_modelo)
-            if os.path.exists(alt_ruta):
-                ruta_modelo = alt_ruta
-            else:
-                ruta_modelo = os.path.join(MODELO_OFICIAL_DIR, 'modelo_riesgo_v11.joblib')
+        nombres = [nombre_config]
+        if not nombre_config.endswith(('.joblib', '.pkl')):
+            nombres.extend([f"{nombre_config}.joblib", f"{nombre_config}.pkl"])
+        else:
+            nombres.append(os.path.splitext(nombre_config)[0])
+        for extra in ['ModeloSmartfinanzas.joblib', 'ModeloSmartfinanzas']:
+            if extra not in nombres:
+                nombres.append(extra)
+
+        ruta_modelo = None
+        for n in nombres:
+            candidatos = [
+                os.path.join(MODELO_OFICIAL_DIR, n),
+                os.path.join(str(settings.BASE_DIR), 'capaAnalitica', 'modelo', n),
+                os.path.join(str(settings.BASE_DIR), 'capaAnalitica', n),
+                os.path.join(str(settings.BASE_DIR), n),
+            ]
+            for cand in candidatos:
+                if os.path.exists(cand):
+                    ruta_modelo = cand
+                    break
+            if ruta_modelo:
+                break
+
+        if not ruta_modelo:
+            # Respaldo histórico
+            for resp in ['modelo_riesgo_v11.joblib', 'random_forest_model.joblib']:
+                cand1 = os.path.join(MODELO_OFICIAL_DIR, resp)
+                cand2 = os.path.join(str(settings.BASE_DIR), 'capaAnalitica', 'modelo', resp)
+                if os.path.exists(cand1):
+                    ruta_modelo = cand1
+                    break
+                elif os.path.exists(cand2):
+                    ruta_modelo = cand2
+                    break
+
+        if not ruta_modelo:
+            ruta_modelo = os.path.join(MODELO_OFICIAL_DIR, 'ModeloSmartfinanzas.joblib')
+
         _modelo_oficial_cache['clf'] = joblib.load(ruta_modelo)
         _modelo_oficial_cache['metricas'] = joblib.load(os.path.join(MODELO_OFICIAL_DIR, 'metricas_v11.joblib'))
     return _modelo_oficial_cache['clf'], _modelo_oficial_cache['metricas']
@@ -65,7 +95,9 @@ def _vectores(lista_variables: list) -> pd.DataFrame:
 def predecir_probabilidades(lista_variables: list) -> np.ndarray:
     """Probabilidad de insolvencia (0-1) para varias empresas a la vez."""
     clf, _ = _cargar_modelo_oficial()
-    return clf.predict_proba(_vectores(lista_variables))[:, 1]
+    df = _vectores(lista_variables)
+    X = df.values if getattr(clf, 'feature_names_in_', None) is None else df
+    return clf.predict_proba(X)[:, 1]
 
 
 def clasificar_puntaje(puntaje_riesgo: float):
