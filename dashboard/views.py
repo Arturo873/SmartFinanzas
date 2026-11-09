@@ -14,7 +14,7 @@ from decimal import Decimal
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Sum, Q
-from django.http import HttpResponse, HttpRequest, Http404
+from django.http import HttpResponse, HttpRequest, Http404, JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -35,49 +35,79 @@ from .pdf_generator import construir_informe_ejecutivo_pdf
 logger = logging.getLogger(__name__)
 
 
+def calcular_z_score_altman_1983(r_obj) -> float:
+    """
+    Formulación clásica de Edward Altman (1983) para empresas no manufactureras
+    y mercados emergentes (Z''-Score):
+    Z'' = 6.56 * X1 + 3.26 * X2 + 6.72 * X3 + 1.05 * X4
+
+    Donde:
+      X1 = (Activo Circulante - Pasivo Circulante) / Activo Total  (Capital de Trabajo / Activo Total)
+      X2 = Utilidades Retenidas / Activo Total
+      X3 = EBIT / Activo Total  (Rentabilidad Operacional del Activo / ROA Operacional)
+      X4 = Patrimonio Neto / Pasivo Total  (Valor Contable del Patrimonio / Pasivo Total = 1 / Leverage)
+    """
+    if not r_obj:
+        return 2.60
+
+    carga = getattr(r_obj, 'carga', None)
+    if carga and carga.activo_total and float(carga.activo_total) > 0:
+        at = float(carga.activo_total)
+        ac = float(carga.activo_corriente or 0.0)
+        pc = float(carga.pasivo_corriente or 0.0)
+        pt = float(carga.pasivo_total or 0.0)
+        pat = float(carga.patrimonio or 0.0)
+        ur = float(carga.utilidades_retenidas or 0.0)
+        ebit = float(carga.ebit or 0.0)
+
+        x1 = (ac - pc) / at
+        x2 = ur / at
+        x3 = ebit / at
+        x4 = (pat / pt) if pt > 0 else 10.0
+    else:
+        # Extraer desde los ratios financieros almacenados en r_obj
+        x1 = float(getattr(r_obj, 'v2_capital_trabajo_activos', None) or 0.1)
+        x3 = float(getattr(r_obj, 'v4_roa_operacional', None) or 0.04)
+        lev = float(getattr(r_obj, 'v3_leverage_total', None) or 1.5)
+        x4 = (1.0 / lev) if lev > 0 else 10.0
+
+        if getattr(r_obj, 'ref_z_altman', None) is not None:
+            # En moduloETL se calcula con la constante EMS (3.25 + 6.56*X1 + 3.26*X2 + ...)
+            val_ref = float(r_obj.ref_z_altman)
+            return round(val_ref - 3.25, 4)
+        x2 = x3 * 0.5
+
+    z_double_prime = 6.56 * x1 + 3.26 * x2 + 6.72 * x3 + 1.05 * x4
+    return round(z_double_prime, 4)
+
+
 def calcular_score_observado(r_obj) -> float:
     """
-    Calcula el puntaje de riesgo financiero observado directamente en el balance (0 a 100),
-    evaluando la solvencia contable real del trimestre (Liquidez, Apalancamiento, Rentabilidad).
+    Calcula el puntaje de insolvencia contable observado (0 a 100%) a partir de la
+    formulación clásica de Edward Altman (1983) para empresas no manufactureras
+    y mercados emergentes (Z''-Score).
+
+    Mapeo de Zonas Canónicas de Altman (1983) al Semáforo Gerencial:
+      - Z'' >= 2.60 : Zona Segura / Solvente      -> Score <= 35.0% (Verde)
+      - 1.10 <= Z'' < 2.60 : Zona Gris / Alerta   -> Score 35.0% a 70.0% (Amarillo)
+      - Z'' < 1.10  : Zona de Quiebra / Distress  -> Score > 70.0% (Rojo)
     """
     if not r_obj:
         return 35.0
 
-    rc = float(r_obj.v1_razon_corriente or 1.2)
-    cta = float(r_obj.v2_capital_trabajo_activos or 0.1)
-    lev = float(r_obj.v3_leverage_total or 1.5)
-    roa = float(r_obj.v4_roa_operacional or 0.04)
+    z_score = calcular_z_score_altman_1983(r_obj)
 
-    # Base neutral: 40%
-    riesgo = 40.0
-
-    # 1. Razón Corriente: ideal >= 1.5, moderado 1.0 - 1.5, crítico < 1.0
-    if rc < 1.0:
-        riesgo += min(30.0, (1.0 - rc) * 35.0 + 10.0)
-    elif rc >= 1.5:
-        riesgo -= min(20.0, (rc - 1.5) * 10.0 + 10.0)
+    if z_score >= 2.60:
+        # Zona Segura: puntuación entre 5% y 35% (a mayor Z'', menor riesgo de quiebra)
+        score = 35.0 - (z_score - 2.60) * 10.0
+    elif z_score >= 1.10:
+        # Zona Gris: interpolación lineal exacta entre 35% (Z=2.60) y 70% (Z=1.10)
+        score = 35.0 + (2.60 - z_score) * (35.0 / 1.50)
     else:
-        riesgo += (1.5 - rc) * 10.0 - 5.0
+        # Zona de Quiebra (Distress): puntuación entre 70% y 95% (a menor Z'', mayor riesgo)
+        score = 70.0 + (1.10 - z_score) * 20.0
 
-    # 2. Leverage Total: ideal <= 1.5, crítico > 3.0
-    if lev > 3.0:
-        riesgo += min(25.0, (lev - 3.0) * 8.0 + 10.0)
-    elif lev <= 1.5:
-        riesgo -= min(15.0, (1.5 - lev) * 10.0 + 5.0)
-
-    # 3. ROA Operacional: negativo penaliza fuertemente
-    if roa < 0:
-        riesgo += min(20.0, abs(roa) * 100.0)
-    else:
-        riesgo -= min(15.0, roa * 100.0)
-
-    # 4. Capital de Trabajo sobre Activos
-    if cta < 0:
-        riesgo += min(15.0, abs(cta) * 50.0)
-    elif cta > 0.2:
-        riesgo -= min(10.0, cta * 20.0)
-
-    return round(float(max(5.0, min(95.0, riesgo))), 1)
+    return round(float(max(5.0, min(95.0, score))), 1)
 
 
 
@@ -149,8 +179,43 @@ class DashboardView(DashboardRolMixin, TemplateView):
     Realiza consultas de solo lectura a los modelos de otras aplicaciones
     para poblar el Semáforo de Riesgo, el Panel de Explicabilidad SHAP,
     la Curva de Tendencia y el Resumen Operativo de Ventas.
+    Soporta peticiones síncronas estándar y asíncronas (AJAX / Fetch)
+    para actualizar datos de forma reactiva e instantánea sin recargar la página.
     """
     template_name = 'dashboard/dashboard.html'
+
+    def get(self, request: HttpRequest, *args, **kwargs):
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('ajax') == '1':
+            context = self.get_context_data(**kwargs)
+            ultima = context.get('ultima_prediccion')
+            info_p = context.get('info_periodo')
+            if info_p:
+                info_p = dict(info_p)
+                if info_p.get('fecha_carga'):
+                    fc = info_p['fecha_carga']
+                    info_p['fecha_carga'] = fc.strftime('%d/%m/%Y %H:%M') if hasattr(fc, 'strftime') else str(fc)
+
+            fecha_pred = context.get('fecha_prediccion')
+            fecha_pred_str = fecha_pred.strftime('%d/%m/%Y %H:%M') if (fecha_pred and hasattr(fecha_pred, 'strftime')) else 'Pendiente'
+
+            ratio_obj = context.get('ratio_asociado_prediccion')
+            ratio_per = ratio_obj.periodo if ratio_obj else context.get('periodo_filtro')
+
+            data = {
+                'status': 'ok',
+                'prediccion_id': ultima.id if ultima else None,
+                'periodo': context.get('periodo_filtro') or (ultima.ratio.periodo if (ultima and ultima.ratio) else ''),
+                'score': context.get('score'),
+                'nivel': context.get('nivel'),
+                'fecha_prediccion': fecha_pred_str,
+                'es_prediccion_mas_reciente': context.get('es_prediccion_mas_reciente'),
+                'top_3_variables': context.get('top_3_variables') or [],
+                'todos_los_ratios_prediccion': context.get('todos_los_ratios_prediccion') or [],
+                'info_periodo': info_p,
+                'ratio_periodo': ratio_per,
+            }
+            return JsonResponse(data)
+        return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -208,7 +273,7 @@ class DashboardView(DashboardRolMixin, TemplateView):
 
         # Hasta 20 evaluaciones históricas para graficación y filtrado dinámico (RF-04)
         predicciones_curva = predicciones_qs
-        if periodo_param:
+        if periodo_param and not (self.request.headers.get('x-requested-with') == 'XMLHttpRequest' or self.request.GET.get('ajax') == '1'):
             predicciones_curva = predicciones_curva.filter(
                 Q(ratio__periodo=periodo_param) | Q(ratio__periodo__icontains=periodo_param)
             )
@@ -572,7 +637,7 @@ class DashboardPredictivoView(DashboardView):
         valores_predicciones = []
 
         for per in periodos_visibles:
-            p_fut, _, _ = calcular_periodo_siguiente(per)
+            p_fut, per_norm, _ = calcular_periodo_siguiente(per)
             r_obj = ratios_por_periodo[per]
             p_obj = pred_por_periodo.get(per)
             if p_obj and p_obj.score_riesgo is not None:
@@ -595,15 +660,16 @@ class DashboardPredictivoView(DashboardView):
             sc_obs = calcular_score_observado(r_obj)
             niv_obs = 'Verde' if sc_obs <= 35 else ('Amarillo' if sc_obs <= 70 else 'Rojo')
 
-            es_act = bool(per == periodo_balance_raw or per == periodo_balance_norm)
-            periodos_pasados_labels.append(per)
+            lbl_clean = per_norm or per
+            es_act = bool(per == periodo_balance_raw or per == periodo_balance_norm or per_norm == periodo_balance_norm)
+            periodos_pasados_labels.append(lbl_clean)
             valores_observados.append(sc_obs)
             valores_predicciones.append(sc_pred)
 
             timeline_puntos.append({
                 'id': pid,
                 'periodo': per,
-                'label': per,
+                'label': lbl_clean,
                 'score_observado': sc_obs,
                 'score_prediccion': sc_pred,
                 'score': sc_pred,
@@ -700,18 +766,17 @@ class DashboardPredictivoView(DashboardView):
 
             r_fut = ratios_por_periodo.get(p_fut)
             if r_fut:
-                rc_fut = float(r_fut.v1_razon_corriente or 1.0)
-                lev_fut = float(r_fut.v3_leverage_total or 1.0)
-                if rc_fut >= 1.2 and lev_fut <= 3.0:
-                    estado_real = f"Solvente (RC: {rc_fut:.2f}x, Lev: {lev_fut:.2f}x)"
-                    resultado_val = "Acierto Preventivo"
+                z_fut = calcular_z_score_altman_1983(r_fut)
+                if z_fut >= 2.60:
+                    estado_real = f"Solvente (Altman Z'': {z_fut:.2f})"
+                    resultado_val = "Acierto Preventivo" if score_bt <= 35 else "Falsa Alarma Superada"
                     badge_val = "badge-status-solvente"
-                elif rc_fut < 1.0 or lev_fut > 5.0:
-                    estado_real = f"Tensión de Liquidez (RC: {rc_fut:.2f}x)"
-                    resultado_val = "Alerta Temprana Validada"
+                elif z_fut < 1.10:
+                    estado_real = f"Insolvente / Quiebra (Altman Z'': {z_fut:.2f})"
+                    resultado_val = "Alerta Temprana Validada" if score_bt > 35 else "Insolvencia Sobrevenida"
                     badge_val = "badge-status-critico"
                 else:
-                    estado_real = f"Moderado Estable (RC: {rc_fut:.2f}x)"
+                    estado_real = f"Zona Gris / Tensión (Altman Z'': {z_fut:.2f})"
                     resultado_val = "Anticipación Correcta"
                     badge_val = "badge-status-alerta"
             else:
@@ -769,6 +834,7 @@ class DashboardPredictivoView(DashboardView):
             'timeline_predicciones_json': json.dumps(timeline_predicciones_data),
             'timeline_historico_json': json.dumps(timeline_historico_data),
             'timeline_proyectado_json': json.dumps(timeline_proyectado_data),
+            'timeline_puntos': timeline_puntos,
             'timeline_puntos_json': json.dumps(timeline_puntos, ensure_ascii=False),
             'total_evaluaciones_historicas': len(timeline_puntos),
             'score_proyectado_float': score_actual,

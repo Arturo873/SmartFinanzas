@@ -624,28 +624,28 @@ class AlertaTempranaPredictivoTests(TestCase):
 
     def test_dashboard_predictivo_series_paralelas_y_toggles(self):
         """
-        Verifica que el dashboard predictivo incluya las dos líneas paralelas (Observados y Predicciones)
-        junto con sus respectivos botones de visibilidad independiente.
+        Verifica que el dashboard predictivo incluya la vista limpia con Observados y Proyección a 90 días,
+        con sus botones de visibilidad independiente y sin la línea redundante de predicciones brutas.
         """
         self.client.force_login(self.auth_user)
         response = self.client.get(reverse('dashboard:dashboard_predictivo'))
         self.assertEqual(response.status_code, 200)
         content = response.content.decode('utf-8')
 
-        # Botones de alternancia de series
+        # Botones de alternancia de series activas
         self.assertIn('id="btnToggleObservados"', content)
-        self.assertIn('id="btnTogglePredicciones"', content)
         self.assertIn('id="btnToggleProyeccion"', content)
+        # La serie morada redundante se eliminó para mantener la curva limpia
+        self.assertNotIn('id="btnTogglePredicciones"', content)
 
-        # Contenedores de datos de series paralelas
+        # Contenedores de datos
         self.assertIn('id="timeline-observado-raw"', content)
-        self.assertIn('id="timeline-predicciones-raw"', content)
+        self.assertIn('id="timeline-proyectado-raw"', content)
 
-        # Contexto del backend con ambas series
+        # Contexto del backend
         self.assertIn('valores_observados', response.context)
-        self.assertIn('valores_predicciones', response.context)
         self.assertIn('timeline_observado_json', response.context)
-        self.assertIn('timeline_predicciones_json', response.context)
+        self.assertIn('timeline_proyectado_json', response.context)
 
     def test_dashboard_predictivo_historia_completa_sin_recorte(self):
         """
@@ -709,9 +709,11 @@ class AlertaTempranaPredictivoTests(TestCase):
 
     def test_calcular_score_observado(self):
         """
-        Verifica el cálculo heurístico contable del score observado a partir de ratios financieros.
+        Verifica el cálculo de insolvencia contable observado a partir de la
+        formulación clásica de Edward Altman (1983) para empresas no manufactureras
+        y mercados emergentes (Z''-Score).
         """
-        from dashboard.views import calcular_score_observado
+        from dashboard.views import calcular_score_observado, calcular_z_score_altman_1983
         from moduloETL.models import RatioFinanciero
 
         # Caso solvente (alta liquidez, bajo endeudamiento)
@@ -721,8 +723,10 @@ class AlertaTempranaPredictivoTests(TestCase):
             v3_leverage_total=0.8,
             v4_roa_operacional=0.12,
         )
+        z_solvente = calcular_z_score_altman_1983(r_solvente)
+        self.assertGreaterEqual(z_solvente, 2.60)  # Zona Segura de Altman
         score_solvente = calcular_score_observado(r_solvente)
-        self.assertLessEqual(score_solvente, 35.0)
+        self.assertLessEqual(score_solvente, 35.0)  # Zona Verde
 
         # Caso crítico (baja liquidez, alto endeudamiento, ROA negativo)
         r_critico = RatioFinanciero(
@@ -731,8 +735,10 @@ class AlertaTempranaPredictivoTests(TestCase):
             v3_leverage_total=5.5,
             v4_roa_operacional=-0.08,
         )
+        z_critico = calcular_z_score_altman_1983(r_critico)
+        self.assertLess(z_critico, 1.10)  # Zona de Quiebra de Altman
         score_critico = calcular_score_observado(r_critico)
-        self.assertGreater(score_critico, 70.0)
+        self.assertGreater(score_critico, 70.0)  # Zona Roja Crítica
 
 
 

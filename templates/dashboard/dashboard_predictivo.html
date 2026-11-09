@@ -353,11 +353,7 @@
         <div class="d-flex flex-wrap align-items-center gap-3 fs-micro">
             <div class="d-flex align-items-center gap-1.5 text-secondary" id="leyendaObservados">
                 <span class="d-inline-block rounded-pill" style="width: 14px; height: 3px; background-color: #2563eb;"></span>
-                <span>Dato Observado (Q<sub>t</sub>)</span>
-            </div>
-            <div class="d-flex align-items-center gap-1.5 fw-semibold" style="color: #7c3aed;" id="leyendaPredicciones">
-                <span class="d-inline-block rounded-pill" style="width: 14px; height: 3px; background-color: #7c3aed;"></span>
-                <span>Predicción del Modelo</span>
+                <span>Dato Observado (Altman 1983 Z'')</span>
             </div>
             <div class="d-flex align-items-center gap-1.5 text-main fw-semibold">
                 <span class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 10px; height: 10px; border: 2px solid #0f172a; background-color: #2563eb;"></span>
@@ -434,9 +430,6 @@
                 <button type="button" class="btn btn-primary btn-sm py-0.5 px-2 active" id="btnToggleObservados" title="Ocultar o Mostrar Datos Observados">
                     <i class="bi bi-eye me-1"></i>Observados
                 </button>
-                <button type="button" class="btn btn-primary btn-sm py-0.5 px-2 active" id="btnTogglePredicciones" style="background-color: #7c3aed; border-color: #6d28d9;" title="Ocultar o Mostrar Predicciones del Modelo">
-                    <i class="bi bi-eye me-1"></i>Predicciones
-                </button>
                 <button type="button" class="btn btn-dark btn-sm py-0.5 px-2 active" id="btnToggleProyeccion" title="Ocultar o Mostrar Pronóstico a 90 Días">
                     <i class="bi bi-eye me-1"></i>Pronóstico 90d
                 </button>
@@ -473,7 +466,7 @@
     <div class="card-footer py-2.5 px-4 bg-white border-top border-subtle d-flex flex-wrap align-items-center justify-content-between text-muted-custom fs-micro">
         <div id="footerInfoGrafico">
             <i class="bi bi-info-circle me-1 text-primary"></i>
-            Puntos visualizados: <strong class="text-main" id="puntosVisiblesFooter">--</strong> de <strong class="text-main" id="totalEvaluacionesFooter">{{ total_evaluaciones_historicas|default:total_predicciones_historicas|default:etiquetas_periodos_pasados|length }}</strong> trimestres históricos.
+            Puntos visualizados: <strong class="text-main" id="puntosVisiblesFooter">{{ etiquetas_periodos_pasados|length|default:0 }}</strong> de <strong class="text-main" id="totalEvaluacionesFooter">{{ total_evaluaciones_historicas|default:etiquetas_periodos_pasados|length }}</strong> trimestres históricos.
             &middot; Pasa el cursor o haz clic en un punto para seleccionar ese período.
         </div>
         <div class="font-monospace">
@@ -1013,7 +1006,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // Estado y controles de visibilidad independiente de series
     const visibilidadSeries = {
         observados: true,
-        predicciones: true,
         proyeccion: true
     };
 
@@ -1022,6 +1014,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const listaCheckboxes = document.getElementById('listaCheckboxesPeriodos');
     const contadorPuntos = document.getElementById('contadorPuntosGrafico');
     const puntosFooter = document.getElementById('puntosVisiblesFooter');
+    const totalFooter = document.getElementById('totalEvaluacionesFooter');
     const mensajeSinPeriodos = document.getElementById('mensajeSinPeriodos');
     const btnRestablecerFiltros = document.getElementById('btnRestablecerFiltros');
     const btnMarcarTodos = document.getElementById('btnMarcarTodos');
@@ -1032,7 +1025,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnFiltroAlertas = document.getElementById('btnFiltroAlertas');
     const btnRestablecerDesdeMensaje = document.getElementById('btnRestablecerDesdeMensaje');
     const btnToggleObservados = document.getElementById('btnToggleObservados');
-    const btnTogglePredicciones = document.getElementById('btnTogglePredicciones');
     const btnToggleProyeccion = document.getElementById('btnToggleProyeccion');
 
     function actualizarBotonesVisibilidad() {
@@ -1040,19 +1032,6 @@ document.addEventListener('DOMContentLoaded', function () {
             btnToggleObservados.classList.toggle('btn-primary', visibilidadSeries.observados);
             btnToggleObservados.classList.toggle('btn-outline-primary', !visibilidadSeries.observados);
             btnToggleObservados.innerHTML = `<i class="bi bi-${visibilidadSeries.observados ? 'eye' : 'eye-slash'} me-1"></i>Observados`;
-        }
-        if (btnTogglePredicciones) {
-            if (visibilidadSeries.predicciones) {
-                btnTogglePredicciones.className = 'btn btn-sm py-0.5 px-2 active text-white';
-                btnTogglePredicciones.style.backgroundColor = '#7c3aed';
-                btnTogglePredicciones.style.borderColor = '#6d28d9';
-            } else {
-                btnTogglePredicciones.className = 'btn btn-outline-secondary btn-sm py-0.5 px-2';
-                btnTogglePredicciones.style.backgroundColor = '';
-                btnTogglePredicciones.style.borderColor = '#c4b5fd';
-                btnTogglePredicciones.style.color = '#7c3aed';
-            }
-            btnTogglePredicciones.innerHTML = `<i class="bi bi-${visibilidadSeries.predicciones ? 'eye' : 'eye-slash'} me-1"></i>Predicciones`;
         }
         if (btnToggleProyeccion) {
             btnToggleProyeccion.classList.toggle('btn-dark', visibilidadSeries.proyeccion);
@@ -1070,19 +1049,10 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    if (btnTogglePredicciones) {
-        btnTogglePredicciones.addEventListener('click', function () {
-            visibilidadSeries.predicciones = !visibilidadSeries.predicciones;
-            chartInstance.setDatasetVisibility(1, visibilidadSeries.predicciones);
-            actualizarBotonesVisibilidad();
-            chartInstance.update();
-        });
-    }
-
     if (btnToggleProyeccion) {
         btnToggleProyeccion.addEventListener('click', function () {
             visibilidadSeries.proyeccion = !visibilidadSeries.proyeccion;
-            chartInstance.setDatasetVisibility(2, visibilidadSeries.proyeccion);
+            chartInstance.setDatasetVisibility(1, visibilidadSeries.proyeccion);
             actualizarBotonesVisibilidad();
             chartInstance.update();
         });
@@ -1101,6 +1071,7 @@ document.addEventListener('DOMContentLoaded', function () {
         periodosUnicos.forEach((per, idx) => {
             const puntosDelPeriodo = puntosOriginales.filter(p => p.periodo === per);
             const ultimoDelPeriodo = puntosDelPeriodo[puntosDelPeriodo.length - 1];
+            const perLabel = (ultimoDelPeriodo && ultimoDelPeriodo.label) ? ultimoDelPeriodo.label : per;
             const esActivo = periodosSeleccionados.has(per);
 
             let badgeClass = 'badge-status-neutral';
@@ -1124,7 +1095,7 @@ document.addEventListener('DOMContentLoaded', function () {
                            id="chk_periodo_${idx}"
                            ${esActivo ? 'checked' : ''}>
                     <span class="fs-micro fw-semibold text-main">
-                        ${per} ${esActualPeriodo ? '<span class="badge bg-dark text-white fs-micro py-0 px-1">Actual</span>' : ''}
+                        ${perLabel} ${esActualPeriodo ? '<span class="badge bg-dark text-white fs-micro py-0 px-1">Actual</span>' : ''}
                     </span>
                 </div>
                 <div class="d-flex align-items-center gap-1.5">
@@ -1318,23 +1289,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     tension: 0.25,
                     fill: false,
                 },
-                // Dataset 1: Línea Paralela de Predicciones del Modelo (Línea púrpura)
-                {
-                    label: 'Predicción del Modelo',
-                    data: [],
-                    borderColor: '#7c3aed',
-                    backgroundColor: 'rgba(124, 58, 237, 0.05)',
-                    borderWidth: 2.5,
-                    borderDash: [5, 4],
-                    pointBackgroundColor: '#7c3aed',
-                    pointBorderColor: '#ffffff',
-                    pointBorderWidth: 1.5,
-                    pointRadius: [],
-                    pointHoverRadius: [],
-                    tension: 0.25,
-                    fill: false,
-                },
-                // Dataset 2: Tramo Proyectado a 90 Días que sale del período activo
+                // Dataset 1: Tramo Proyectado a 90 Días que sale del período activo
                 {
                     label: 'Pronóstico Preventivo (Q_{t+1})',
                     data: [],
@@ -1366,7 +1321,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const lastIdx = chartInstance.data.labels.length - 1;
 
                 // Si se hace clic en el nodo destino proyectado final, no alterar
-                if (dataIndex === lastIdx && el.datasetIndex === 2) return;
+                if (dataIndex === lastIdx && el.datasetIndex === 1) return;
 
                 const punto = puntosVisiblesActuales[dataIndex];
                 if (!punto) return;
@@ -1435,7 +1390,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             if (!items || !items.length) return '';
                             const idx = items[0].dataIndex;
                             const lastIdx = chartInstance.data.labels.length - 1;
-                            if (idx === lastIdx && items[0].datasetIndex === 2) {
+                            if (idx === lastIdx && items[0].datasetIndex === 1) {
                                 return 'Pronóstico Preventivo Q_{t+1}: ' + items[0].label;
                             }
                             const isAct = esActualArr[idx];
@@ -1447,23 +1402,18 @@ document.addEventListener('DOMContentLoaded', function () {
                             const idx = ctx.dataIndex;
                             const lastIdx = chartInstance.data.labels.length - 1;
 
-                            if (ctx.datasetIndex === 2) {
+                            if (ctx.datasetIndex === 1) {
                                 if (idx === lastIdx || idx > 0) {
                                     return 'Pronóstico preventivo a 3 meses: ' + val.toFixed(1) + '% de riesgo proyectado';
                                 }
                                 return 'Base de proyección: ' + val.toFixed(1) + '%';
                             }
-                            if (ctx.datasetIndex === 1) {
-                                let est = val > 70 ? 'Crítico' : (val > 35 ? 'Alerta' : 'Solvente');
-                                return 'Predicción del Modelo: ' + val.toFixed(1) + '% (' + est + ')';
-                            }
-                            let estado = val > 70 ? 'Crítico' : (val > 35 ? 'Alerta' : 'Solvente');
-                            return 'Dato observado (Trimestre real): ' + val.toFixed(1) + '% (' + estado + ')';
+                            let estado = val > 70 ? 'Zona Quiebra (Z < 1.10)' : (val > 35 ? 'Zona Gris / Alerta' : 'Zona Segura (Z ≥ 2.60)');
+                            return 'Insolvencia Observada (Altman 1983): ' + val.toFixed(1) + '% (' + estado + ')';
                         },
                         afterLabel: function(ctx) {
                             const idx = ctx.dataIndex;
-                            const lastIdx = chartInstance.data.labels.length - 1;
-                            if (ctx.datasetIndex === 2) {
+                            if (ctx.datasetIndex === 1) {
                                 return 'Ventana preventiva: 90 días para tomar medidas correctivas.';
                             }
                             if (esActualArr[idx]) {
@@ -1513,7 +1463,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!punto) return;
 
         const elBase = document.getElementById('horizontePeriodoBase');
-        if (elBase) elBase.textContent = punto.periodo;
+        if (elBase) elBase.textContent = punto.label || punto.periodo;
 
         const elProy = document.getElementById('horizontePeriodoProyectado');
         if (elProy) elProy.textContent = punto.periodo_proyectado || 'Q_{t+1}';
@@ -1604,7 +1554,6 @@ document.addEventListener('DOMContentLoaded', function () {
             chartInstance.data.labels = [];
             chartInstance.data.datasets[0].data = [];
             chartInstance.data.datasets[1].data = [];
-            chartInstance.data.datasets[2].data = [];
             chartInstance.update();
 
             if (badgeActivos) badgeActivos.textContent = `${periodosSeleccionados.size}/${periodosUnicos.length}`;
@@ -1635,10 +1584,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Dataset 0: Datos Observados (longitud M + 1, con null al final)
         const newObservados = visibles.map(p => p.score_observado).concat([null]);
 
-        // Dataset 1: Predicciones del Modelo (longitud M + 1, con null al final)
-        const newPredicciones = visibles.map(p => p.score_prediccion).concat([null]);
-
-        // Dataset 2: Tramo proyectado dinámico que SALE del período activo hacia su trimestre siguiente (+90 días)
+        // Dataset 1: Tramo proyectado dinámico que SALE del período activo hacia su trimestre siguiente (+90 días)
         const newProyectado = new Array(M + 1).fill(null);
         let destIdx = (activeIdx < M - 1) ? (activeIdx + 1) : M;
         newProyectado[activeIdx] = puntoActivo.score_observado;
@@ -1655,11 +1601,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const obsPointBorderWidths = visibles.map(p => p.es_actual ? 3 : 2).concat([0]);
         const obsPointBg = visibles.map(p => '#2563eb').concat(['transparent']);
 
-        // Styling Dataset 1 (Predicciones)
-        const predPointRadii = visibles.map(p => p.es_actual ? 7 : 5).concat([0]);
-        const predPointHoverRadii = visibles.map(p => p.es_actual ? 9 : 7).concat([0]);
-
-        // Styling Dataset 2 (Proyección a 90 días)
+        // Styling Dataset 1 (Proyección a 90 días)
         const projPointRadii = new Array(M + 1).fill(0);
         projPointRadii[activeIdx] = 4;
         projPointRadii[destIdx] = 9;
@@ -1679,21 +1621,15 @@ document.addEventListener('DOMContentLoaded', function () {
         chartInstance.data.datasets[0].pointBackgroundColor = obsPointBg;
 
         // Dataset 1
-        chartInstance.data.datasets[1].data = newPredicciones;
-        chartInstance.data.datasets[1].pointRadius = predPointRadii;
-        chartInstance.data.datasets[1].pointHoverRadius = predPointHoverRadii;
-
-        // Dataset 2
-        chartInstance.data.datasets[2].data = newProyectado;
-        chartInstance.data.datasets[2].borderColor = colorActivoSem.border;
-        chartInstance.data.datasets[2].pointRadius = projPointRadii;
-        chartInstance.data.datasets[2].pointHoverRadius = projPointHoverRadii;
-        chartInstance.data.datasets[2].pointBackgroundColor = projPointBg;
+        chartInstance.data.datasets[1].data = newProyectado;
+        chartInstance.data.datasets[1].borderColor = colorActivoSem.border;
+        chartInstance.data.datasets[1].pointRadius = projPointRadii;
+        chartInstance.data.datasets[1].pointHoverRadius = projPointHoverRadii;
+        chartInstance.data.datasets[1].pointBackgroundColor = projPointBg;
 
         // Respetar visibilidad elegida por el usuario
         chartInstance.setDatasetVisibility(0, visibilidadSeries.observados);
-        chartInstance.setDatasetVisibility(1, visibilidadSeries.predicciones);
-        chartInstance.setDatasetVisibility(2, visibilidadSeries.proyeccion);
+        chartInstance.setDatasetVisibility(1, visibilidadSeries.proyeccion);
 
         chartInstance.update();
 
@@ -1710,13 +1646,15 @@ document.addEventListener('DOMContentLoaded', function () {
         if (puntosFooter) {
             puntosFooter.textContent = visibles.length;
         }
+        if (totalFooter) {
+            totalFooter.textContent = puntosOriginales.length;
+        }
 
         const filtrosPersonalizados = (
             periodosSeleccionados.size !== periodosUnicos.length ||
             filtroRango !== 'todos' ||
             soloAlertas ||
             !visibilidadSeries.observados ||
-            !visibilidadSeries.predicciones ||
             !visibilidadSeries.proyeccion
         );
         if (btnRestablecerFiltros) {
@@ -1762,7 +1700,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Restablecer todas las series a visibles
             visibilidadSeries.observados = true;
-            visibilidadSeries.predicciones = true;
             visibilidadSeries.proyeccion = true;
             actualizarBotonesVisibilidad();
 
@@ -1805,9 +1742,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (btnFiltroAlertas) btnFiltroAlertas.classList.remove('active', 'btn-warning', 'text-white');
         document.querySelectorAll('.check-periodo-item').forEach(c => { c.checked = true; });
 
-        // Restablecer todas las series a visibles
+        // Restablecer visibilidad a los valores predeterminados
         visibilidadSeries.observados = true;
-        visibilidadSeries.predicciones = true;
         visibilidadSeries.proyeccion = true;
         actualizarBotonesVisibilidad();
 

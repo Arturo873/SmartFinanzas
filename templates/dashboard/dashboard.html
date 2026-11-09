@@ -214,12 +214,13 @@
 {% endif %}
 
 {% if not es_prediccion_mas_reciente and ultima_prediccion %}
-<div class="alert alert-info border-info d-flex flex-wrap align-items-center justify-content-between gap-2 py-2.5 px-3 mb-4 shadow-xs">
+<div id="bannerDiagnosticoHistorico" class="alert alert-info border-info d-flex flex-wrap align-items-center justify-content-between gap-2 py-2.5 px-3 mb-4 shadow-xs">
     <div class="d-flex align-items-center gap-2">
         <i class="bi bi-clock-history fs-5 text-primary"></i>
         <div class="fs-caption">
-            Visualizando diagnóstico histórico del período: <strong class="text-main">{{ ratio_asociado_prediccion.periodo|default:"Balance Seleccionado" }}</strong>
-            &middot; Inferencia evaluada el {{ fecha_prediccion|date:"d/m/Y H:i" }} con un Score de <strong>{{ score|floatformat:1 }}%</strong>
+            Visualizando diagnóstico histórico del período: <strong class="text-main" id="bannerPeriodoNombre">{{ ratio_asociado_prediccion.periodo|default:"Balance Seleccionado" }}</strong>
+            &middot; Inferencia evaluada el <span id="bannerFechaPrediccion">{{ fecha_prediccion|date:"d/m/Y H:i" }}</span> con un Score de <strong id="bannerScoreValor">{{ score|floatformat:1 }}%</strong>
+            <span id="bannerNivelBadge">
             {% if nivel == 'Verde' %}
                 <span class="badge border fw-medium badge-status-solvente fs-micro ms-1">Solvente</span>
             {% elif nivel == 'Amarillo' %}
@@ -227,6 +228,21 @@
             {% else %}
                 <span class="badge border fw-medium badge-status-critico fs-micro ms-1">Crítico</span>
             {% endif %}
+            </span>
+        </div>
+    </div>
+    <a href="{% url 'dashboard:dashboard' %}" class="btn btn-primary btn-sm py-1 px-2.5 fs-micro fw-medium">
+        <i class="bi bi-arrow-counterclockwise me-1"></i>Ver Diagnóstico Más Reciente
+    </a>
+</div>
+{% else %}
+<div id="bannerDiagnosticoHistorico" class="alert alert-info border-info d-flex flex-wrap align-items-center justify-content-between gap-2 py-2.5 px-3 mb-4 shadow-xs d-none">
+    <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-clock-history fs-5 text-primary"></i>
+        <div class="fs-caption">
+            Visualizando diagnóstico histórico del período: <strong class="text-main" id="bannerPeriodoNombre"></strong>
+            &middot; Inferencia evaluada el <span id="bannerFechaPrediccion"></span> con un Score de <strong id="bannerScoreValor"></strong>
+            <span id="bannerNivelBadge"></span>
         </div>
     </div>
     <a href="{% url 'dashboard:dashboard' %}" class="btn btn-primary btn-sm py-1 px-2.5 fs-micro fw-medium">
@@ -243,6 +259,7 @@
         <div class="card h-100 p-3 d-flex flex-column justify-content-between">
             <div class="d-flex align-items-start justify-content-between mb-2">
                 <span class="text-muted-custom fw-medium fs-caption">Índice de Riesgo (ML)</span>
+                <span id="kpiNivelBadge">
                 {% if nivel == 'Verde' %}
                     <span class="badge border fw-medium badge-status-solvente fs-micro">
                         Solvente
@@ -260,11 +277,12 @@
                         Sin Inferencia
                     </span>
                 {% endif %}
+                </span>
             </div>
 
             <div>
                 <div class="d-flex align-items-baseline gap-2">
-                    <span class="fw-bold tracking-tight text-main fs-kpi">
+                    <span class="fw-bold tracking-tight text-main fs-kpi" id="kpiScoreValor">
                         {% if score is not None %}
                             {{ score|floatformat:1 }}%
                         {% else %}
@@ -277,6 +295,7 @@
                 <!-- Barra de umbral neutra y discreta (Bootstrap progress sin linters) -->
                 <div class="progress kpi-progress rounded-pill overflow-hidden mt-2">
                     <div class="progress-bar {% if nivel == 'Rojo' %}bg-danger{% elif nivel == 'Amarillo' %}bg-warning{% elif nivel == 'Verde' %}bg-success{% else %}bg-secondary{% endif %}"
+                         id="kpiProgressBar"
                          role="progressbar"
                          style="width: {{ score|default:0|floatformat:0 }}%;"></div>
                 </div>
@@ -285,11 +304,13 @@
             <div class="pt-2 mt-3 border-top border-subtle d-flex align-items-center justify-content-between text-muted-custom fs-micro">
                 <span>
                     <i class="bi bi-clock me-1"></i>
+                    <span id="kpiFechaPrediccion">
                     {% if fecha_prediccion %}
                         {{ fecha_prediccion|date:"d/m/Y H:i" }}
                     {% else %}
                         Pendiente
                     {% endif %}
+                    </span>
                 </span>
                 <span class="font-mono">v1.1</span>
             </div>
@@ -430,7 +451,7 @@
                 </div>
             </div>
 
-            <div class="card-body p-3 p-xl-4">
+            <div class="card-body p-3 p-xl-4" id="contenedorTopShap">
                 {% if top_3_variables %}
                     <div class="row g-3">
                         {% for item in top_3_variables %}
@@ -681,16 +702,14 @@
                 <span class="badge border font-monospace badge-status-neutral fs-micro">
                     7 Ratios Contables (X1 - X7)
                 </span>
-                {% if ultima_prediccion %}
-                    <span class="badge bg-dark text-white font-monospace fs-micro">
-                        #INF-{{ ultima_prediccion.id }}
-                    </span>
-                {% endif %}
+                <span class="badge bg-dark text-white font-monospace fs-micro {% if not ultima_prediccion %}d-none{% endif %}" id="badgeInfId">
+                    {% if ultima_prediccion %}#INF-{{ ultima_prediccion.id }}{% endif %}
+                </span>
             </div>
             <p class="text-muted-custom mb-0 fs-caption">
                 Desglose cuantitativo de todas las variables financieras que alimentaron el modelo predictivo en la evaluación de
-                <strong class="text-main">{{ ratio_asociado_prediccion.periodo|default:"Balance Activo" }}</strong>
-                {% if fecha_prediccion %} &middot; Inferencia: {{ fecha_prediccion|date:"d/m/Y H:i" }}{% endif %}
+                <strong class="text-main" id="ratiosPeriodoTexto">{{ ratio_asociado_prediccion.periodo|default:"Balance Activo" }}</strong>
+                &middot; <span id="ratiosFechaInferencia">Inferencia: {% if fecha_prediccion %}{{ fecha_prediccion|date:"d/m/Y H:i" }}{% else %}Pendiente{% endif %}</span>
             </p>
         </div>
 
@@ -698,9 +717,10 @@
             <!-- Indicador del Score que se está auditando -->
             <div class="d-flex align-items-center gap-2 px-3 py-1.5 rounded border border-subtle bg-canvas">
                 <span class="text-muted-custom fs-micro">Diagnóstico Auditado:</span>
-                <span class="fw-bold font-monospace text-main fs-caption">
+                <span class="fw-bold font-monospace text-main fs-caption" id="ratiosAuditScore">
                     {% if score is not None %}{{ score|floatformat:1 }}%{% else %}--%{% endif %}
                 </span>
+                <span id="ratiosAuditNivel">
                 {% if nivel == 'Verde' %}
                     <span class="badge border fw-medium badge-status-solvente fs-micro">Solvente</span>
                 {% elif nivel == 'Amarillo' %}
@@ -710,11 +730,12 @@
                 {% else %}
                     <span class="badge border fw-medium badge-status-neutral fs-micro">Sin Inferencia</span>
                 {% endif %}
+                </span>
             </div>
         </div>
     </div>
 
-    <div class="card-body p-4">
+    <div class="card-body p-4" id="contenedorRatiosPrediccion">
         {% if todos_los_ratios_prediccion %}
             <div class="row g-3 g-xl-4">
                 {% for item in todos_los_ratios_prediccion %}
@@ -856,9 +877,10 @@
         <div>
             <div class="d-flex align-items-center gap-2 mb-1">
                 <h2 class="h6 fw-semibold text-main mb-0">Información Contable del Período (Balance & Resultados)</h2>
-                <span class="badge border font-monospace badge-status-neutral fs-micro">
+                <span class="badge border font-monospace badge-status-neutral fs-micro" id="infoPeriodoBadge">
                     Período {% if info_periodo and info_periodo.periodo %}{{ info_periodo.periodo }}{% elif ratio_asociado_prediccion and ratio_asociado_prediccion.periodo %}{{ ratio_asociado_prediccion.periodo }}{% else %}Balance Activo{% endif %}
                 </span>
+                <span id="infoCuadreBadge">
                 {% if info_periodo %}
                     {% if info_periodo.cuadrado %}
                         <span class="badge border fw-medium badge-status-solvente fs-micro"
@@ -876,8 +898,9 @@
                         </span>
                     {% endif %}
                 {% endif %}
+                </span>
             </div>
-            <p class="text-muted-custom mb-0 fs-caption">
+            <p class="text-muted-custom mb-0 fs-caption" id="infoOrigenFechaTexto">
                 Valores patrimoniales consolidados y cuentas contables procesadas por el pipeline ETL
                 {% if info_periodo.archivo_origen %}
                     &middot; Origen: <span class="font-monospace text-main">{{ info_periodo.archivo_origen }}</span>
@@ -896,7 +919,7 @@
         </div>
     </div>
 
-    <div class="card-body p-4">
+    <div class="card-body p-4" id="contenedorInfoPeriodo">
         {% if info_periodo %}
             <!-- Fila de 3 Bloques Principales: Activo, Pasivo y Patrimonio -->
             <div class="row g-3 g-xl-4 mb-4">
@@ -1508,15 +1531,28 @@ document.addEventListener('DOMContentLoaded', function () {
                     <span class="badge border font-monospace ${badgeClass} fs-micro">
                         ${ultimoDelPeriodo ? ultimoDelPeriodo.score.toFixed(1) + '%' : '--%'}
                     </span>
-                    ${!esActualPeriodo && ultimoDelPeriodo ? `
-                        <a href="?prediccion_id=${ultimoDelPeriodo.id}" 
-                           class="btn btn-outline-primary btn-sm py-0 px-1.5 fs-micro text-decoration-none"
-                           title="Seleccionar este período en el Dashboard">
+                    ${ultimoDelPeriodo ? `
+                        <button type="button" 
+                                class="btn btn-outline-primary btn-sm py-0 px-1.5 fs-micro btn-seleccionar-periodo-directo"
+                                data-periodo="${per}"
+                                data-id="${ultimoDelPeriodo.id}"
+                                title="Seleccionar este período en el Dashboard">
                             Ver
-                        </a>
+                        </button>
                     ` : ''}
                 </div>
             `;
+
+            const btnVer = item.querySelector('.btn-seleccionar-periodo-directo');
+            if (btnVer) {
+                btnVer.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const pPer = this.getAttribute('data-periodo');
+                    const pId = this.getAttribute('data-id');
+                    posicionarEnPeriodo(pPer, pId ? parseInt(pId) : null);
+                });
+            }
 
             const chk = item.querySelector('.check-periodo-item');
             chk.addEventListener('change', function () {
@@ -1653,24 +1689,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 const dataIndex = elements[0].index;
                 const lastIdx = chart.data.labels.length - 1;
 
-                // Si se hace clic en el punto proyectado final (Q_{t+1}), no redirigir
+                // Si se hace clic en el punto proyectado final (Q_{t+1}), no alterar
                 if (mostrarProyeccion && dataIndex === lastIdx) return;
 
                 const punto = puntosVisiblesActuales[dataIndex];
-                if (!punto || !punto.id) return;
+                if (!punto) return;
 
-                // 1. Mover el crosshair y badge [ACTUAL] de inmediato al punto clicado
-                puntosOriginales.forEach(p => { p.es_actual = (p.id === punto.id); });
-                aplicarFiltrosYActualizar();
-
-                // 2. Redirigir para cargar todos los datos de ese período en el dashboard
-                const currentId = '{{ ultima_prediccion.id|default:"" }}';
-                if (currentId !== String(punto.id)) {
-                    const url = new URL(window.location.href);
-                    url.searchParams.set('prediccion_id', punto.id);
-                    url.searchParams.delete('periodo');
-                    window.location.href = url.toString();
-                }
+                // Posicionar de inmediato en el período de forma reactiva (sin recargar la página)
+                posicionarEnPeriodo(punto.periodo, punto.id);
             },
             onHover: function(event, elements) {
                 const target = event.native ? event.native.target : ctx;
@@ -1899,6 +1925,591 @@ document.addEventListener('DOMContentLoaded', function () {
         if (btnRestablecerFiltros) {
             btnRestablecerFiltros.classList.toggle('d-none', !filtrosPersonalizados);
         }
+    }
+
+    // =========================================================================
+    // REACTIVIDAD INSTANTÁNEA & CARGA ASÍNCRONA SIN RECARGA DE PÁGINA
+    // =========================================================================
+    let abortController = null;
+
+    function formatPesos(val) {
+        if (val === null || val === undefined) return '$0';
+        return '$' + Math.round(Number(val) || 0).toLocaleString('es-CL');
+    }
+
+    function formatPct(part, total) {
+        if (!total || Number(total) === 0) return '0%';
+        return Math.round((Number(part) / Number(total)) * 100) + '%';
+    }
+
+    function actualizarCardScore(score, nivel, fecha) {
+        const elScore = document.getElementById('kpiScoreValor');
+        const elNivel = document.getElementById('kpiNivelBadge');
+        const elProgress = document.getElementById('kpiProgressBar');
+        const elFecha = document.getElementById('kpiFechaPrediccion');
+
+        if (elScore) {
+            elScore.textContent = (score !== null && score !== undefined) ? Number(score).toFixed(1) + '%' : '--%';
+        }
+        if (elNivel) {
+            let badgeClass = 'badge-status-neutral';
+            let textoNivel = 'Sin Inferencia';
+            if (score !== null && score !== undefined) {
+                if (score > 70) { badgeClass = 'badge-status-critico'; textoNivel = 'Riesgo Crítico'; }
+                else if (score > 35) { badgeClass = 'badge-status-alerta'; textoNivel = 'Alerta Preventiva'; }
+                else { badgeClass = 'badge-status-solvente'; textoNivel = 'Solvente'; }
+            }
+            elNivel.innerHTML = `<span class="badge border fw-medium ${badgeClass} fs-micro">${textoNivel}</span>`;
+        }
+        if (elProgress) {
+            elProgress.style.width = Math.min(100, Math.max(0, score || 0)) + '%';
+            elProgress.className = 'progress-bar ' + (score > 70 ? 'bg-danger' : (score > 35 ? 'bg-warning' : (score !== null ? 'bg-success' : 'bg-secondary')));
+        }
+        if (elFecha && fecha) {
+            elFecha.textContent = fecha;
+        }
+    }
+
+    function actualizarBannerHistorico(data) {
+        const banner = document.getElementById('bannerDiagnosticoHistorico');
+        if (!banner) return;
+        if (data.es_prediccion_mas_reciente) {
+            banner.classList.add('d-none');
+        } else {
+            banner.classList.remove('d-none');
+            const elPeriodo = document.getElementById('bannerPeriodoNombre');
+            const elFecha = document.getElementById('bannerFechaPrediccion');
+            const elScore = document.getElementById('bannerScoreValor');
+            const elNivel = document.getElementById('bannerNivelBadge');
+
+            if (elPeriodo) elPeriodo.textContent = data.periodo || 'Balance Seleccionado';
+            if (elFecha) elFecha.textContent = data.fecha_prediccion || '';
+            if (elScore) elScore.textContent = (data.score !== null && data.score !== undefined) ? Number(data.score).toFixed(1) + '%' : '--%';
+            if (elNivel) {
+                const sc = data.score || 0;
+                let badgeClass = sc > 70 ? 'badge-status-critico' : (sc > 35 ? 'badge-status-alerta' : 'badge-status-solvente');
+                let texto = sc > 70 ? 'Crítico' : (sc > 35 ? 'Alerta' : 'Solvente');
+                elNivel.innerHTML = `<span class="badge border fw-medium ${badgeClass} fs-micro ms-1">${texto}</span>`;
+            }
+        }
+    }
+
+    function actualizarShapCards(top3) {
+        const contenedor = document.getElementById('contenedorTopShap');
+        if (!contenedor) return;
+
+        if (!top3 || top3.length === 0) {
+            contenedor.innerHTML = `
+                <div class="text-center py-4 my-auto">
+                    <i class="bi bi-diagram-3 text-secondary opacity-50 display-6 mb-2 d-block"></i>
+                    <h6 class="text-main fw-semibold fs-caption">Sin métricas SHAP registradas</h6>
+                    <p class="text-muted-custom mb-3 fs-caption">
+                        Ejecuta una inferencia sobre este balance para analizar los factores determinantes del diagnóstico.
+                    </p>
+                </div>
+            `;
+            return;
+        }
+
+        let html = '<div class="row g-3">';
+        top3.forEach((item, idx) => {
+            const codigo = item.codigo || (idx + 1);
+            const nombre = item.nombre || 'Variable Financiera';
+            const valor = typeof item.valor === 'number' ? item.valor.toFixed(2) : (item.valor || '--');
+            const unidad = item.unidad || '';
+            const impactoPct = typeof item.impacto_pct === 'number' ? item.impacto_pct : 0;
+            const impactoAbs = typeof item.impacto_abs === 'number' ? item.impacto_abs : 15;
+            const esAdverso = impactoPct >= 0;
+            const badgeImpacto = esAdverso 
+                ? `<span class="badge border fw-semibold badge-status-critico fs-caption px-2.5 py-1" data-bs-toggle="tooltip" data-bs-placement="left" title="Impacto adverso: Incrementa el score en +${impactoPct.toFixed(1)}% de riesgo"><i class="bi bi-arrow-up-right me-1"></i>+${impactoPct.toFixed(1)}% al riesgo</span>`
+                : `<span class="badge border fw-semibold badge-status-solvente fs-caption px-2.5 py-1" data-bs-toggle="tooltip" data-bs-placement="left" title="Impacto favorable: Reduce el score en ${impactoPct.toFixed(1)}% de riesgo"><i class="bi bi-arrow-down-right me-1"></i>${impactoPct.toFixed(1)}% al riesgo</span>`;
+            const barColor = esAdverso ? 'bg-danger' : 'bg-success';
+            const texto = item.texto ? `
+                <div class="pt-3 mt-3 border-top border-subtle d-flex align-items-start gap-2 text-secondary fs-caption">
+                    <i class="bi bi-chat-left-text text-muted-custom mt-0.5 flex-shrink-0"></i>
+                    <p class="mb-0 lh-base text-main opacity-85">${item.texto}</p>
+                </div>` : '';
+
+            html += `
+                <div class="col-12 col-md-4">
+                    <div class="p-3 p-xl-4 rounded-3 border border-default bg-canvas h-100 d-flex flex-column justify-content-between shadow-xs">
+                        <div>
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <div class="d-flex align-items-center gap-2 overflow-hidden">
+                                    <span class="badge border font-monospace badge-status-neutral fs-caption px-2 py-1">${codigo}</span>
+                                    <span class="fw-semibold text-main text-truncate fs-6" title="${nombre}">${nombre}</span>
+                                </div>
+                                <span class="badge border font-monospace bg-white text-dark fs-caption px-2 py-1 shadow-xs">${valor}${unidad}</span>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between mb-2.5">
+                                <span class="text-muted-custom fs-caption fw-medium">Impacto en Riesgo</span>
+                                ${badgeImpacto}
+                            </div>
+                            <div class="progress kpi-progress rounded-pill overflow-hidden my-3" style="height: 8px;">
+                                <div class="progress-bar ${barColor}" role="progressbar" style="width: ${Math.round(impactoAbs)}%;"></div>
+                            </div>
+                        </div>
+                        ${texto}
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        contenedor.innerHTML = html;
+    }
+
+    function actualizarRatiosSeccion(data) {
+        const badgeInf = document.getElementById('badgeInfId');
+        if (badgeInf) {
+            if (data.prediccion_id) {
+                badgeInf.textContent = `#INF-${data.prediccion_id}`;
+                badgeInf.classList.remove('d-none');
+            } else {
+                badgeInf.classList.add('d-none');
+            }
+        }
+        const txtPeriodo = document.getElementById('ratiosPeriodoTexto');
+        if (txtPeriodo) txtPeriodo.textContent = data.ratio_periodo || data.periodo || 'Balance Activo';
+
+        const txtFechaInf = document.getElementById('ratiosFechaInferencia');
+        if (txtFechaInf) txtFechaInf.textContent = `Inferencia: ${data.fecha_prediccion || 'Pendiente'}`;
+
+        const auditScore = document.getElementById('ratiosAuditScore');
+        if (auditScore) auditScore.textContent = (data.score !== null && data.score !== undefined) ? Number(data.score).toFixed(1) + '%' : '--%';
+
+        const auditNivel = document.getElementById('ratiosAuditNivel');
+        if (auditNivel) {
+            const sc = data.score || 0;
+            let badgeClass = sc > 70 ? 'badge-status-critico' : (sc > 35 ? 'badge-status-alerta' : 'badge-status-solvente');
+            let texto = sc > 70 ? 'Crítico' : (sc > 35 ? 'Alerta' : 'Solvente');
+            auditNivel.innerHTML = `<span class="badge border fw-medium ${badgeClass} fs-micro">${texto}</span>`;
+        }
+
+        const contenedor = document.getElementById('contenedorRatiosPrediccion');
+        if (!contenedor) return;
+
+        const ratios = data.todos_los_ratios_prediccion;
+        if (!ratios || ratios.length === 0) {
+            contenedor.innerHTML = `
+                <div class="text-center py-4 my-auto">
+                    <i class="bi bi-calculator text-secondary opacity-50 display-6 mb-2 d-block"></i>
+                    <h6 class="text-main fw-semibold fs-caption">Sin ratios registrados para esta predicción</h6>
+                    <p class="text-muted-custom mb-3 fs-caption">
+                        Carga un balance contable en el módulo ETL para procesar los indicadores financieros.
+                    </p>
+                </div>
+            `;
+            return;
+        }
+
+        let html = '<div class="row g-3 g-xl-4">';
+        ratios.forEach(item => {
+            const valStr = typeof item.valor === 'number' ? item.valor.toFixed(2) : (item.valor || '--');
+            const impPct = typeof item.impacto_pct === 'number' ? item.impacto_pct : 0;
+            const impAbs = typeof item.impacto_abs === 'number' ? item.impacto_abs : 5;
+            let badgeImp = '';
+            let barColor = 'bg-secondary';
+            if (impPct > 0) {
+                badgeImp = `<span class="badge border fw-semibold badge-status-critico fs-caption px-2.5 py-1"><i class="bi bi-arrow-up-right me-1"></i>+${impPct.toFixed(1)}% al riesgo</span>`;
+                barColor = 'bg-danger';
+            } else if (impPct < 0) {
+                badgeImp = `<span class="badge border fw-semibold badge-status-solvente fs-caption px-2.5 py-1"><i class="bi bi-arrow-down-right me-1"></i>${impPct.toFixed(1)}% al riesgo</span>`;
+                barColor = 'bg-success';
+            } else {
+                badgeImp = `<span class="badge border fw-medium badge-status-neutral fs-caption px-2 py-1">0.0% Neutro</span>`;
+            }
+
+            const top3Badge = item.es_top_3 ? `<span class="badge bg-primary text-white fs-micro mt-1 py-0.5 px-1.5 rounded-pill">Top 3 Factor</span>` : '';
+            const formulaMeta = (item.formula || item.meta) ? `
+                <div class="p-2.5 rounded bg-white border border-subtle mb-3 fs-micro text-muted-custom">
+                    ${item.formula ? `<div class="d-flex align-items-center justify-content-between"><span>Fórmula:</span><span class="font-monospace text-main">${item.formula}</span></div>` : ''}
+                    ${item.meta ? `<div class="d-flex align-items-center justify-content-between mt-1 pt-1 border-top border-subtle"><span>Referencia:</span><span class="font-monospace fw-medium text-main">${item.meta}</span></div>` : ''}
+                </div>` : '';
+            const textoDesc = item.texto ? `
+                <div class="pt-3 mt-3 border-top border-subtle d-flex align-items-start gap-2 text-secondary fs-caption">
+                    <i class="bi bi-chat-left-text text-muted-custom mt-0.5 flex-shrink-0"></i>
+                    <p class="mb-0 lh-base text-main opacity-85">${item.texto}</p>
+                </div>` : '';
+
+            html += `
+                <div class="col-12 col-md-6 col-xl-4">
+                    <div class="p-4 rounded-3 border border-default bg-canvas h-100 d-flex flex-column justify-content-between shadow-xs">
+                        <div>
+                            <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
+                                <div class="d-flex align-items-center gap-2 overflow-hidden">
+                                    <span class="badge border font-monospace badge-status-neutral fs-caption px-2 py-1">${item.codigo}</span>
+                                    <div class="overflow-hidden">
+                                        <h3 class="h6 fw-semibold text-main text-truncate mb-0 fs-6" title="${item.nombre}">${item.nombre}</h3>
+                                        <span class="text-muted-custom fs-micro">${item.grupo || ''}</span>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-end flex-column flex-shrink-0">
+                                    <span class="badge border font-monospace bg-white text-dark fs-caption px-2.5 py-1 shadow-xs">${valStr}${item.unidad || ''}</span>
+                                    ${top3Badge}
+                                </div>
+                            </div>
+                            ${formulaMeta}
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="text-muted-custom fs-caption fw-medium">Impacto en Riesgo</span>
+                                ${badgeImp}
+                            </div>
+                            <div class="progress kpi-progress rounded-pill overflow-hidden my-2.5" style="height: 7px;">
+                                <div class="progress-bar ${barColor}" role="progressbar" style="width: ${Math.round(impAbs)}%;"></div>
+                            </div>
+                        </div>
+                        ${textoDesc}
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        contenedor.innerHTML = html;
+    }
+
+    function actualizarInfoPeriodo(info) {
+        const elBadgePeriodo = document.getElementById('infoPeriodoBadge');
+        if (elBadgePeriodo) {
+            elBadgePeriodo.textContent = `Período ${info.periodo || 'Balance Activo'}`;
+        }
+
+        const elCuadre = document.getElementById('infoCuadreBadge');
+        if (elCuadre) {
+            if (info.cuadrado) {
+                elCuadre.innerHTML = `<span class="badge border fw-medium badge-status-solvente fs-micro" data-bs-toggle="tooltip" data-bs-placement="top" title="Ecuación contable fundamental satisfecha: Activo Total = Pasivo Total + Patrimonio."><i class="bi bi-check-circle me-1"></i>Balance Cuadrado</span>`;
+            } else {
+                elCuadre.innerHTML = `<span class="badge border fw-medium badge-status-alerta fs-micro" data-bs-toggle="tooltip" data-bs-placement="top" title="Diferencia de cuadre contable: ${formatPesos(info.dif_cuadre)}"><i class="bi bi-exclamation-triangle me-1"></i>Diferencia ${formatPesos(info.dif_cuadre)}</span>`;
+            }
+        }
+
+        const elOrigen = document.getElementById('infoOrigenFechaTexto');
+        if (elOrigen) {
+            let str = 'Valores patrimoniales consolidados y cuentas contables procesadas por el pipeline ETL';
+            if (info.archivo_origen) {
+                str += ` &middot; Origen: <span class="font-monospace text-main">${info.archivo_origen}</span>`;
+            }
+            if (info.fecha_carga) {
+                str += ` &middot; Ingesta: ${info.fecha_carga}`;
+            }
+            elOrigen.innerHTML = str;
+        }
+
+        const contenedor = document.getElementById('contenedorInfoPeriodo');
+        if (!contenedor) return;
+
+        const ratioEnd = Number(info.ratio_endeudamiento || 0);
+        let badgeEndClase = 'badge-status-solvente';
+        if (ratioEnd > 70) badgeEndClase = 'badge-status-critico';
+        else if (ratioEnd > 40) badgeEndClase = 'badge-status-alerta';
+
+        const capTrabajo = Number(info.capital_trabajo || 0);
+        const ebit = Number(info.ebit || 0);
+        const utilNeta = Number(info.utilidad_neta || 0);
+
+        contenedor.innerHTML = `
+            <div class="row g-3 g-xl-4 mb-4">
+                <!-- Bloque 1: Activos -->
+                <div class="col-12 col-md-4">
+                    <div class="p-4 rounded-3 border border-default bg-canvas h-100 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="text-muted-custom fs-caption fw-semibold text-uppercase">Estructura de Activos</span>
+                                <span class="badge border font-monospace badge-status-neutral fs-micro">100% Recursos</span>
+                            </div>
+                            <div class="d-flex align-items-baseline gap-2 mb-3">
+                                <span class="fw-bold tracking-tight text-main fs-4 font-monospace">
+                                    ${formatPesos(info.activo_total)}
+                                </span>
+                                <span class="text-muted-custom fs-micro">Activo Total</span>
+                            </div>
+
+                            <div class="d-flex flex-column gap-2 pt-2 border-top border-subtle">
+                                <div class="d-flex align-items-center justify-content-between fs-caption">
+                                    <span class="text-secondary">Activo Corriente (Corto Plazo):</span>
+                                    <strong class="font-monospace text-main">${formatPesos(info.activo_corriente)}</strong>
+                                </div>
+                                <div class="d-flex align-items-center justify-content-between fs-caption">
+                                    <span class="text-secondary">Activo No Corriente (Largo Plazo):</span>
+                                    <strong class="font-monospace text-main">${formatPesos(info.activo_no_corriente)}</strong>
+                                </div>
+                                <div class="d-flex align-items-center justify-content-between fs-caption">
+                                    <span class="text-muted-custom"><i class="bi bi-cash me-1 text-success"></i>Efectivo y Equivalentes:</span>
+                                    <span class="font-monospace text-main">${formatPesos(info.efectivo_equivalentes)}</span>
+                                </div>
+                                <div class="d-flex align-items-center justify-content-between fs-caption">
+                                    <span class="text-muted-custom"><i class="bi bi-box-seam me-1 text-primary"></i>Inventarios:</span>
+                                    <span class="font-monospace text-main">${formatPesos(info.inventarios)}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-3 mt-3 border-top border-subtle text-muted-custom fs-micro">
+                            Disponibilidad operativa y solvencia en bienes y derechos
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bloque 2: Pasivos -->
+                <div class="col-12 col-md-4">
+                    <div class="p-4 rounded-3 border border-default bg-canvas h-100 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="text-muted-custom fs-caption fw-semibold text-uppercase">Obligaciones & Deuda</span>
+                                <span class="badge border font-monospace ${badgeEndClase} fs-micro">
+                                    ${ratioEnd.toFixed(1)}% Endeudamiento
+                                </span>
+                            </div>
+                            <div class="d-flex align-items-baseline gap-2 mb-3">
+                                <span class="fw-bold tracking-tight text-main fs-4 font-monospace">
+                                    ${formatPesos(info.pasivo_total)}
+                                </span>
+                                <span class="text-muted-custom fs-micro">Pasivo Total</span>
+                            </div>
+
+                            <div class="d-flex flex-column gap-2 pt-2 border-top border-subtle">
+                                <div class="d-flex align-items-center justify-content-between fs-caption">
+                                    <span class="text-secondary">Pasivo Corriente (&lt; 1 año):</span>
+                                    <strong class="font-monospace text-main">${formatPesos(info.pasivo_corriente)}</strong>
+                                </div>
+                                <div class="d-flex align-items-center justify-content-between fs-caption">
+                                    <span class="text-secondary">Pasivo No Corriente (&gt; 1 año):</span>
+                                    <strong class="font-monospace text-main">${formatPesos(info.pasivo_no_corriente)}</strong>
+                                </div>
+                                <div class="d-flex align-items-center justify-content-between fs-caption">
+                                    <span class="text-muted-custom"><i class="bi bi-wallet2 me-1 text-primary"></i>Capital de Trabajo Neto:</span>
+                                    <span class="font-monospace fw-semibold ${capTrabajo >= 0 ? 'text-success' : 'text-danger'}">
+                                        ${formatPesos(capTrabajo)}
+                                    </span>
+                                </div>
+                                <div class="d-flex align-items-center justify-content-between fs-caption">
+                                    <span class="text-muted-custom"><i class="bi bi-pie-chart me-1 text-secondary"></i>Carga Financiera Externa:</span>
+                                    <span class="font-monospace text-main">${ratioEnd.toFixed(1)}%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-3 mt-3 border-top border-subtle text-muted-custom fs-micro">
+                            Compromisos de pago de corto plazo y pasivos a largo plazo
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bloque 3: Patrimonio & Resultados -->
+                <div class="col-12 col-md-4">
+                    <div class="p-4 rounded-3 border border-default bg-canvas h-100 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="text-muted-custom fs-caption fw-semibold text-uppercase">Patrimonio & Resultados</span>
+                                <span class="badge border font-monospace badge-status-solvente fs-micro">Fondos Propios</span>
+                            </div>
+                            <div class="d-flex align-items-baseline gap-2 mb-3">
+                                <span class="fw-bold tracking-tight text-main fs-4 font-monospace">
+                                    ${formatPesos(info.patrimonio)}
+                                </span>
+                                <span class="text-muted-custom fs-micro">Patrimonio Neto</span>
+                            </div>
+
+                            <div class="d-flex flex-column gap-2 pt-2 border-top border-subtle">
+                                <div class="d-flex align-items-center justify-content-between fs-caption">
+                                    <span class="text-secondary">Ingresos Netos (Ventas):</span>
+                                    <strong class="font-monospace text-main">${formatPesos(info.ingresos_netos)}</strong>
+                                </div>
+                                <div class="d-flex align-items-center justify-content-between fs-caption">
+                                    <span class="text-secondary">Resultado Operacional (EBIT):</span>
+                                    <strong class="font-monospace ${ebit >= 0 ? 'text-success' : 'text-danger'}">
+                                        ${formatPesos(ebit)}
+                                    </strong>
+                                </div>
+                                <div class="d-flex align-items-center justify-content-between fs-caption">
+                                    <span class="text-muted-custom"><i class="bi bi-graph-up-arrow me-1 text-success"></i>Utilidad Neta:</span>
+                                    <span class="font-monospace fw-semibold ${utilNeta >= 0 ? 'text-success' : 'text-danger'}">
+                                        ${formatPesos(utilNeta)}
+                                    </span>
+                                </div>
+                                <div class="d-flex align-items-center justify-content-between fs-caption">
+                                    <span class="text-muted-custom"><i class="bi bi-journal-bookmark me-1 text-secondary"></i>Utilidades Retenidas:</span>
+                                    <span class="font-monospace text-main">${formatPesos(info.utilidades_retenidas)}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-3 mt-3 border-top border-subtle text-muted-custom fs-micro">
+                            Margen Neto: <strong class="text-main">${Number(info.margen_neto_pct || 0).toFixed(1)}%</strong> &middot; Margen EBIT: <strong class="text-main">${Number(info.margen_ebit_pct || 0).toFixed(1)}%</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Matriz Consolidada de Cuentas Contables en Formato Cuadrícula -->
+            <div class="table-responsive border rounded border-default">
+                <table class="table table-sm table-hover align-middle mb-0 fs-caption">
+                    <thead class="table-light fs-micro text-uppercase">
+                        <tr>
+                            <th class="py-2.5 px-3">Cuenta Contable</th>
+                            <th class="py-2.5 px-3">Clasificación</th>
+                            <th class="py-2.5 px-3 text-end">Monto Registrado</th>
+                            <th class="py-2.5 px-3 text-end">% sobre Activo Total</th>
+                            <th class="py-2.5 px-3">Estado / Relevancia</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="py-2 px-3 fw-semibold text-main">Activo Corriente</td>
+                            <td class="py-2 px-3 text-secondary">Activo Circulante / Liquidez</td>
+                            <td class="py-2 px-3 text-end font-monospace fw-semibold text-main">${formatPesos(info.activo_corriente)}</td>
+                            <td class="py-2 px-3 text-end font-monospace text-muted-custom">${formatPct(info.activo_corriente, info.activo_total)}</td>
+                            <td class="py-2 px-3"><span class="badge border badge-status-neutral fs-micro">Corto Plazo</span></td>
+                        </tr>
+                        <tr>
+                            <td class="py-2 px-3 fw-semibold text-main">Pasivo Corriente</td>
+                            <td class="py-2 px-3 text-secondary">Exigible a Corto Plazo</td>
+                            <td class="py-2 px-3 text-end font-monospace fw-semibold text-main">${formatPesos(info.pasivo_corriente)}</td>
+                            <td class="py-2 px-3 text-end font-monospace text-muted-custom">${formatPct(info.pasivo_corriente, info.activo_total)}</td>
+                            <td class="py-2 px-3"><span class="badge border badge-status-neutral fs-micro">Exigibilidad &lt; 1 año</span></td>
+                        </tr>
+                        <tr>
+                            <td class="py-2 px-3 fw-semibold text-main">Capital de Trabajo</td>
+                            <td class="py-2 px-3 text-secondary">Activo Cte. menos Pasivo Cte.</td>
+                            <td class="py-2 px-3 text-end font-monospace fw-bold ${capTrabajo >= 0 ? 'text-success' : 'text-danger'}">${formatPesos(capTrabajo)}</td>
+                            <td class="py-2 px-3 text-end font-monospace text-muted-custom">${formatPct(capTrabajo, info.activo_total)}</td>
+                            <td class="py-2 px-3">
+                                ${capTrabajo >= 0 
+                                    ? '<span class="badge border badge-status-solvente fs-micro">Fondo de Maniobra Positivo</span>' 
+                                    : '<span class="badge border badge-status-critico fs-micro">Déficit de Capital</span>'}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="py-2 px-3 fw-semibold text-main">Activo Total</td>
+                            <td class="py-2 px-3 text-secondary">Total Inversión / Recursos</td>
+                            <td class="py-2 px-3 text-end font-monospace fw-bold text-main">${formatPesos(info.activo_total)}</td>
+                            <td class="py-2 px-3 text-end font-monospace text-main fw-semibold">100.0%</td>
+                            <td class="py-2 px-3"><span class="badge border badge-status-neutral fs-micro">Base Contable</span></td>
+                        </tr>
+                        <tr>
+                            <td class="py-2 px-3 fw-semibold text-main">Pasivo Total</td>
+                            <td class="py-2 px-3 text-secondary">Total Obligaciones / Deuda</td>
+                            <td class="py-2 px-3 text-end font-monospace fw-semibold text-main">${formatPesos(info.pasivo_total)}</td>
+                            <td class="py-2 px-3 text-end font-monospace text-muted-custom">${ratioEnd.toFixed(1)}%</td>
+                            <td class="py-2 px-3"><span class="badge border badge-status-neutral fs-micro">Financiamiento Externo</span></td>
+                        </tr>
+                        <tr>
+                            <td class="py-2 px-3 fw-semibold text-main">Patrimonio Neto</td>
+                            <td class="py-2 px-3 text-secondary">Capital Propio / Accionistas</td>
+                            <td class="py-2 px-3 text-end font-monospace fw-semibold text-main">${formatPesos(info.patrimonio)}</td>
+                            <td class="py-2 px-3 text-end font-monospace text-muted-custom">${formatPct(info.patrimonio, info.activo_total)}</td>
+                            <td class="py-2 px-3"><span class="badge border badge-status-solvente fs-micro">Financiamiento Interno</span></td>
+                        </tr>
+                        <tr>
+                            <td class="py-2 px-3 fw-semibold text-main">Ingresos Netos (Ventas)</td>
+                            <td class="py-2 px-3 text-secondary">Ventas Totales del Período</td>
+                            <td class="py-2 px-3 text-end font-monospace fw-semibold text-main">${formatPesos(info.ingresos_netos)}</td>
+                            <td class="py-2 px-3 text-end font-monospace text-muted-custom">--</td>
+                            <td class="py-2 px-3"><span class="badge border badge-status-neutral fs-micro">Flujo de Ventas</span></td>
+                        </tr>
+                        <tr>
+                            <td class="py-2 px-3 fw-semibold text-main">EBIT (Utilidad Operacional)</td>
+                            <td class="py-2 px-3 text-secondary">Resultado Operacional Antes de Impuestos</td>
+                            <td class="py-2 px-3 text-end font-monospace fw-semibold ${ebit >= 0 ? 'text-success' : 'text-danger'}">${formatPesos(ebit)}</td>
+                            <td class="py-2 px-3 text-end font-monospace text-muted-custom">--</td>
+                            <td class="py-2 px-3"><span class="badge border badge-status-neutral fs-micro">Margen: ${Number(info.margen_ebit_pct || 0).toFixed(1)}%</span></td>
+                        </tr>
+                        <tr>
+                            <td class="py-2 px-3 fw-semibold text-main">Utilidad Neta</td>
+                            <td class="py-2 px-3 text-secondary">Resultado Final del Ejercicio</td>
+                            <td class="py-2 px-3 text-end font-monospace fw-bold ${utilNeta >= 0 ? 'text-success' : 'text-danger'}">${formatPesos(utilNeta)}</td>
+                            <td class="py-2 px-3 text-end font-monospace text-muted-custom">--</td>
+                            <td class="py-2 px-3"><span class="badge border ${utilNeta >= 0 ? 'badge-status-solvente' : 'badge-status-critico'} fs-micro">Margen Neto: ${Number(info.margen_neto_pct || 0).toFixed(1)}%</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    function posicionarEnPeriodo(periodo, puntoId) {
+        // 1. Inmediato (0ms): Actualizar estado de puntos y redibujar Chart.js
+        puntosOriginales.forEach(p => {
+            if (puntoId) {
+                p.es_actual = (p.id === puntoId);
+            } else {
+                p.es_actual = (p.periodo === periodo);
+            }
+        });
+
+        if (!periodosSeleccionados.has(periodo)) {
+            periodosSeleccionados.add(periodo);
+            const chk = document.querySelector(`.check-periodo-item[value="${periodo}"]`);
+            if (chk) chk.checked = true;
+        }
+
+        renderizarCheckboxesPeriodos();
+        aplicarFiltrosYActualizar();
+
+        const puntoActivo = puntosOriginales.find(p => (puntoId ? p.id === puntoId : p.periodo === periodo));
+        if (puntoActivo) {
+            actualizarCardScore(puntoActivo.score, puntoActivo.nivel, puntoActivo.fecha_completa || puntoActivo.fecha_corta);
+        }
+
+        // 2. Actualizar URL con replaceState sin recargar la página
+        try {
+            const url = new URL(window.location.href);
+            if (puntoActivo && puntoActivo.id) {
+                url.searchParams.set('prediccion_id', puntoActivo.id);
+            }
+            url.searchParams.set('periodo', periodo);
+            window.history.replaceState(null, '', url.toString());
+        } catch (e) {}
+
+        // 3. Carga asíncrona fluida (AJAX) para SHAP, Ratios y Estados Contables
+        const targetId = (puntoActivo && puntoActivo.id) ? puntoActivo.id : puntoId;
+        cargarDatosPeriodoAjax(targetId, periodo);
+    }
+
+    function cargarDatosPeriodoAjax(prediccionId, periodo) {
+        if (abortController) {
+            abortController.abort();
+        }
+        abortController = new AbortController();
+
+        let query = '';
+        if (prediccionId) query += `prediccion_id=${encodeURIComponent(prediccionId)}&`;
+        if (periodo) query += `periodo=${encodeURIComponent(periodo)}&`;
+        query += 'ajax=1';
+
+        const url = `{% url 'dashboard:dashboard' %}?${query}`;
+        fetch(url, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            signal: abortController.signal
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Error al obtener datos');
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'ok') {
+                actualizarCardScore(data.score, data.nivel, data.fecha_prediccion);
+                actualizarBannerHistorico(data);
+                actualizarShapCards(data.top_3_variables);
+                actualizarRatiosSeccion(data);
+                if (data.info_periodo) {
+                    actualizarInfoPeriodo(data.info_periodo);
+                }
+                const btnPdf = document.getElementById('btnDescargarPdfModal');
+                if (btnPdf && data.prediccion_id) {
+                    btnPdf.href = `{% url 'dashboard:generar_pdf' %}?prediccion_id=${data.prediccion_id}`;
+                }
+                if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+                    const tooltipList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                    tooltipList.forEach(el => new bootstrap.Tooltip(el));
+                }
+            }
+        })
+        .catch(err => {
+            if (err.name !== 'AbortError') {
+                console.warn('Detalle de carga asíncrona:', err);
+            }
+        });
     }
 
     // Manejo visual de botones de rango
