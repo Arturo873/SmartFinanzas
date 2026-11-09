@@ -737,324 +737,6 @@
 </div>
 
 <!-- ====================================================================== -->
-<!-- 3. SISTEMA DE ALERTA TEMPRANA A 3 MESES (Qt → Qt+1)                    -->
-<!-- ====================================================================== -->
-<div class="mb-4">
-    <!-- Encabezado General de la Sección -->
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3 pb-2 border-bottom border-default">
-        <div class="d-flex align-items-center gap-2">
-            <h2 class="h5 fw-semibold text-main mb-0 tracking-tight">
-                Sistema de Alerta Temprana a 3 Meses (<span class="text-primary font-monospace">Q<sub>t</sub> &rarr; Q<sub>t+1</sub></span>)
-            </h2>
-            <span class="badge border font-monospace badge-status-proyeccion fs-micro">
-                <i class="bi bi-clock-history me-1"></i>Ventana Preventiva: 90 Días
-            </span>
-        </div>
-        <div class="text-muted-custom fs-caption">
-            Anticipación algorítmica de solvencia e insolvencia hacia el siguiente trimestre
-        </div>
-    </div>
-
-    <!-- 3.A TARJETA DE HORIZONTE DE ALERTA TEMPRANA -->
-    <div class="card card-horizonte mb-4 overflow-hidden">
-        <div class="card-header bg-white border-bottom border-default py-2.5 px-3 px-md-4 d-flex flex-wrap align-items-center justify-content-between gap-2">
-            <div class="d-flex align-items-center gap-2">
-                <span class="badge border badge-status-proyeccion fs-micro py-1 px-2.5 fw-semibold">
-                    <i class="bi bi-radar me-1"></i>ALERTA TEMPRANA A 3 MESES
-                </span>
-                <span class="text-muted-custom fs-caption d-none d-sm-inline">
-                    Regla de Negocio: Ratios observados en <strong>Q<sub>t</sub></strong> proyectan insolvencia hacia <strong>Q<sub>t+1</sub></strong>
-                </span>
-            </div>
-            <div>
-                <span class="badge border badge-status-alerta fs-micro py-1 px-2">
-                    <i class="bi bi-hourglass-split me-1 text-warning"></i>{{ ventana_preventiva_dias|default:"90" }} días para tomar medidas correctivas
-                </span>
-            </div>
-        </div>
-
-        <div class="card-body p-3 p-md-4">
-            <div class="row g-3 align-items-stretch">
-                <!-- 1. Período del Balance Analizado (Q_t) -->
-                <div class="col-12 col-sm-6 col-lg-3">
-                    <div class="horizonte-step-box h-100 d-flex flex-column justify-content-between">
-                        <div>
-                            <div class="d-flex align-items-center justify-content-between mb-1.5">
-                                <span class="text-muted-custom fs-micro text-uppercase fw-semibold tracking-wider">Período Analizado (Q<sub>t</sub>)</span>
-                                <i class="bi bi-calendar-check text-primary fs-6"></i>
-                            </div>
-                            <div class="fs-4 fw-bold text-main font-monospace mb-1" id="horizontePeriodoBase">
-                                {{ periodo_balance|default:"2024-Q4" }}
-                            </div>
-                            <p class="text-muted-custom fs-micro mb-0">
-                                Balance contable cerrado. Se evalúan los 7 ratios financieros observados en este trimestre.
-                            </p>
-                        </div>
-                        <div class="pt-2 mt-2 border-top border-subtle d-flex align-items-center justify-content-between fs-micro">
-                            <span class="text-secondary"><i class="bi bi-check-circle text-success me-1"></i>Datos auditados</span>
-                            <span class="badge border badge-status-neutral font-monospace">Base Q<sub>t</sub></span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 2. Ventana Preventiva & Horizonte de Anticipación -->
-                <div class="col-12 col-sm-6 col-lg-3">
-                    <div class="horizonte-step-box h-100 d-flex flex-column justify-content-between" style="border-left: 3px solid #2563eb;">
-                        <div>
-                            <div class="d-flex align-items-center justify-content-between mb-1.5">
-                                <span class="text-muted-custom fs-micro text-uppercase fw-semibold tracking-wider">Ventana Preventiva</span>
-                                <i class="bi bi-clock-history text-primary fs-6"></i>
-                            </div>
-                            <div class="fs-4 fw-bold text-primary font-monospace mb-1 d-flex align-items-center gap-1.5">
-                                <span>90 Días</span>
-                                <span class="fs-caption text-muted fw-normal">(3 meses)</span>
-                            </div>
-                            <p class="text-muted-custom fs-micro mb-0">
-                                Tiempo hábil para ejecutar planes de contingencia, refinanciar pasivos o acelerar cobranzas.
-                            </p>
-                        </div>
-                        <div class="pt-2 mt-2 border-top border-subtle d-flex align-items-center justify-content-between fs-micro">
-                            <span class="text-primary fw-medium"><i class="bi bi-arrow-right me-1"></i>Hacia el siguiente trimestre</span>
-                            <span class="badge border badge-status-proyeccion font-monospace">&Delta;t = 90d</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 3. Período Proyectado (Q_{t+1}) & Score de Riesgo -->
-                <div class="col-12 col-sm-6 col-lg-3">
-                    <div class="horizonte-step-box h-100 d-flex flex-column justify-content-between" id="horizonteBoxProyectado" style="border-left: 3px solid {% if nivel_proyectado == 'Verde' or nivel == 'Verde' %}#16a34a{% elif nivel_proyectado == 'Amarillo' or nivel == 'Amarillo' %}#ca8a04{% else %}#dc2626{% endif %};">
-                        <div>
-                            <div class="d-flex align-items-center justify-content-between mb-1.5">
-                                <span class="text-muted-custom fs-micro text-uppercase fw-semibold tracking-wider">Período Proyectado (Q<sub>t+1</sub>)</span>
-                                <span id="horizonteBadgeNivel">
-                                {% if nivel_proyectado == 'Verde' or nivel == 'Verde' %}
-                                    <span class="badge border badge-status-solvente fs-micro">Solvente</span>
-                                {% elif nivel_proyectado == 'Amarillo' or nivel == 'Amarillo' %}
-                                    <span class="badge border badge-status-alerta fs-micro">Alerta Preventiva</span>
-                                {% else %}
-                                    <span class="badge border badge-status-critico fs-micro">Riesgo Crítico</span>
-                                {% endif %}
-                                </span>
-                            </div>
-                            <div class="d-flex align-items-baseline gap-2 mb-1">
-                                <span class="fs-4 fw-bold text-main font-monospace" id="horizontePeriodoProyectado">{{ periodo_proyectado }}</span>
-                                <span class="fs-kpi fw-bold text-main lh-1" id="horizonteScoreProyectado">
-                                    {% if score_proyectado is not None %}{{ score_proyectado|floatformat:1 }}%{% else %}--%{% endif %}
-                                </span>
-                            </div>
-                            <p class="text-muted-custom fs-micro mb-0">
-                                Probabilidad estimada de insolvencia proyectada al cierre de este trimestre futuro.
-                            </p>
-                        </div>
-                        <!-- Barra de progreso con color del semáforo -->
-                        <div class="pt-2 mt-2 border-top border-subtle">
-                            <div class="progress kpi-progress rounded-pill overflow-hidden">
-                                <div class="progress-bar {% if nivel_proyectado == 'Rojo' or nivel == 'Rojo' %}bg-danger{% elif nivel_proyectado == 'Amarillo' or nivel == 'Amarillo' %}bg-warning{% elif nivel_proyectado == 'Verde' or nivel == 'Verde' %}bg-success{% else %}bg-secondary{% endif %}"
-                                     id="horizonteProgressBar"
-                                     role="progressbar"
-                                     style="width: {{ score_proyectado|default:0|floatformat:0 }}%;"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 4. Indicador de Velocidad de Cambio (Delta Intertrimestral) -->
-                <div class="col-12 col-sm-6 col-lg-3">
-                    <div class="horizonte-step-box h-100 d-flex flex-column justify-content-between">
-                        <div>
-                            <div class="d-flex align-items-center justify-content-between mb-1.5">
-                                <span class="text-muted-custom fs-micro text-uppercase fw-semibold tracking-wider">Velocidad de Cambio</span>
-                                <span class="badge border {{ delta_info.badge_clase|default:'badge-status-neutral' }} fs-micro" id="horizonteDeltaBadge">
-                                    {{ delta_info.direccion|default:'ESTABLE'|upper }}
-                                </span>
-                            </div>
-                            <div class="fs-4 fw-bold {{ delta_info.color_clase|default:'text-secondary' }} font-monospace mb-1 d-flex align-items-center gap-1.5" id="horizonteDeltaValor">
-                                <span id="horizonteDeltaFlecha">{{ delta_info.flecha|default:'&rarr;' }}</span>
-                                <span id="horizonteDeltaTexto">{{ delta_info.texto|default:'0.0 pts' }}</span>
-                            </div>
-                            <p class="text-muted-custom fs-micro mb-0" id="horizonteDeltaMensaje">
-                                {{ delta_info.mensaje|default:'Sin variación intertrimestral significativa.' }}
-                            </p>
-                        </div>
-                        <div class="pt-2 mt-2 border-top border-subtle d-flex align-items-center justify-content-between fs-micro">
-                            <span class="text-muted-custom">Respecto a trimestre previo</span>
-                            <span class="font-monospace text-secondary fs-micro">&Delta; Puntos Riesgo</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 3.B FACTORES DETERMINANTES DE LA PROYECCIÓN (EXPLICABILIDAD SHAP) -->
-    <div class="card mb-4 border-default">
-        <div class="card-header py-3 px-4 d-flex align-items-center justify-content-between border-default bg-white">
-            <div>
-                <h3 class="h6 fw-semibold text-main mb-0">Factores Determinantes de la Proyección</h3>
-                <p class="text-muted-custom mb-0 fs-caption">Explicabilidad Algorítmica SHAP sobre el balance <span id="periodoBalanceShapFactores">{{ periodo_balance|default:"2024-Q4" }}</span></p>
-            </div>
-            <span class="badge border font-monospace badge-status-neutral fs-micro">Top 3 Variables</span>
-        </div>
-
-        <div class="card-body p-3 p-md-4" id="contenedorFactoresDeterminantes">
-            {% if top_3_variables %}
-                <div class="row g-3">
-                    {% for item in top_3_variables %}
-                        <div class="col-12 col-md-4">
-                            <div class="p-3 rounded-3 border border-default bg-canvas shadow-xs h-100 d-flex flex-column justify-content-between">
-                                <div>
-                                    <div class="d-flex align-items-center justify-content-between mb-2">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <span class="badge border font-monospace badge-status-neutral fs-caption px-2 py-0.5">
-                                                {{ item.codigo|default:forloop.counter }}
-                                            </span>
-                                            <strong class="text-main fs-6">{{ item.nombre|default:"Variable Financiera" }}</strong>
-                                        </div>
-                                        <span class="badge border font-monospace bg-white text-dark fs-caption px-2 py-1 shadow-xs">
-                                            {{ item.valor|floatformat:2 }}{{ item.unidad }}
-                                        </span>
-                                    </div>
-
-                                    <div class="d-flex align-items-center justify-content-between mb-1.5">
-                                        <span class="text-muted-custom fs-micro">Impacto en Riesgo a 90 días</span>
-                                        {% if item.impacto_pct >= 0 %}
-                                            <span class="badge border fw-semibold badge-status-critico fs-micro">
-                                                <i class="bi bi-arrow-up-right me-0.5"></i>+{{ item.impacto_pct|floatformat:1 }}% al riesgo
-                                            </span>
-                                        {% else %}
-                                            <span class="badge border fw-semibold badge-status-solvente fs-micro">
-                                                <i class="bi bi-arrow-down-right me-0.5"></i>{{ item.impacto_pct|floatformat:1 }}% factor protector
-                                            </span>
-                                        {% endif %}
-                                    </div>
-
-                                    <div class="progress kpi-progress rounded-pill overflow-hidden my-2">
-                                        <div class="progress-bar {% if item.impacto_pct >= 0 %}bg-danger{% else %}bg-success{% endif %}"
-                                             role="progressbar"
-                                             style="width: {{ item.impacto_abs|default:15|floatformat:0 }}%;"></div>
-                                    </div>
-                                </div>
-
-                                {% if item.texto %}
-                                    <p class="text-muted-custom fs-micro mb-0 mt-2 lh-sm border-top border-subtle pt-2">
-                                        {{ item.texto }}
-                                    </p>
-                                {% endif %}
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <div class="text-center py-4 my-auto">
-                    <i class="bi bi-diagram-3 text-secondary opacity-50 display-6 mb-2 d-block"></i>
-                    <h6 class="text-main fw-semibold fs-caption">Sin métricas SHAP registradas para este balance</h6>
-                    <p class="text-muted-custom mb-0 fs-micro">
-                        Ejecuta una proyección sobre el balance contable para analizar el desglose de factores de riesgo.
-                    </p>
-                </div>
-            {% endif %}
-        </div>
-
-        <div class="card-footer py-2.5 px-4 bg-white border-top border-subtle text-muted-custom fs-micro">
-            <i class="bi bi-shield-check text-success me-1"></i>Ponderación de explicabilidad local obtenida mediante TreeExplainer.
-        </div>
-    </div>
-
-    <!-- 3.C MATRIZ DE VALIDACIÓN HISTÓRICA (BACKTESTING VISUAL RETROSPECTIVO) -->
-    <div class="card mb-4 border-default">
-        <div class="card-header py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-2 border-default bg-white">
-            <div>
-                <div class="d-flex align-items-center gap-2 mb-0.5">
-                    <h3 class="h6 fw-semibold text-main mb-0">Matriz de Validación Histórica (Backtesting a 90 Días)</h3>
-                    <span class="badge border font-monospace badge-status-neutral fs-micro">
-                        Retrospectiva Trimestral (Q<sub>t</sub> &rarr; Q<sub>t+1</sub>)
-                    </span>
-                </div>
-                <p class="text-muted-custom mb-0 fs-caption">
-                    Contraste empírico entre la probabilidad que anticipó el modelo en trimestres pasados frente a la solvencia real observada en el trimestre siguiente.
-                </p>
-            </div>
-            <div class="d-flex align-items-center gap-2 fs-micro">
-                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 py-1 px-2">
-                    <i class="bi bi-shield-check me-1"></i>Eficacia Retrospectiva: 94.2%
-                </span>
-                <span class="text-muted-custom">
-                    {{ total_trimestres_backtesting|default:"1" }} trimestre(s) evaluado(s)
-                </span>
-            </div>
-        </div>
-
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover table-backtesting align-middle mb-0" id="tablaBacktestingDashboard">
-                    <thead>
-                        <tr>
-                            <th class="ps-4">Trimestre Base (Q<sub>t</sub>)</th>
-                            <th>Horizonte Anticipado (Q<sub>t+1</sub>)</th>
-                            <th class="text-center">Score Proyectado</th>
-                            <th class="text-center">Nivel Pronosticado</th>
-                            <th>Realidad Observada en Q<sub>t+1</sub></th>
-                            <th class="text-center pe-4">Dictamen Retrospectivo</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for fila in matriz_backtesting %}
-                        <tr class="{% if fila.es_activo %}table-primary bg-opacity-10{% endif %}" data-periodo-base="{{ fila.periodo_base }}">
-                            <td class="ps-4 fw-semibold font-monospace text-main">
-                                {{ fila.periodo_base }}
-                                {% if fila.es_activo %}
-                                    <span class="badge bg-primary text-white fs-micro ms-1" id="badgeBacktestingActual">ACTUAL</span>
-                                {% endif %}
-                            </td>
-                            <td class="font-monospace text-secondary">
-                                {{ fila.periodo_proyectado }}
-                                <span class="text-muted-custom fs-micro">(+90d)</span>
-                            </td>
-                            <td class="text-center font-monospace fw-bold">
-                                {{ fila.score_proyectado|floatformat:1 }}%
-                            </td>
-                            <td class="text-center">
-                                {% if fila.color_proyectado == 'Verde' %}
-                                    <span class="badge border badge-status-solvente fs-micro">{{ fila.nivel_proyectado|default:"Solvente" }}</span>
-                                {% elif fila.color_proyectado == 'Amarillo' %}
-                                    <span class="badge border badge-status-alerta fs-micro">{{ fila.nivel_proyectado|default:"Alerta" }}</span>
-                                {% else %}
-                                    <span class="badge border badge-status-critico fs-micro">{{ fila.nivel_proyectado|default:"Crítico" }}</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-secondary fs-caption">
-                                {{ fila.estado_real }}
-                            </td>
-                            <td class="text-center pe-4">
-                                <span class="badge border {{ fila.badge_clase }} fs-micro px-2 py-1">
-                                    <i class="bi {% if 'Acierto' in fila.resultado %}bi-check-circle-fill text-success{% elif 'Activo' in fila.resultado %}bi-clock-fill text-warning{% else %}bi-shield-check text-primary{% endif %} me-1"></i>{{ fila.resultado }}
-                                </span>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="6" class="text-center py-4 text-muted-custom fs-caption">
-                                <i class="bi bi-clock-history display-6 text-secondary opacity-50 mb-2 d-block"></i>
-                                Sin evaluaciones trimestrales suficientes para contraste retrospectivo.
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <div class="card-footer py-2.5 px-4 bg-white border-top border-subtle text-muted-custom fs-micro d-flex flex-wrap align-items-center justify-content-between">
-            <div>
-                <i class="bi bi-info-circle me-1 text-primary"></i>Backtesting continuo: cada nuevo balance auditado contrasta automáticamente con la predicción emitida 90 días antes.
-            </div>
-            <div class="font-monospace">
-                Horizonte: Trimestre Actual + 90 Días
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ====================================================================== -->
 <!-- 4. TRAZABILIDAD INTEGRAL: TODOS LOS RATIOS DE LA PREDICCIÓN (X1 - X7)  -->
 <!-- ====================================================================== -->
 <div class="card mb-4 border-default">
@@ -2296,105 +1978,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // =========================================================================
-    // 5.B ACTUALIZACIÓN DE TARJETA DE HORIZONTE Y MATRIZ DE BACKTESTING (Q_t -> Q_{t+1})
-    // =========================================================================
-    function actualizarCabeceraHorizonte(punto, activeIdx, visibles) {
-        if (!punto) return;
-
-        const elBase = document.getElementById('horizontePeriodoBase');
-        if (elBase) elBase.textContent = punto.label || punto.periodo;
-
-        const elProy = document.getElementById('horizontePeriodoProyectado');
-        if (elProy) elProy.textContent = punto.periodo_proyectado || 'Q_{t+1}';
-
-        const elScore = document.getElementById('horizonteScoreProyectado');
-        const scoreVal = typeof punto.score_prediccion === 'number' ? punto.score_prediccion : (parseFloat(punto.score_prediccion) || 0);
-        if (elScore) elScore.textContent = scoreVal.toFixed(1) + '%';
-
-        const elProgress = document.getElementById('horizonteProgressBar');
-        if (elProgress) {
-            elProgress.style.width = Math.min(100, Math.max(0, scoreVal)) + '%';
-            elProgress.className = 'progress-bar ' + (scoreVal > 70 ? 'bg-danger' : (scoreVal > 35 ? 'bg-warning' : 'bg-success'));
-        }
-
-        const elBadgeNivel = document.getElementById('horizonteBadgeNivel');
-        if (elBadgeNivel) {
-            if (scoreVal > 70) {
-                elBadgeNivel.innerHTML = '<span class="badge border badge-status-critico fs-micro">Riesgo Crítico</span>';
-            } else if (scoreVal > 35) {
-                elBadgeNivel.innerHTML = '<span class="badge border badge-status-alerta fs-micro">Alerta Preventiva</span>';
-            } else {
-                elBadgeNivel.innerHTML = '<span class="badge border badge-status-solvente fs-micro">Solvente</span>';
-            }
-        }
-
-        const elBoxProy = document.getElementById('horizonteBoxProyectado');
-        if (elBoxProy) {
-            const col = scoreVal > 70 ? '#dc2626' : (scoreVal > 35 ? '#ca8a04' : '#16a34a');
-            elBoxProy.style.borderLeft = `3px solid ${col}`;
-        }
-
-        // Delta respecto al trimestre anterior
-        const elDeltaBadge = document.getElementById('horizonteDeltaBadge');
-        const elDeltaValor = document.getElementById('horizonteDeltaValor');
-        const elDeltaMensaje = document.getElementById('horizonteDeltaMensaje');
-
-        let prevScore = null;
-        if (activeIdx >= 1 && visibles && visibles[activeIdx - 1]) {
-            const pPrev = visibles[activeIdx - 1];
-            prevScore = typeof pPrev.score_prediccion === 'number' ? pPrev.score_prediccion : parseFloat(pPrev.score_prediccion);
-        }
-
-        if (prevScore !== null && !isNaN(prevScore) && elDeltaValor) {
-            const diff = scoreVal - prevScore;
-            const diffRound = Math.round(diff * 10) / 10;
-            if (diffRound > 0) {
-                if (elDeltaBadge) { elDeltaBadge.className = 'badge border badge-status-critico fs-micro'; elDeltaBadge.textContent = 'ACELERANDO'; }
-                elDeltaValor.className = 'fs-4 fw-bold text-danger font-monospace mb-1 d-flex align-items-center gap-1.5';
-                elDeltaValor.innerHTML = `<span>&uarr;</span><span>+${diffRound.toFixed(1)} pts</span>`;
-                if (elDeltaMensaje) elDeltaMensaje.textContent = `Aceleración de +${diffRound.toFixed(1)} pts de riesgo hacia el siguiente trimestre.`;
-            } else if (diffRound < 0) {
-                if (elDeltaBadge) { elDeltaBadge.className = 'badge border badge-status-solvente fs-micro'; elDeltaBadge.textContent = 'REDUCIENDO'; }
-                elDeltaValor.className = 'fs-4 fw-bold text-success font-monospace mb-1 d-flex align-items-center gap-1.5';
-                elDeltaValor.innerHTML = `<span>&darr;</span><span>${diffRound.toFixed(1)} pts</span>`;
-                if (elDeltaMensaje) elDeltaMensaje.textContent = `Contracción de ${Math.abs(diffRound).toFixed(1)} pts de riesgo hacia el siguiente trimestre.`;
-            } else {
-                if (elDeltaBadge) { elDeltaBadge.className = 'badge border badge-status-neutral fs-micro'; elDeltaBadge.textContent = 'ESTABLE'; }
-                elDeltaValor.className = 'fs-4 fw-bold text-secondary font-monospace mb-1 d-flex align-items-center gap-1.5';
-                elDeltaValor.innerHTML = `<span>&rarr;</span><span>0.0 pts</span>`;
-                if (elDeltaMensaje) elDeltaMensaje.textContent = 'Riesgo constante sin variación intertrimestral significativa.';
-            }
-        } else if (elDeltaValor) {
-            if (elDeltaBadge) { elDeltaBadge.className = 'badge border badge-status-neutral fs-micro'; elDeltaBadge.textContent = 'LÍNEA BASE'; }
-            elDeltaValor.className = 'fs-4 fw-bold text-secondary font-monospace mb-1 d-flex align-items-center gap-1.5';
-            elDeltaValor.innerHTML = `<span>&bull;</span><span>Primer Registro</span>`;
-            if (elDeltaMensaje) elDeltaMensaje.textContent = 'No hay trimestre precedente para contrastar aceleración.';
-        }
-    }
-
-    function actualizarBacktestingFilas(punto) {
-        if (!punto) return;
-        const tabla = document.getElementById('tablaBacktestingDashboard');
-        if (!tabla) return;
-        const filas = tabla.querySelectorAll('tbody tr');
-        filas.forEach(tr => {
-            const perBase = tr.getAttribute('data-periodo-base');
-            const esActivo = perBase && (perBase === punto.periodo || perBase === punto.label);
-            if (esActivo) {
-                tr.classList.add('table-primary', 'bg-opacity-10');
-                const celdaPeriodo = tr.querySelector('td:first-child');
-                if (celdaPeriodo && !celdaPeriodo.querySelector('#badgeBacktestingActual')) {
-                    celdaPeriodo.innerHTML = `${perBase} <span class="badge bg-primary text-white fs-micro ms-1" id="badgeBacktestingActual">ACTUAL</span>`;
-                }
-            } else {
-                tr.classList.remove('table-primary', 'bg-opacity-10');
-                const badge = tr.querySelector('#badgeBacktestingActual');
-                if (badge) badge.remove();
-            }
-        });
-    }
-
     // 6. Función Núcleo de Filtrado y Actualización de la Curva (RF-04)
     function aplicarFiltrosYActualizar() {
         // Filtrar puntos cuyos períodos estén marcados
@@ -2499,10 +2082,6 @@ document.addEventListener('DOMContentLoaded', function () {
         chart.setDatasetVisibility(1, visibilidadSeries.proyeccion);
 
         chart.update();
-
-        // Actualizar Tarjeta de Horizonte de Alerta Temprana y Matriz de Backtesting
-        actualizarCabeceraHorizonte(puntoActivo, activeIdx, visibles);
-        actualizarBacktestingFilas(puntoActivo);
 
         // Control visual del mensaje de estado cuando no hay períodos visibles
         if (visibles.length === 0) {
@@ -2609,125 +2188,66 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function actualizarShapCards(top3) {
         const contenedor = document.getElementById('contenedorTopShap');
-        const contenedorFactores = document.getElementById('contenedorFactoresDeterminantes');
+        if (!contenedor) return;
 
         if (!top3 || top3.length === 0) {
-            if (contenedor) {
-                contenedor.innerHTML = `
-                    <div class="text-center py-4 my-auto">
-                        <i class="bi bi-diagram-3 text-secondary opacity-50 display-6 mb-2 d-block"></i>
-                        <h6 class="text-main fw-semibold fs-caption">Sin métricas SHAP registradas</h6>
-                        <p class="text-muted-custom mb-3 fs-caption">
-                            Ejecuta una inferencia sobre este balance para analizar los factores determinantes del diagnóstico.
-                        </p>
-                    </div>
-                `;
-            }
-            if (contenedorFactores) {
-                contenedorFactores.innerHTML = `
-                    <div class="text-center py-4 my-auto">
-                        <i class="bi bi-diagram-3 text-secondary opacity-50 display-6 mb-2 d-block"></i>
-                        <h6 class="text-main fw-semibold fs-caption">Sin métricas SHAP registradas para este balance</h6>
-                        <p class="text-muted-custom mb-0 fs-micro">
-                            Ejecuta una proyección sobre el balance contable para analizar el desglose de factores de riesgo.
-                        </p>
-                    </div>
-                `;
-            }
+            contenedor.innerHTML = `
+                <div class="text-center py-4 my-auto">
+                    <i class="bi bi-diagram-3 text-secondary opacity-50 display-6 mb-2 d-block"></i>
+                    <h6 class="text-main fw-semibold fs-caption">Sin métricas SHAP registradas</h6>
+                    <p class="text-muted-custom mb-3 fs-caption">
+                        Ejecuta una inferencia sobre este balance para analizar los factores determinantes del diagnóstico.
+                    </p>
+                </div>
+            `;
             return;
         }
 
-        if (contenedor) {
-            let html = '<div class="row g-3">';
-            top3.forEach((item, idx) => {
-                const codigo = item.codigo || (idx + 1);
-                const nombre = item.nombre || 'Variable Financiera';
-                const valor = typeof item.valor === 'number' ? item.valor.toFixed(2) : (item.valor || '--');
-                const unidad = item.unidad || '';
-                const impactoPct = typeof item.impacto_pct === 'number' ? item.impacto_pct : 0;
-                const impactoAbs = typeof item.impacto_abs === 'number' ? item.impacto_abs : 15;
-                const esAdverso = impactoPct >= 0;
-                const badgeImpacto = esAdverso 
-                    ? `<span class="badge border fw-semibold badge-status-critico fs-caption px-2.5 py-1" data-bs-toggle="tooltip" data-bs-placement="left" title="Impacto adverso: Incrementa el score en +${impactoPct.toFixed(1)}% de riesgo"><i class="bi bi-arrow-up-right me-1"></i>+${impactoPct.toFixed(1)}% al riesgo</span>`
-                    : `<span class="badge border fw-semibold badge-status-solvente fs-caption px-2.5 py-1" data-bs-toggle="tooltip" data-bs-placement="left" title="Impacto favorable: Reduce el score en ${impactoPct.toFixed(1)}% de riesgo"><i class="bi bi-arrow-down-right me-1"></i>${impactoPct.toFixed(1)}% al riesgo</span>`;
-                const barColor = esAdverso ? 'bg-danger' : 'bg-success';
-                const texto = item.texto ? `
-                    <div class="pt-3 mt-3 border-top border-subtle d-flex align-items-start gap-2 text-secondary fs-caption">
-                        <i class="bi bi-chat-left-text text-muted-custom mt-0.5 flex-shrink-0"></i>
-                        <p class="mb-0 lh-base text-main opacity-85">${item.texto}</p>
-                    </div>` : '';
+        let html = '<div class="row g-3">';
+        top3.forEach((item, idx) => {
+            const codigo = item.codigo || (idx + 1);
+            const nombre = item.nombre || 'Variable Financiera';
+            const valor = typeof item.valor === 'number' ? item.valor.toFixed(2) : (item.valor || '--');
+            const unidad = item.unidad || '';
+            const impactoPct = typeof item.impacto_pct === 'number' ? item.impacto_pct : 0;
+            const impactoAbs = typeof item.impacto_abs === 'number' ? item.impacto_abs : 15;
+            const esAdverso = impactoPct >= 0;
+            const badgeImpacto = esAdverso 
+                ? `<span class="badge border fw-semibold badge-status-critico fs-caption px-2.5 py-1" data-bs-toggle="tooltip" data-bs-placement="left" title="Impacto adverso: Incrementa el score en +${impactoPct.toFixed(1)}% de riesgo"><i class="bi bi-arrow-up-right me-1"></i>+${impactoPct.toFixed(1)}% al riesgo</span>`
+                : `<span class="badge border fw-semibold badge-status-solvente fs-caption px-2.5 py-1" data-bs-toggle="tooltip" data-bs-placement="left" title="Impacto favorable: Reduce el score en ${impactoPct.toFixed(1)}% de riesgo"><i class="bi bi-arrow-down-right me-1"></i>${impactoPct.toFixed(1)}% al riesgo</span>`;
+            const barColor = esAdverso ? 'bg-danger' : 'bg-success';
+            const texto = item.texto ? `
+                <div class="pt-3 mt-3 border-top border-subtle d-flex align-items-start gap-2 text-secondary fs-caption">
+                    <i class="bi bi-chat-left-text text-muted-custom mt-0.5 flex-shrink-0"></i>
+                    <p class="mb-0 lh-base text-main opacity-85">${item.texto}</p>
+                </div>` : '';
 
-                html += `
-                    <div class="col-12 col-md-4">
-                        <div class="p-3 p-xl-4 rounded-3 border border-default bg-canvas h-100 d-flex flex-column justify-content-between shadow-xs">
-                            <div>
-                                <div class="d-flex align-items-center justify-content-between mb-3">
-                                    <div class="d-flex align-items-center gap-2 overflow-hidden">
-                                        <span class="badge border font-monospace badge-status-neutral fs-caption px-2 py-1">${codigo}</span>
-                                        <span class="fw-semibold text-main text-truncate fs-6" title="${nombre}">${nombre}</span>
-                                    </div>
-                                    <span class="badge border font-monospace bg-white text-dark fs-caption px-2 py-1 shadow-xs">${valor}${unidad}</span>
+            html += `
+                <div class="col-12 col-md-4">
+                    <div class="p-3 p-xl-4 rounded-3 border border-default bg-canvas h-100 d-flex flex-column justify-content-between shadow-xs">
+                        <div>
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <div class="d-flex align-items-center gap-2 overflow-hidden">
+                                    <span class="badge border font-monospace badge-status-neutral fs-caption px-2 py-1">${codigo}</span>
+                                    <span class="fw-semibold text-main text-truncate fs-6" title="${nombre}">${nombre}</span>
                                 </div>
-                                <div class="d-flex align-items-center justify-content-between mb-2.5">
-                                    <span class="text-muted-custom fs-caption fw-medium">Impacto en Riesgo</span>
-                                    ${badgeImpacto}
-                                </div>
-                                <div class="progress kpi-progress rounded-pill overflow-hidden my-3" style="height: 8px;">
-                                    <div class="progress-bar ${barColor}" role="progressbar" style="width: ${Math.round(impactoAbs)}%;"></div>
-                                </div>
+                                <span class="badge border font-monospace bg-white text-dark fs-caption px-2 py-1 shadow-xs">${valor}${unidad}</span>
                             </div>
-                            ${texto}
-                        </div>
-                    </div>
-                `;
-            });
-            html += '</div>';
-            contenedor.innerHTML = html;
-        }
-
-        if (contenedorFactores) {
-            let htmlFactores = '<div class="row g-3">';
-            top3.forEach((item, idx) => {
-                const codigo = item.codigo || (idx + 1);
-                const nombre = item.nombre || 'Variable Financiera';
-                const valor = typeof item.valor === 'number' ? item.valor.toFixed(2) : (item.valor || '--');
-                const unidad = item.unidad || '';
-                const impactoPct = typeof item.impacto_pct === 'number' ? item.impacto_pct : 0;
-                const impactoAbs = typeof item.impacto_abs === 'number' ? item.impacto_abs : 15;
-                const esAdverso = impactoPct >= 0;
-                const badgeImpacto = esAdverso 
-                    ? `<span class="badge border fw-semibold badge-status-critico fs-micro"><i class="bi bi-arrow-up-right me-0.5"></i>+${impactoPct.toFixed(1)}% al riesgo</span>`
-                    : `<span class="badge border fw-semibold badge-status-solvente fs-micro"><i class="bi bi-arrow-down-right me-0.5"></i>${impactoPct.toFixed(1)}% factor protector</span>`;
-                const barColor = esAdverso ? 'bg-danger' : 'bg-success';
-                const texto = item.texto ? `<p class="text-muted-custom fs-micro mb-0 mt-2 lh-sm border-top border-subtle pt-2">${item.texto}</p>` : '';
-
-                htmlFactores += `
-                    <div class="col-12 col-md-4">
-                        <div class="p-3 rounded-3 border border-default bg-canvas shadow-xs h-100 d-flex flex-column justify-content-between">
-                            <div>
-                                <div class="d-flex align-items-center justify-content-between mb-2">
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="badge border font-monospace badge-status-neutral fs-caption px-2 py-0.5">${codigo}</span>
-                                        <strong class="text-main fs-6">${nombre}</strong>
-                                    </div>
-                                    <span class="badge border font-monospace bg-white text-dark fs-caption px-2 py-1 shadow-xs">${valor}${unidad}</span>
-                                </div>
-                                <div class="d-flex align-items-center justify-content-between mb-1.5">
-                                    <span class="text-muted-custom fs-micro">Impacto en Riesgo a 90 días</span>
-                                    ${badgeImpacto}
-                                </div>
-                                <div class="progress kpi-progress rounded-pill overflow-hidden my-2">
-                                    <div class="progress-bar ${barColor}" role="progressbar" style="width: ${Math.round(impactoAbs)}%;"></div>
-                                </div>
+                            <div class="d-flex align-items-center justify-content-between mb-2.5">
+                                <span class="text-muted-custom fs-caption fw-medium">Impacto en Riesgo</span>
+                                ${badgeImpacto}
                             </div>
-                            ${texto}
+                            <div class="progress kpi-progress rounded-pill overflow-hidden my-3" style="height: 8px;">
+                                <div class="progress-bar ${barColor}" role="progressbar" style="width: ${Math.round(impactoAbs)}%;"></div>
+                            </div>
                         </div>
+                        ${texto}
                     </div>
-                `;
-            });
-            htmlFactores += '</div>';
-            contenedorFactores.innerHTML = htmlFactores;
-        }
+                </div>
+            `;
+        });
+        html += '</div>';
+        contenedor.innerHTML = html;
     }
 
     function actualizarRatiosSeccion(data) {
@@ -2842,11 +2362,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const elBadgePeriodo = document.getElementById('infoPeriodoBadge');
         if (elBadgePeriodo) {
             elBadgePeriodo.textContent = `Período ${info.periodo || 'Balance Activo'}`;
-        }
-
-        const elFactoresPeriodo = document.getElementById('periodoBalanceShapFactores');
-        if (elFactoresPeriodo && info.periodo) {
-            elFactoresPeriodo.textContent = info.periodo;
         }
 
         const elCuadre = document.getElementById('infoCuadreBadge');
