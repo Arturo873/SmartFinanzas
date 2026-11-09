@@ -87,7 +87,7 @@
     <div>
         <div class="d-flex align-items-center gap-2 mb-1">
             <h1 class="h5 fw-semibold text-main mb-0 tracking-tight">
-                Sistema de Alerta Temprana a 3 Meses (<span class="text-primary font-monospace">Q<sub>t</sub> &rarr; Q<sub>t+1</sub></span>)
+                Sistema de Alerta Temprana a 3 Meses
             </h1>
             <span class="badge border font-monospace badge-status-proyeccion fs-micro">
                 <i class="bi bi-clock-history me-1"></i>Ventana Preventiva: 90 Días
@@ -107,25 +107,7 @@
                 <i class="bi bi-file-earmark-pdf"></i>
                 <span>Descargar Informe Ejecutivo</span>
             </button>
-            {% if ultimo_ratio %}
-                {% if tiene_anomalias %}
-                    <button type="button" class="btn btn-primary btn-sm position-relative d-inline-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#modalAdvertenciaOutliers" title="Se detectaron valores anómalos: requiere revisión o confirmación" id="btnEjecutarAnalisisDashboardModal">
-                        <i class="bi bi-cpu"></i>
-                        <span>Ejecutar Proyección</span>
-                        <span class="badge bg-warning text-dark fs-micro py-0.5 px-1.5 rounded-pill" title="{{ total_anomalias }} valor(es) fuera de rango detectado(s)">
-                            <i class="bi bi-exclamation-triangle-fill me-0.5"></i>{{ total_anomalias }}
-                        </span>
-                    </button>
-                {% else %}
-                    <form method="POST" action="{% url 'dashboard:ejecutar_prediccion' %}" class="d-inline m-0 form-ejecutar-analisis">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-primary btn-sm btn-ejecutar-analisis" id="btnEjecutarAnalisisDashboard" title="Ejecuta inferencia ML sobre el balance actual para proyectar el siguiente trimestre">
-                            <i class="bi bi-cpu me-1"></i>
-                            <span>Ejecutar Proyección</span>
-                        </button>
-                    </form>
-                {% endif %}
-            {% else %}
+            {% if not ultimo_ratio %}
                 <a href="{% url 'moduloETL:carga_datos' %}" class="btn btn-primary btn-sm">
                     <i class="bi bi-cloud-arrow-up"></i>
                     <span>Cargar Balance (ETL)</span>
@@ -482,7 +464,7 @@
     <div class="card-header py-3 px-4 d-flex align-items-center justify-content-between border-default bg-white">
         <div>
             <h2 class="h6 fw-semibold text-main mb-0">Factores Determinantes de la Proyección</h2>
-            <p class="text-muted-custom mb-0 fs-caption">Explicabilidad Algorítmica SHAP sobre el balance {{ periodo_balance }}</p>
+            <p class="text-muted-custom mb-0 fs-caption">Explicabilidad sobre el balance {{ periodo_balance }}</p>
         </div>
         <span class="badge border font-monospace badge-status-neutral fs-micro">Top 3 Variables</span>
     </div>
@@ -665,7 +647,7 @@
         </div>
         <div>
             <a href="{% url 'moduloETL:ratios_financieros' %}" class="btn btn-outline-secondary btn-sm py-1 px-2.5 fs-micro">
-                <i class="bi bi-calculator me-1"></i>Ver en Módulo ETL
+                <i class="bi bi-calculator me-1"></i>Ver otros ratios cargados
             </a>
         </div>
     </div>

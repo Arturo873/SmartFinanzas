@@ -89,16 +89,13 @@
             <h1 class="h5 fw-semibold text-main mb-0 tracking-tight">
                 Diagnóstico Financiero & Monitoreo de Riesgo
             </h1>
-            <span class="badge border font-monospace badge-status-neutral fs-micro">
-                Modelo Predictivo v1.1
-            </span>
         </div>
         <p class="text-muted-custom mb-0 fs-caption">
             Empresa: <strong class="text-main">{{ empresa_usuario.razon_social|default:"Empresa Activa" }}</strong>
             {% if empresa_usuario.rut %}
                 <span class="badge border font-monospace ms-1 badge-status-neutral fs-micro">{{ empresa_usuario.rut }}</span>
             {% endif %}
-            &middot; Balance contable consolidado y flujo de caja diario en tiempo real.
+            &middot; Balance contable consolidado.
         </p>
     </div>
     <div class="mt-3 mt-md-0 d-flex align-items-center gap-2">
@@ -107,25 +104,7 @@
                 <i class="bi bi-file-earmark-pdf"></i>
                 <span>Descargar Informe Ejecutivo</span>
             </button>
-            {% if ultimo_ratio %}
-                {% if tiene_anomalias %}
-                    <button type="button" class="btn btn-primary btn-sm position-relative d-inline-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#modalAdvertenciaOutliers" title="Se detectaron valores anómalos: requiere revisión o confirmación" id="btnEjecutarAnalisisDashboardModal">
-                        <i class="bi bi-cpu"></i>
-                        <span>Ejecutar Análisis</span>
-                        <span class="badge bg-warning text-dark fs-micro py-0.5 px-1.5 rounded-pill" title="{{ total_anomalias }} valor(es) fuera de rango detectado(s)">
-                            <i class="bi bi-exclamation-triangle-fill me-0.5"></i>{{ total_anomalias }}
-                        </span>
-                    </button>
-                {% else %}
-                    <form method="POST" action="{% url 'dashboard:ejecutar_prediccion' %}" class="d-inline m-0 form-ejecutar-analisis">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-primary btn-sm btn-ejecutar-analisis" id="btnEjecutarAnalisisDashboard" title="Ejecuta inferencia ML sobre el último balance cargado">
-                            <i class="bi bi-cpu me-1"></i>
-                            <span>Ejecutar Análisis</span>
-                        </button>
-                    </form>
-                {% endif %}
-            {% else %}
+            {% if not ultimo_ratio %}
                 <a href="{% url 'moduloETL:carga_datos' %}" class="btn btn-primary btn-sm">
                     <i class="bi bi-cloud-arrow-up"></i>
                     <span>Cargar Balance (ETL)</span>
@@ -606,14 +585,10 @@
     <div class="card-header py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-2 border-default">
         <div>
             <h2 class="h6 fw-semibold text-main mb-0">Monitoreo</h2>
-            <p class="text-muted-custom mb-0 fs-caption">Evolución histórica de solvencia contable observada (Altman 1983 Z'') y predicción de riesgo a 3 meses (Q<sub>t</sub> &rarr; Q<sub>t+1</sub>)</p>
+            <p class="text-muted-custom mb-0 fs-caption">Evolución histórica de solvencia contable observada y predicción de riesgo a 3 meses (Q<sub>t</sub> &rarr; Q<sub>t+1</sub>)</p>
         </div>
         <!-- Leyenda Visual del Gráfico -->
         <div class="d-flex flex-wrap align-items-center gap-3 fs-micro">
-            <div class="d-flex align-items-center gap-1.5 text-secondary" id="leyendaObservados">
-                <span class="d-inline-block rounded-pill" style="width: 14px; height: 3px; background-color: #2563eb;"></span>
-                <span>Dato Observado (Altman 1983 Z'')</span>
-            </div>
             <div class="d-flex align-items-center gap-1.5 text-main fw-semibold">
                 <span class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 10px; height: 10px; border: 2px solid #0f172a; background-color: #2563eb;"></span>
                 <span>Período Actual (Q<sub>t</sub>)</span>
@@ -621,11 +596,6 @@
             <div class="d-flex align-items-center gap-1.5 fw-semibold text-main" id="leyendaProyeccionItem">
                 <span class="d-inline-block" style="width: 14px; border-top: 3px dashed {% if nivel == 'Verde' %}#16a34a{% elif nivel == 'Amarillo' %}#ca8a04{% else %}#dc2626{% endif %};" id="indicadorLeyendaProyeccion"></span>
                 <span id="textoLeyendaProyeccion">Pronóstico Preventivo 90d (Q<sub>t+1</sub>)</span>
-            </div>
-            <div class="d-flex align-items-center gap-2 border-start ps-2">
-                <span class="badge border badge-status-solvente fs-micro py-0.5">Verde &le;35</span>
-                <span class="badge border badge-status-alerta fs-micro py-0.5">Amarillo 35-70</span>
-                <span class="badge border badge-status-critico fs-micro py-0.5">Rojo &gt;70</span>
             </div>
         </div>
     </div>
@@ -730,14 +700,11 @@
             Puntos visualizados: <strong class="text-main" id="puntosVisiblesFooter">{{ etiquetas_periodos_pasados|length|default:0 }}</strong> de <strong class="text-main" id="totalEvaluacionesFooter">{{ total_predicciones_historicas|default:0 }}</strong> trimestres históricos.
             &middot; Pasa el cursor o haz clic en un punto para seleccionar ese período.
         </div>
-        <div class="font-monospace">
-            Bandas de Semáforo: Verde (0-35%), Alerta (35-70%), Crítica (70-100%)
-        </div>
     </div>
 </div>
 
 <!-- ====================================================================== -->
-<!-- 4. TRAZABILIDAD INTEGRAL: TODOS LOS RATIOS DE LA PREDICCIÓN (X1 - X7)  -->
+<!-- 4. TRAZABILIDAD INTEGRAL: TODOS LOS RATIOS DE LA PREDICCIÓN           -->
 <!-- ====================================================================== -->
 <div class="card mb-4 border-default">
     <div class="card-header py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-3 border-default bg-white">
@@ -745,10 +712,7 @@
             <div class="d-flex align-items-center gap-2 mb-1">
                 <h2 class="h6 fw-semibold text-main mb-0">Trazabilidad Integral: Ratios Calculados de la Predicción</h2>
                 <span class="badge border font-monospace badge-status-neutral fs-micro">
-                    7 Ratios Contables (X1 - X7)
-                </span>
-                <span class="badge bg-dark text-white font-monospace fs-micro {% if not ultima_prediccion %}d-none{% endif %}" id="badgeInfId">
-                    {% if ultima_prediccion %}#INF-{{ ultima_prediccion.id }}{% endif %}
+                    7 Ratios Contables
                 </span>
             </div>
             <p class="text-muted-custom mb-0 fs-caption">
@@ -926,27 +890,18 @@
                     Período {% if info_periodo and info_periodo.periodo %}{{ info_periodo.periodo }}{% elif ratio_asociado_prediccion and ratio_asociado_prediccion.periodo %}{{ ratio_asociado_prediccion.periodo }}{% else %}Balance Activo{% endif %}
                 </span>
                 <span id="infoCuadreBadge">
-                {% if info_periodo %}
-                    {% if info_periodo.cuadrado %}
-                        <span class="badge border fw-medium badge-status-solvente fs-micro"
-                              data-bs-toggle="tooltip"
-                              data-bs-placement="top"
-                              title="Ecuación contable fundamental satisfecha: Activo Total = Pasivo Total + Patrimonio.">
-                            <i class="bi bi-check-circle me-1"></i>Balance Cuadrado
-                        </span>
-                    {% else %}
-                        <span class="badge border fw-medium badge-status-alerta fs-micro"
-                              data-bs-toggle="tooltip"
-                              data-bs-placement="top"
-                              title="Diferencia de cuadre contable: ${{ info_periodo.dif_cuadre|floatformat:0 }}">
-                            <i class="bi bi-exclamation-triangle me-1"></i>Diferencia ${{ info_periodo.dif_cuadre|floatformat:0 }}
-                        </span>
-                    {% endif %}
+                {% if info_periodo and info_periodo.cuadrado %}
+                    <span class="badge border fw-medium badge-status-solvente fs-micro"
+                          data-bs-toggle="tooltip"
+                          data-bs-placement="top"
+                          title="Ecuación contable fundamental satisfecha: Activo Total = Pasivo Total + Patrimonio.">
+                        <i class="bi bi-check-circle me-1"></i>Balance Cuadrado
+                    </span>
                 {% endif %}
                 </span>
             </div>
             <p class="text-muted-custom mb-0 fs-caption" id="infoOrigenFechaTexto">
-                Valores patrimoniales consolidados y cuentas contables procesadas por el pipeline ETL
+                Valores patrimoniales consolidados y cuentas contables procesadas
                 {% if info_periodo.archivo_origen %}
                     &middot; Origen: <span class="font-monospace text-main">{{ info_periodo.archivo_origen }}</span>
                 {% endif %}
@@ -1857,9 +1812,9 @@ document.addEventListener('DOMContentLoaded', function () {
         data: {
             labels: [],
             datasets: [
-                // Dataset 0: Tramo Histórico Real Observado (Altman 1983 Z'')
+                // Dataset 0: Tramo Histórico Real Observado
                 {
-                    label: "Dato Observado (Altman 1983 Z'')",
+                    label: "Dato Observado",
                     data: [],
                     borderColor: '#2563eb',
                     backgroundColor: 'rgba(37, 99, 235, 0.05)',
@@ -2404,7 +2359,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (info.cuadrado) {
                 elCuadre.innerHTML = `<span class="badge border fw-medium badge-status-solvente fs-micro" data-bs-toggle="tooltip" data-bs-placement="top" title="Ecuación contable fundamental satisfecha: Activo Total = Pasivo Total + Patrimonio."><i class="bi bi-check-circle me-1"></i>Balance Cuadrado</span>`;
             } else {
-                elCuadre.innerHTML = `<span class="badge border fw-medium badge-status-alerta fs-micro" data-bs-toggle="tooltip" data-bs-placement="top" title="Diferencia de cuadre contable: ${formatPesos(info.dif_cuadre)}"><i class="bi bi-exclamation-triangle me-1"></i>Diferencia ${formatPesos(info.dif_cuadre)}</span>`;
+                elCuadre.innerHTML = '';
             }
         }
 
