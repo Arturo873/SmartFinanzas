@@ -622,4 +622,117 @@ class AlertaTempranaPredictivoTests(TestCase):
         self.assertIn('score_proyectado', response.context)
         self.assertIn('timeline_proyectado_json', response.context)
 
+    def test_dashboard_predictivo_series_paralelas_y_toggles(self):
+        """
+        Verifica que el dashboard predictivo incluya las dos líneas paralelas (Observados y Predicciones)
+        junto con sus respectivos botones de visibilidad independiente.
+        """
+        self.client.force_login(self.auth_user)
+        response = self.client.get(reverse('dashboard:dashboard_predictivo'))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+
+        # Botones de alternancia de series
+        self.assertIn('id="btnToggleObservados"', content)
+        self.assertIn('id="btnTogglePredicciones"', content)
+        self.assertIn('id="btnToggleProyeccion"', content)
+
+        # Contenedores de datos de series paralelas
+        self.assertIn('id="timeline-observado-raw"', content)
+        self.assertIn('id="timeline-predicciones-raw"', content)
+
+        # Contexto del backend con ambas series
+        self.assertIn('valores_observados', response.context)
+        self.assertIn('valores_predicciones', response.context)
+        self.assertIn('timeline_observado_json', response.context)
+        self.assertIn('timeline_predicciones_json', response.context)
+
+    def test_dashboard_predictivo_historia_completa_sin_recorte(self):
+        """
+        Verifica que al consultar un período intermedio (ej. 2024-Q2), la vista NO recorte los
+        períodos posteriores (2024-Q3, 2024-Q4) para que el botón 'Todos' pueda mostrar toda la historia,
+        y que la proyección salga del período consultado (2024-Q2 -> 2024-Q3).
+        """
+        from moduloETL.models import RatioFinanciero
+
+        # Crear trimestres adicionales
+        RatioFinanciero.objects.create(
+            empresa=self.empresa,
+            periodo='2024-Q1',
+            v1_razon_corriente=1.8,
+            v3_leverage_total=1.2,
+            v4_roa_operacional=0.09,
+            fecha_calculo=timezone.now(),
+        )
+        RatioFinanciero.objects.create(
+            empresa=self.empresa,
+            periodo='2024-Q2',
+            v1_razon_corriente=1.4,
+            v3_leverage_total=1.8,
+            v4_roa_operacional=0.06,
+            fecha_calculo=timezone.now(),
+        )
+        RatioFinanciero.objects.create(
+            empresa=self.empresa,
+            periodo='2024-Q3',
+            v1_razon_corriente=1.3,
+            v3_leverage_total=2.1,
+            v4_roa_operacional=0.05,
+            fecha_calculo=timezone.now(),
+        )
+
+        self.client.force_login(self.auth_user)
+        # Consultar período intermedio 2024-Q2
+        response = self.client.get(reverse('dashboard:dashboard_predictivo') + '?periodo=2024-Q2')
+        self.assertEqual(response.status_code, 200)
+
+        # Verificar que todos los trimestres (Q1, Q2, Q3, Q4) estén presentes en timeline_puntos
+        puntos = json.loads(response.context['timeline_puntos_json'])
+        periodos_presentes = [p['periodo'] for p in puntos]
+        self.assertIn('2024-Q1', periodos_presentes)
+        self.assertIn('2024-Q2', periodos_presentes)
+        self.assertIn('2024-Q3', periodos_presentes)
+        self.assertIn('2024-Q4', periodos_presentes)
+
+        # Verificar que 2024-Q2 esté marcado como el actual
+        punto_q2 = next(p for p in puntos if p['periodo'] == '2024-Q2')
+        self.assertTrue(punto_q2['es_actual'])
+
+        # Verificar que la proyección salga de 2024-Q2 (índice 1) hacia 2024-Q3 (índice 2)
+        idx_q2 = periodos_presentes.index('2024-Q2')
+        proyectado = json.loads(response.context['timeline_proyectado_json'])
+        self.assertIsNotNone(proyectado[idx_q2])
+        self.assertIsNotNone(proyectado[idx_q2 + 1])
+        # Los otros puntos históricos antes y después deben ser None
+        self.assertIsNone(proyectado[0]) # Q1
+        self.assertIsNone(proyectado[idx_q2 + 2]) # Q4
+
+    def test_calcular_score_observado(self):
+        """
+        Verifica el cálculo heurístico contable del score observado a partir de ratios financieros.
+        """
+        from dashboard.views import calcular_score_observado
+        from moduloETL.models import RatioFinanciero
+
+        # Caso solvente (alta liquidez, bajo endeudamiento)
+        r_solvente = RatioFinanciero(
+            v1_razon_corriente=2.2,
+            v2_capital_trabajo_activos=0.3,
+            v3_leverage_total=0.8,
+            v4_roa_operacional=0.12,
+        )
+        score_solvente = calcular_score_observado(r_solvente)
+        self.assertLessEqual(score_solvente, 35.0)
+
+        # Caso crítico (baja liquidez, alto endeudamiento, ROA negativo)
+        r_critico = RatioFinanciero(
+            v1_razon_corriente=0.6,
+            v2_capital_trabajo_activos=-0.2,
+            v3_leverage_total=5.5,
+            v4_roa_operacional=-0.08,
+        )
+        score_critico = calcular_score_observado(r_critico)
+        self.assertGreater(score_critico, 70.0)
+
+
 
