@@ -79,17 +79,99 @@
                         </div>
                     </div>
 
-                    <!-- Empresa Asociada -->
-                    <div class="mb-3">
-                        <label for="{{ form.empresa.id_for_label }}" class="form-label fw-semibold">
-                            <i class="bi bi-building me-1 text-primary"></i>{{ form.empresa.label }}
-                        </label>
-                        {{ form.empresa }}
+                    <!-- Deslizador de Selección de Empresa Asociada -->
+                    <div class="mb-4" id="seccionDeslizadorEmpresa">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label for="deslizadorEmpresa" class="form-label fw-semibold mb-0">
+                                <i class="bi bi-building me-1 text-primary"></i>Empresa Asociada <span class="text-danger">*</span>
+                            </label>
+                            {% if empresas %}
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 shadow-sm" id="badgeContadorEmpresas">
+                                    <i class="bi bi-sliders me-1"></i>Empresa <span id="empresaIndiceActual">1</span> de {{ empresas|length }}
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        {% if empresas %}
+                            <!-- Tarjeta Visual Deslizante de la Empresa Seleccionada -->
+                            <div class="card border rounded-3 bg-light shadow-sm mb-2 overflow-hidden position-relative">
+                                <div class="card-body p-3">
+                                    <div class="d-flex align-items-center justify-content-between gap-2">
+                                        <!-- Botón Deslizar Anterior -->
+                                        <button type="button" class="btn btn-outline-secondary btn-sm rounded-circle d-flex align-items-center justify-content-center p-0 flex-shrink-0 shadow-sm" id="btnEmpresaPrev" style="width: 36px; height: 36px;" title="Empresa anterior">
+                                            <i class="bi bi-chevron-left fs-6"></i>
+                                        </button>
+
+                                        <!-- Contenido Dinámico de la Empresa -->
+                                        <div class="text-center flex-grow-1 px-2" id="empresaDisplayContainer" style="transition: opacity 0.2s ease-in-out;">
+                                            <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-white border shadow-sm p-2 mb-1" style="width: 44px; height: 44px;">
+                                                <i class="bi bi-building-fill text-primary fs-5"></i>
+                                            </div>
+                                            <h6 class="fw-bold text-dark mb-1 text-truncate" id="empresaNombre" style="max-width: 290px; margin: 0 auto;">
+                                                Cargando empresa...
+                                            </h6>
+                                            <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap">
+                                                <span class="badge bg-secondary-subtle text-secondary font-monospace" id="empresaRut">
+                                                    RUT: --
+                                                </span>
+                                                <span class="badge bg-success-subtle text-success small">
+                                                    <i class="bi bi-check-circle-fill me-1"></i>Habilitada
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Botón Deslizar Siguiente -->
+                                        <button type="button" class="btn btn-outline-secondary btn-sm rounded-circle d-flex align-items-center justify-content-center p-0 flex-shrink-0 shadow-sm" id="btnEmpresaNext" style="width: 36px; height: 36px;" title="Empresa siguiente">
+                                            <i class="bi bi-chevron-right fs-6"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Barra de Progreso del Deslizador -->
+                                <div class="progress" style="height: 3px;">
+                                    <div class="progress-bar bg-primary" id="empresaProgressBar" role="progressbar" style="width: 10%;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Control Deslizador (Range Slider) -->
+                            <div class="px-1 mb-2">
+                                <input type="range" class="form-range" id="deslizadorEmpresa" min="0" max="{{ empresas|length|add:'-1' }}" step="1" value="0" aria-label="Deslizador para seleccionar empresa">
+                                <div class="d-flex justify-content-between text-muted small" style="font-size: 0.73rem;">
+                                    <span><i class="bi bi-arrow-left me-1"></i>Anterior</span>
+                                    <span class="text-primary fw-semibold text-truncate px-2" id="deslizadorHint" style="max-width: 200px;"></span>
+                                    <span>Siguiente<i class="bi bi-arrow-right ms-1"></i></span>
+                                </div>
+                            </div>
+
+                            <!-- Select Sincronizado para Django POST (Oculto) -->
+                            <div class="d-none">
+                                {{ form.empresa }}
+                            </div>
+
+                            <!-- Datos de empresas serializados en JSON seguro -->
+                            <script id="empresasData" type="application/json">
+                            [
+                                {% for emp in empresas %}
+                                {
+                                    "id": {{ emp.id }},
+                                    "nombre": "{{ emp.razon_social|escapejs }}",
+                                    "rut": "{{ emp.rut|default:''|escapejs }}"
+                                }{% if not forloop.last %},{% endif %}
+                                {% endfor %}
+                            ]
+                            </script>
+                        {% else %}
+                            {{ form.empresa }}
+                        {% endif %}
+
                         {% if form.empresa.errors %}
                             <div class="text-danger small mt-1">
                                 {{ form.empresa.errors|striptags }}
                             </div>
                         {% endif %}
+                        <div class="form-text small">
+                            <i class="bi bi-info-circle me-1"></i>Mueve el deslizador o usa las flechas para seleccionar la empresa donde operarás.
+                        </div>
                     </div>
 
                     <!-- Contraseña y Confirmar Contraseña con botón de ver contraseña -->
@@ -281,6 +363,120 @@
                     modalInstance.hide();
                 }
             });
+        }
+
+        // ======================================================================
+        // CONTROL DESLIZADOR INTERACTIVO DE EMPRESAS
+        // ======================================================================
+        const empresasDataEl = document.getElementById('empresasData');
+        const deslizador = document.getElementById('deslizadorEmpresa');
+        const btnPrev = document.getElementById('btnEmpresaPrev');
+        const btnNext = document.getElementById('btnEmpresaNext');
+        const empresaNombre = document.getElementById('empresaNombre');
+        const empresaRut = document.getElementById('empresaRut');
+        const empresaIndice = document.getElementById('empresaIndiceActual');
+        const progressBar = document.getElementById('empresaProgressBar');
+        const deslizadorHint = document.getElementById('deslizadorHint');
+        const empresaContainer = document.getElementById('empresaDisplayContainer');
+        const selectEmpresa = document.getElementById('id_empresa');
+
+        if (empresasDataEl && deslizador && selectEmpresa) {
+            let empresas = [];
+            try {
+                empresas = JSON.parse(empresasDataEl.textContent.trim());
+            } catch (e) {
+                console.error("Error parseando listado de empresas:", e);
+            }
+
+            if (empresas.length > 0) {
+                function actualizarEmpresa(index, animate) {
+                    index = Math.max(0, Math.min(empresas.length - 1, parseInt(index) || 0));
+                    const emp = empresas[index];
+                    if (!emp) return;
+
+                    if (animate && empresaContainer) {
+                        empresaContainer.style.opacity = '0.3';
+                        setTimeout(() => {
+                            empresaNombre.textContent = emp.nombre;
+                            empresaRut.textContent = emp.rut ? `RUT: ${emp.rut}` : 'RUT: No informado';
+                            empresaContainer.style.opacity = '1';
+                        }, 90);
+                    } else {
+                        empresaNombre.textContent = emp.nombre;
+                        empresaRut.textContent = emp.rut ? `RUT: ${emp.rut}` : 'RUT: No informado';
+                    }
+
+                    if (empresaIndice) {
+                        empresaIndice.textContent = (index + 1);
+                    }
+                    if (deslizadorHint) {
+                        deslizadorHint.textContent = emp.nombre;
+                    }
+                    if (progressBar) {
+                        const pct = ((index + 1) / empresas.length) * 100;
+                        progressBar.style.width = `${pct}%`;
+                    }
+
+                    deslizador.value = index;
+
+                    // Sincronizar el select original de Django para el POST
+                    selectEmpresa.value = emp.id;
+
+                    // Habilitar/deshabilitar flechas en los extremos
+                    if (btnPrev) btnPrev.disabled = (index === 0);
+                    if (btnNext) btnNext.disabled = (index === empresas.length - 1);
+                }
+
+                // Detectar si ya venía un valor preseleccionado
+                let initialIndex = 0;
+                const valorActual = selectEmpresa.value;
+                if (valorActual) {
+                    const foundIdx = empresas.findIndex(e => String(e.id) === String(valorActual));
+                    if (foundIdx !== -1) {
+                        initialIndex = foundIdx;
+                    }
+                }
+
+                // Inicializar visualización
+                actualizarEmpresa(initialIndex, false);
+
+                // Eventos del Input Range Deslizador
+                deslizador.addEventListener('input', function () {
+                    actualizarEmpresa(this.value, false);
+                });
+                deslizador.addEventListener('change', function () {
+                    actualizarEmpresa(this.value, true);
+                });
+
+                // Flechas de navegación lateral
+                if (btnPrev) {
+                    btnPrev.addEventListener('click', function () {
+                        const cur = parseInt(deslizador.value) || 0;
+                        if (cur > 0) {
+                            actualizarEmpresa(cur - 1, true);
+                        }
+                    });
+                }
+
+                if (btnNext) {
+                    btnNext.addEventListener('click', function () {
+                        const cur = parseInt(deslizador.value) || 0;
+                        if (cur < empresas.length - 1) {
+                            actualizarEmpresa(cur + 1, true);
+                        }
+                    });
+                }
+
+                // Navegación por teclado (Flechas izquierda / derecha)
+                deslizador.addEventListener('keydown', function (e) {
+                    const cur = parseInt(deslizador.value) || 0;
+                    if (e.key === 'ArrowLeft' && cur > 0) {
+                        actualizarEmpresa(cur - 1, true);
+                    } else if (e.key === 'ArrowRight' && cur < empresas.length - 1) {
+                        actualizarEmpresa(cur + 1, true);
+                    }
+                });
+            }
         }
     });
 </script>

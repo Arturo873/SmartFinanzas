@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from django.views.generic import TemplateView
 
-from .models import Usuario
+from .models import Usuario, Empresa
 from .forms import LoginForm, RegistroForm
 from AppWeb.models import PerfilUsuario
 
@@ -86,4 +86,8 @@ def registro_view(request):
         )
         return redirect('principal')
 
-    return render(request, 'usuarios/registro.html', {'form': form})
+    empresas = list(Empresa.objects.all().order_by('id'))
+    return render(request, 'usuarios/registro.html', {
+        'form': form,
+        'empresas': empresas,
+    })

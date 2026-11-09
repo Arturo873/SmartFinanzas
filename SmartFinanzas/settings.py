@@ -17,8 +17,8 @@ from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Cargar variables de entorno desde .env
-load_dotenv(BASE_DIR / '.env')
+# Cargar variables de entorno desde .env (override=True para sobreescribir variables de entorno existentes o previas)
+load_dotenv(BASE_DIR / '.env', override=True)
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
