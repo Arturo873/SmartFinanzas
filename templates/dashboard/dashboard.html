@@ -569,25 +569,26 @@
     <div class="card-header py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-2 border-default">
         <div>
             <h2 class="h6 fw-semibold text-main mb-0">Curva de Tendencia de Solvencia & Riesgo</h2>
-            <p class="text-muted-custom mb-0 fs-caption">Evolución histórica de inferencias predictivas (Score 0 a 100)</p>
+            <p class="text-muted-custom mb-0 fs-caption">Evolución histórica de insolvencia observada (Altman 1983) y pronóstico preventivo a 90 días</p>
         </div>
-        <!-- Leyenda Minimalista -->
-        <div class="d-flex align-items-center gap-3 fs-micro">
-            <div class="d-flex align-items-center gap-1 text-secondary">
-                <span class="d-inline-block rounded-pill" style="width: 12px; height: 3px; background-color: #2563eb;"></span>
-                <span>Probabilidad Riesgo</span>
+        <!-- Leyenda Visual del Gráfico -->
+        <div class="d-flex flex-wrap align-items-center gap-3 fs-micro">
+            <div class="d-flex align-items-center gap-1.5 text-secondary" id="leyendaObservados">
+                <span class="d-inline-block rounded-pill" style="width: 14px; height: 3px; background-color: #2563eb;"></span>
+                <span>Dato Observado (Altman 1983 Z'')</span>
             </div>
             <div class="d-flex align-items-center gap-1.5 text-main fw-semibold">
                 <span class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 10px; height: 10px; border: 2px solid #0f172a; background-color: #2563eb;"></span>
-                <span>Inferencia Activa</span>
+                <span>Período Seleccionado</span>
             </div>
             <div class="d-flex align-items-center gap-1.5 fw-semibold text-main" id="leyendaProyeccionItem">
-                <span class="d-inline-block" style="width: 14px; border-top: 2.5px dashed {% if nivel == 'Verde' %}#16a34a{% elif nivel == 'Amarillo' %}#ca8a04{% else %}#dc2626{% endif %};"></span>
-                <span>Pronóstico 90d (Q<sub>t+1</sub>)</span>
+                <span class="d-inline-block" style="width: 14px; border-top: 3px dashed {% if nivel == 'Verde' %}#16a34a{% elif nivel == 'Amarillo' %}#ca8a04{% else %}#dc2626{% endif %};" id="indicadorLeyendaProyeccion"></span>
+                <span id="textoLeyendaProyeccion">Pronóstico 90d (Q<sub>t+1</sub>)</span>
             </div>
-            <div class="d-flex align-items-center gap-1 text-muted-custom">
-                <span class="d-inline-block" style="width: 12px; border-top: 2px dashed #9ca3af;"></span>
-                <span>Umbral Alerta (35%)</span>
+            <div class="d-flex align-items-center gap-2 border-start ps-2">
+                <span class="badge border badge-status-solvente fs-micro py-0.5">Verde &le;35</span>
+                <span class="badge border badge-status-alerta fs-micro py-0.5">Amarillo 35-70</span>
+                <span class="badge border badge-status-critico fs-micro py-0.5">Rojo &gt;70</span>
             </div>
         </div>
     </div>
@@ -610,7 +611,7 @@
                 <div class="dropdown-menu p-3 shadow border border-default" style="min-width: 300px; max-width: 350px; z-index: 1050;" aria-labelledby="dropdownFiltroPeriodos">
                     <div class="d-flex align-items-center justify-content-between pb-2 mb-2 border-bottom border-subtle">
                         <span class="fw-semibold text-main fs-caption">
-                            <i class="bi bi-calendar3 me-1 text-primary"></i>Períodos Cargados
+                            <i class="bi bi-calendar3 me-1 text-primary"></i>Períodos Históricos
                         </span>
                         <span class="text-muted-custom fs-micro">Visibilidad</span>
                     </div>
@@ -646,11 +647,17 @@
                 <span>Solo Alertas</span>
             </button>
 
-            <!-- Botón Ocultador / Alternador de Proyección Futura (Q_{t+1}) -->
-            <button type="button" class="btn btn-outline-primary btn-sm py-0.5 px-2.5 d-inline-flex align-items-center gap-1.5 active" id="btnToggleProyeccion" title="Alternar visibilidad del tramo proyectado hacia los siguientes 3 meses (Q_{t+1})">
-                <i class="bi bi-eye-slash" id="iconoToggleProyeccion"></i>
-                <span id="textoToggleProyeccion">Ocultar Predicción</span>
-            </button>
+            <!-- Botones Toggle de Visibilidad de Series (Ocultar / Mostrar una u otra) -->
+            <div class="btn-group btn-group-sm ms-sm-2" role="group" aria-label="Visibilidad de Series">
+                <button type="button" class="btn btn-primary btn-sm py-0.5 px-2 active" id="btnToggleObservados" title="Ocultar o Mostrar Datos Observados">
+                    <i class="bi bi-eye me-1"></i>Observados
+                </button>
+                <button type="button" class="btn btn-dark btn-sm py-0.5 px-2 active" id="btnToggleProyeccion" title="Alternar visibilidad del tramo proyectado hacia los siguientes 3 meses (Q_{t+1})">
+                    <i class="bi bi-eye me-1" id="iconoToggleProyeccion"></i>
+                    <span id="textoToggleProyeccion">Pronóstico 90d</span>
+                    <span class="visually-hidden">Ocultar Predicción</span>
+                </button>
+            </div>
         </div>
 
         <!-- Resumen de Puntos Visibles y Botón Restablecer -->
@@ -665,7 +672,7 @@
     </div>
 
     <div class="card-body p-4 position-relative">
-        <div style="position: relative; height: 280px; width: 100%;">
+        <div style="position: relative; height: 320px; width: 100%;">
             <canvas id="riesgoChart"></canvas>
         </div>
 
@@ -682,11 +689,12 @@
 
     <div class="card-footer py-2.5 px-4 bg-white border-top border-subtle d-flex flex-wrap align-items-center justify-content-between text-muted-custom fs-micro">
         <div id="footerInfoGrafico">
-            <i class="bi bi-info-circle me-1"></i>
-            Puntos visualizados: <strong class="text-main" id="puntosVisiblesFooter">--</strong> de <strong class="text-main">{{ total_predicciones_historicas }}</strong> evaluaciones registradas.
+            <i class="bi bi-info-circle me-1 text-primary"></i>
+            Puntos visualizados: <strong class="text-main" id="puntosVisiblesFooter">{{ etiquetas_periodos_pasados|length|default:0 }}</strong> de <strong class="text-main" id="totalEvaluacionesFooter">{{ total_predicciones_historicas|default:0 }}</strong> trimestres históricos.
+            &middot; Pasa el cursor o haz clic en un punto para seleccionar ese período.
         </div>
-        <div class="font-mono">
-            Tendencia Dinámica Interperíodo (RF-04)
+        <div class="font-monospace">
+            Bandas de Semáforo: Verde (0-35%), Alerta (35-70%), Crítica (70-100%)
         </div>
     </div>
 </div>
@@ -1336,6 +1344,10 @@
 <script type="application/json" id="periodos-disponibles-raw">{{ periodos_disponibles_json|default:"[]"|safe }}</script>
 <script type="application/json" id="periodo-proyectado-raw">{{ periodo_proyectado_json|default:'""'|safe }}</script>
 <script type="application/json" id="timeline-proyectado-raw">{{ timeline_proyectado_json|default:'[]'|safe }}</script>
+<script type="application/json" id="timeline-observado-raw">{{ timeline_observado_json|default:"[]"|safe }}</script>
+<script type="application/json" id="timeline-predicciones-raw">{{ timeline_predicciones_json|default:"[]"|safe }}</script>
+<script type="application/json" id="timeline-labels-raw">{{ timeline_labels_json|default:"[]"|safe }}</script>
+<script type="application/json" id="timeline-puntos-raw">{{ timeline_puntos_json|default:"[]"|safe }}</script>
 
 <!-- Curva de Tendencia y Control de Períodos Históricos (RF-04) -->
 <script>
@@ -1395,18 +1407,27 @@ document.addEventListener('DOMContentLoaded', function () {
     const fechasElem = document.getElementById('chart-fechas-raw');
     const scoresElem = document.getElementById('chart-scores-raw');
     const actualElem = document.getElementById('chart-actual-raw');
-    const puntosElem = document.getElementById('chart-puntos-raw');
+    const puntosElem = document.getElementById('chart-puntos-raw') || document.getElementById('timeline-puntos-raw');
+    const observadoElem = document.getElementById('timeline-observado-raw');
+    const prediccionesElem = document.getElementById('timeline-predicciones-raw');
+    const labelsElem = document.getElementById('timeline-labels-raw');
 
     let fechas = [];
     let scores = [];
     let esActual = [];
     let puntosRaw = [];
+    let timelineObservado = [];
+    let timelinePredicciones = [];
+    let timelineLabels = [];
 
     try {
         fechas = fechasElem ? JSON.parse(fechasElem.textContent || '[]') : [];
         scores = scoresElem ? JSON.parse(scoresElem.textContent || '[]') : [];
         esActual = actualElem ? JSON.parse(actualElem.textContent || '[]') : [];
         puntosRaw = puntosElem ? JSON.parse(puntosElem.textContent || '[]') : [];
+        timelineObservado = observadoElem ? JSON.parse(observadoElem.textContent || '[]') : [];
+        timelinePredicciones = prediccionesElem ? JSON.parse(prediccionesElem.textContent || '[]') : [];
+        timelineLabels = labelsElem ? JSON.parse(labelsElem.textContent || '[]') : [];
     } catch (e) {
         console.error('Error al parsear datos de tendencia:', e);
     }
@@ -1418,19 +1439,33 @@ document.addEventListener('DOMContentLoaded', function () {
             id: p.id || (idx + 1),
             periodo: p.periodo || `Periodo ${idx + 1}`,
             label: p.label || fechas[idx] || `Punto ${idx + 1}`,
-            score: typeof p.score === 'number' ? p.score : (scores[idx] || 0),
-            nivel: p.nivel || (scores[idx] > 70 ? 'Rojo' : (scores[idx] > 35 ? 'Amarillo' : 'Verde')),
+            score_observado: typeof p.score_observado === 'number' ? p.score_observado : (typeof p.score === 'number' ? p.score : 35.0),
+            score_prediccion: typeof p.score_prediccion === 'number' ? p.score_prediccion : (typeof p.score === 'number' ? p.score : 35.0),
+            score: typeof p.score === 'number' ? p.score : 35.0,
+            nivel: p.nivel || (p.score > 70 ? 'Rojo' : (p.score > 35 ? 'Amarillo' : 'Verde')),
+            nivel_observado: p.nivel_observado || 'Verde',
+            periodo_proyectado: p.periodo_proyectado || `Q_{t+1}`,
+            score_proyectado: typeof p.score_proyectado === 'number' ? p.score_proyectado : (typeof p.score === 'number' ? p.score : 35.0),
             es_actual: Boolean(p.es_actual !== undefined ? p.es_actual : esActual[idx])
         }));
-    } else if (scores.length > 0) {
-        puntosOriginales = scores.map((s, idx) => ({
-            id: idx + 1,
-            periodo: fechas[idx] ? fechas[idx].split(' ')[0] : `P-${idx + 1}`,
-            label: fechas[idx] || `Punto ${idx + 1}`,
-            score: s,
-            nivel: s > 70 ? 'Rojo' : (s > 35 ? 'Amarillo' : 'Verde'),
-            es_actual: Boolean(esActual[idx])
-        }));
+    } else if (timelineObservado.length > 0 || scores.length > 0) {
+        const obsList = timelineObservado.length > 0 ? timelineObservado : scores;
+        puntosOriginales = obsList.map((s, idx) => {
+            const predVal = (timelinePredicciones[idx] !== null && timelinePredicciones[idx] !== undefined) ? timelinePredicciones[idx] : (scores[idx] || s);
+            return {
+                id: idx + 1,
+                periodo: fechas[idx] ? fechas[idx].split(' ')[0] : `P-${idx + 1}`,
+                label: fechas[idx] || `Punto ${idx + 1}`,
+                score_observado: s,
+                score_prediccion: predVal,
+                score: predVal,
+                nivel: predVal > 70 ? 'Rojo' : (predVal > 35 ? 'Amarillo' : 'Verde'),
+                nivel_observado: s > 70 ? 'Rojo' : (s > 35 ? 'Amarillo' : 'Verde'),
+                periodo_proyectado: 'Q_{t+1}',
+                score_proyectado: predVal,
+                es_actual: Boolean(esActual[idx])
+            };
+        });
     }
 
     // Si hay datos pero ninguno marcado como actual, marcar el último (más reciente)
@@ -1451,8 +1486,9 @@ document.addEventListener('DOMContentLoaded', function () {
     let filtroRango = 'todos'; // 'todos' | 'ultimos3' | 'ultimos5'
     let soloAlertas = false;
     let esActualArr = [];
+    let puntosVisiblesActuales = [];
 
-    // Datos de proyección futura a 90 días (Q_{t+1}) y control de ocultador/alternador
+    // Datos de proyección futura a 90 días (Q_{t+1})
     const periodoProyectadoElem = document.getElementById('periodo-proyectado-raw');
     let periodoProyectadoLabel = '{{ periodo_proyectado|default:"Q_{t+1}" }}';
     try {
@@ -1471,13 +1507,18 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     const colorProyeccion = getColorSemaforo(scoreProyectado);
 
-    let mostrarProyeccion = true;
+    // Estado de visibilidad de series
+    const visibilidadSeries = {
+        observados: true,
+        proyeccion: true
+    };
 
     // Referencias a elementos del DOM
     const badgeActivos = document.getElementById('badgePeriodosActivos');
     const listaCheckboxes = document.getElementById('listaCheckboxesPeriodos');
     const contadorPuntos = document.getElementById('contadorPuntosGrafico');
     const puntosFooter = document.getElementById('puntosVisiblesFooter');
+    const totalFooter = document.getElementById('totalEvaluacionesFooter');
     const mensajeSinPeriodos = document.getElementById('mensajeSinPeriodos');
     const btnRestablecerFiltros = document.getElementById('btnRestablecerFiltros');
     const btnMarcarTodos = document.getElementById('btnMarcarTodos');
@@ -1487,6 +1528,49 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnRangoUltimos5 = document.getElementById('btnRangoUltimos5');
     const btnFiltroAlertas = document.getElementById('btnFiltroAlertas');
     const btnRestablecerDesdeMensaje = document.getElementById('btnRestablecerDesdeMensaje');
+    const btnToggleObservados = document.getElementById('btnToggleObservados');
+    const btnToggleProyeccion = document.getElementById('btnToggleProyeccion');
+    const iconoToggleProyeccion = document.getElementById('iconoToggleProyeccion');
+    const textoToggleProyeccion = document.getElementById('textoToggleProyeccion');
+    const leyendaProyeccionItem = document.getElementById('leyendaProyeccionItem');
+    const leyendaObservados = document.getElementById('leyendaObservados');
+
+    function actualizarBotonesVisibilidad() {
+        if (btnToggleObservados) {
+            btnToggleObservados.classList.toggle('btn-primary', visibilidadSeries.observados);
+            btnToggleObservados.classList.toggle('btn-outline-primary', !visibilidadSeries.observados);
+            btnToggleObservados.innerHTML = `<i class="bi bi-${visibilidadSeries.observados ? 'eye' : 'eye-slash'} me-1"></i>Observados`;
+        }
+        if (leyendaObservados) {
+            leyendaObservados.style.opacity = visibilidadSeries.observados ? '1' : '0.35';
+        }
+        if (btnToggleProyeccion) {
+            btnToggleProyeccion.classList.toggle('btn-dark', visibilidadSeries.proyeccion);
+            btnToggleProyeccion.classList.toggle('btn-outline-secondary', !visibilidadSeries.proyeccion);
+            btnToggleProyeccion.innerHTML = `<i class="bi bi-${visibilidadSeries.proyeccion ? 'eye' : 'eye-slash'} me-1" id="iconoToggleProyeccion"></i><span id="textoToggleProyeccion">Pronóstico 90d</span><span class="visually-hidden">Ocultar Predicción</span>`;
+        }
+        if (leyendaProyeccionItem) {
+            leyendaProyeccionItem.style.opacity = visibilidadSeries.proyeccion ? '1' : '0.35';
+        }
+    }
+
+    if (btnToggleObservados) {
+        btnToggleObservados.addEventListener('click', function () {
+            visibilidadSeries.observados = !visibilidadSeries.observados;
+            chart.setDatasetVisibility(0, visibilidadSeries.observados);
+            actualizarBotonesVisibilidad();
+            chart.update();
+        });
+    }
+
+    if (btnToggleProyeccion) {
+        btnToggleProyeccion.addEventListener('click', function () {
+            visibilidadSeries.proyeccion = !visibilidadSeries.proyeccion;
+            chart.setDatasetVisibility(1, visibilidadSeries.proyeccion);
+            actualizarBotonesVisibilidad();
+            chart.update();
+        });
+    }
 
     // 3. Generación de Checkboxes para cada Período Histórico (RF-04)
     function renderizarCheckboxesPeriodos() {
@@ -1501,12 +1585,13 @@ document.addEventListener('DOMContentLoaded', function () {
         periodosUnicos.forEach((per, idx) => {
             const puntosDelPeriodo = puntosOriginales.filter(p => p.periodo === per);
             const ultimoDelPeriodo = puntosDelPeriodo[puntosDelPeriodo.length - 1];
+            const perLabel = (ultimoDelPeriodo && ultimoDelPeriodo.label) ? ultimoDelPeriodo.label : per;
             const esActivo = periodosSeleccionados.has(per);
 
             let badgeClass = 'badge-status-neutral';
             if (ultimoDelPeriodo) {
-                if (ultimoDelPeriodo.score > 70) badgeClass = 'badge-status-critico';
-                else if (ultimoDelPeriodo.score > 35) badgeClass = 'badge-status-alerta';
+                if (ultimoDelPeriodo.score_prediccion > 70) badgeClass = 'badge-status-critico';
+                else if (ultimoDelPeriodo.score_prediccion > 35) badgeClass = 'badge-status-alerta';
                 else badgeClass = 'badge-status-solvente';
             }
 
@@ -1524,12 +1609,12 @@ document.addEventListener('DOMContentLoaded', function () {
                            id="chk_periodo_${idx}"
                            ${esActivo ? 'checked' : ''}>
                     <span class="fs-micro fw-semibold text-main">
-                        ${per} ${esActualPeriodo ? '<span class="badge bg-dark text-white fs-micro py-0 px-1">Actual</span>' : ''}
+                        ${perLabel} ${esActualPeriodo ? '<span class="badge bg-dark text-white fs-micro py-0 px-1">Actual</span>' : ''}
                     </span>
                 </div>
                 <div class="d-flex align-items-center gap-1.5">
-                    <span class="badge border font-monospace ${badgeClass} fs-micro">
-                        ${ultimoDelPeriodo ? ultimoDelPeriodo.score.toFixed(1) + '%' : '--%'}
+                    <span class="badge border font-monospace ${badgeClass} fs-micro" title="Predicción: ${ultimoDelPeriodo ? ultimoDelPeriodo.score_prediccion.toFixed(1) + '%' : '--%'} | Observado (Altman 1983): ${ultimoDelPeriodo ? ultimoDelPeriodo.score_observado.toFixed(1) + '%' : '--%'}">
+                        ${ultimoDelPeriodo ? ultimoDelPeriodo.score_prediccion.toFixed(1) + '%' : '--%'}
                     </span>
                     ${ultimoDelPeriodo ? `
                         <button type="button" 
@@ -1569,20 +1654,76 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // 4. Configuración del Degradado y Plugin de Chart.js
-    const chartCtx = ctx.getContext('2d');
-    const gradient = chartCtx.createLinearGradient(0, 0, 0, 240);
-    gradient.addColorStop(0, 'rgba(37, 99, 235, 0.08)');
-    gradient.addColorStop(1, 'rgba(37, 99, 235, 0.00)');
+    // =========================================================================
+    // PLUGIN 1: BANDAS DE FONDO DEL SEMÁFORO (Verde 0-35, Amarillo 35-70, Rojo 70-100)
+    // =========================================================================
+    const trafficLightBandsPlugin = {
+        id: 'trafficLightBands',
+        beforeDraw: function(chart) {
+            const { ctx, chartArea, scales: { y } } = chart;
+            if (!chartArea || !y) return;
+            ctx.save();
 
-    // Plugin localizador para resaltar la inferencia visualizada actualmente
+            const yTop = chartArea.top;
+            const y70 = y.getPixelForValue(70);
+            const y35 = y.getPixelForValue(35);
+            const yBottom = chartArea.bottom;
+
+            // Franja Roja (Zona Crítica: 70 a 100)
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.06)';
+            ctx.fillRect(chartArea.left, yTop, chartArea.width, y70 - yTop);
+
+            // Franja Amarilla (Zona Preventiva: 35 a 70)
+            ctx.fillStyle = 'rgba(245, 158, 11, 0.06)';
+            ctx.fillRect(chartArea.left, y70, chartArea.width, y35 - y70);
+
+            // Franja Verde (Zona Solvente: 0 a 35)
+            ctx.fillStyle = 'rgba(34, 197, 94, 0.06)';
+            ctx.fillRect(chartArea.left, y35, chartArea.width, yBottom - y35);
+
+            // Líneas divisorias de umbral sutiles
+            ctx.strokeStyle = 'rgba(220, 38, 38, 0.25)';
+            ctx.setLineDash([4, 4]);
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(chartArea.left, y70);
+            ctx.lineTo(chartArea.right, y70);
+            ctx.stroke();
+
+            ctx.strokeStyle = 'rgba(202, 138, 4, 0.25)';
+            ctx.beginPath();
+            ctx.moveTo(chartArea.left, y35);
+            ctx.lineTo(chartArea.right, y35);
+            ctx.stroke();
+
+            // Rótulos explicativos en la franja
+            ctx.font = '10px Inter, system-ui, sans-serif';
+            ctx.fillStyle = 'rgba(220, 38, 38, 0.7)';
+            ctx.fillText('Zona Crítica (>70%)', chartArea.left + 8, yTop + 14);
+
+            ctx.fillStyle = 'rgba(180, 83, 9, 0.7)';
+            ctx.fillText('Zona Preventiva (35-70%)', chartArea.left + 8, y70 + 14);
+
+            ctx.fillStyle = 'rgba(22, 163, 74, 0.7)';
+            ctx.fillText('Zona Solvente (0-35%)', chartArea.left + 8, y35 + 14);
+
+            ctx.restore();
+        }
+    };
+
+    // =========================================================================
+    // PLUGIN 2: LOCALIZADOR CROSSHAIR TIPO RETÍCULA DE INFERENCIA ACTIVA [ACTUAL]
+    // =========================================================================
     const activePointLocatorPlugin = {
         id: 'activePointLocator',
         afterDatasetsDraw: function(chart) {
             const activeIdx = esActualArr.findIndex(v => Boolean(v));
             if (activeIdx === -1) return;
 
-            const meta = chart.getDatasetMeta(0);
+            let meta = null;
+            if (chart.isDatasetVisible(0)) meta = chart.getDatasetMeta(0);
+            else if (chart.isDatasetVisible(1)) meta = chart.getDatasetMeta(1);
+
             if (!meta || !meta.data || !meta.data[activeIdx]) return;
 
             const point = meta.data[activeIdx];
@@ -1644,24 +1785,25 @@ document.addEventListener('DOMContentLoaded', function () {
     // 5. Inicialización de la Instancia de Chart.js con Soporte de Proyección (Q_{t+1})
     const chart = new Chart(ctx, {
         type: 'line',
-        plugins: [activePointLocatorPlugin],
+        plugins: [trafficLightBandsPlugin, activePointLocatorPlugin],
         data: {
             labels: [],
             datasets: [
-                // Dataset 0: Tramo Histórico Real (Línea continua con gradiente)
+                // Dataset 0: Tramo Histórico Real Observado (Altman 1983 Z'')
                 {
-                    label: 'Score de Riesgo',
+                    label: "Dato Observado (Altman 1983 Z'')",
                     data: [],
                     borderColor: '#2563eb',
-                    backgroundColor: gradient,
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.25,
+                    backgroundColor: 'rgba(37, 99, 235, 0.05)',
+                    borderWidth: 2.5,
+                    borderDash: [],
                     pointBackgroundColor: [],
                     pointBorderColor: [],
                     pointBorderWidth: [],
                     pointRadius: [],
                     pointHoverRadius: [],
+                    tension: 0.25,
+                    fill: false,
                 },
                 // Dataset 1: Tramo Proyectado a 90 Días (Línea discontinua con color de semáforo)
                 {
@@ -1669,7 +1811,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     data: [],
                     borderColor: colorProyeccion.border,
                     backgroundColor: 'rgba(202, 138, 4, 0.08)',
-                    borderWidth: 2.5,
+                    borderWidth: 3,
                     borderDash: [6, 6],
                     pointBackgroundColor: [],
                     pointBorderColor: '#ffffff',
@@ -1684,13 +1826,18 @@ document.addEventListener('DOMContentLoaded', function () {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: {
+                mode: 'nearest',
+                intersect: true,
+            },
             onClick: function(event, elements) {
                 if (!elements || elements.length === 0) return;
-                const dataIndex = elements[0].index;
+                const el = elements[0];
+                const dataIndex = el.index;
                 const lastIdx = chart.data.labels.length - 1;
 
-                // Si se hace clic en el punto proyectado final (Q_{t+1}), no alterar
-                if (mostrarProyeccion && dataIndex === lastIdx) return;
+                // Si se hace clic en el nodo destino proyectado final, no alterar
+                if (dataIndex === lastIdx && el.datasetIndex === 1) return;
 
                 const punto = puntosVisiblesActuales[dataIndex];
                 if (!punto) return;
@@ -1709,95 +1856,90 @@ document.addEventListener('DOMContentLoaded', function () {
                     min: 0,
                     max: 100,
                     ticks: {
-                        callback: function(value) { return value + '%'; },
                         stepSize: 20,
-                        color: '#9ca3af',
-                        font: { family: "'Inter', sans-serif", size: 11 }
+                        callback: function(value) { return value + '%'; },
+                        font: { size: 11, family: 'monospace' }
                     },
-                    grid: { color: '#f3f4f6', drawBorder: false },
-                    border: { display: false }
+                    grid: {
+                        color: 'rgba(226, 232, 240, 0.5)'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Probabilidad de Insolvencia (%)',
+                        font: { size: 11, weight: '500' }
+                    }
                 },
                 x: {
+                    grid: {
+                        display: false
+                    },
                     ticks: {
-                        color: function(context) {
-                            const lastIdx = chart ? (chart.data.labels.length - 1) : -1;
-                            if (mostrarProyeccion && context.index === lastIdx) {
-                                return colorProyeccion.border;
-                            }
-                            return '#9ca3af';
-                        },
                         font: function(context) {
                             const lastIdx = chart ? (chart.data.labels.length - 1) : -1;
-                            if (mostrarProyeccion && context.index === lastIdx) {
-                                return { family: "'Inter', monospace", size: 11, weight: 'bold' };
+                            if (context.index === lastIdx) {
+                                return { size: 12, weight: 'bold', family: 'monospace' };
                             }
-                            return { family: "'Inter', sans-serif", size: 11 };
+                            return { size: 11, family: 'monospace' };
+                        },
+                        color: function(context) {
+                            const lastIdx = chart ? (chart.data.labels.length - 1) : -1;
+                            if (context.index === lastIdx) {
+                                return colorProyeccion.border;
+                            }
+                            return '#475569';
                         }
-                    },
-                    grid: { display: false, drawBorder: false },
-                    border: { display: false }
+                    }
                 }
             },
             plugins: {
                 legend: { display: false },
                 tooltip: {
                     backgroundColor: '#0f172a',
-                    titleColor: '#ffffff',
-                    bodyColor: '#e2e8f0',
-                    titleFont: { family: "'Inter', sans-serif", size: 11, weight: '600' },
-                    bodyFont: { family: "'Inter', sans-serif", size: 11 },
+                    titleFont: { size: 12, weight: 'bold' },
+                    bodyFont: { size: 11 },
                     padding: 10,
                     cornerRadius: 6,
-                    displayColors: false,
                     callbacks: {
                         title: function(items) {
-                            if (!items || items.length === 0) return '';
+                            if (!items || !items.length) return '';
                             const idx = items[0].dataIndex;
                             const lastIdx = chart.data.labels.length - 1;
-                            if (mostrarProyeccion && idx === lastIdx) {
+                            if (idx === lastIdx && items[0].datasetIndex === 1) {
                                 return 'Pronóstico Preventivo Q_{t+1}: ' + items[0].label;
                             }
-                            const title = items[0].label || '';
-                            if (esActualArr[idx]) {
-                                return title + '  [ACTUAL]';
-                            }
-                            return title;
+                            const isAct = esActualArr[idx];
+                            return 'Trimestre ' + items[0].label + (isAct ? '  [PERÍODO SELECCIONADO]' : '');
                         },
                         label: function (context) {
                             const val = context.parsed.y;
                             if (val === null || val === undefined) return '';
                             const idx = context.dataIndex;
                             const lastIdx = chart.data.labels.length - 1;
-                            if (mostrarProyeccion && context.datasetIndex === 1 && idx === lastIdx) {
-                                return 'Pronóstico preventivo a 3 meses: ' + val.toFixed(1) + '% de riesgo';
+
+                            if (context.datasetIndex === 1) {
+                                if (idx === lastIdx || idx > 0) {
+                                    return 'Pronóstico preventivo a 3 meses: ' + val.toFixed(1) + '% de riesgo proyectado';
+                                }
+                                return 'Base de proyección: ' + val.toFixed(1) + '%';
                             }
-                            let estado = 'Solvente';
-                            if (val > 70) estado = 'Crítico';
-                            else if (val > 35) estado = 'Alerta';
-                            const lines = ['Probabilidad: ' + val.toFixed(1) + '% (' + estado + ')'];
-                            if (esActualArr[context.dataIndex]) {
-                                lines.push('● Período en pantalla [ACTUAL]');
-                            } else {
-                                lines.push('👉 Clic para seleccionar y ver este período');
-                            }
-                            return lines;
+                            let estado = val > 70 ? 'Zona Quiebra (Z < 1.10)' : (val > 35 ? 'Zona Gris / Alerta' : 'Zona Segura (Z ≥ 2.60)');
+                            return 'Insolvencia Observada (Altman 1983): ' + val.toFixed(1) + '% (' + estado + ')';
                         },
                         afterLabel: function(ctx) {
                             const idx = ctx.dataIndex;
-                            const lastIdx = chart.data.labels.length - 1;
-                            if (mostrarProyeccion && ctx.datasetIndex === 1 && idx === lastIdx) {
+                            if (ctx.datasetIndex === 1) {
                                 return 'Ventana preventiva: 90 días para tomar medidas correctivas.';
                             }
-                            return null;
+                            if (esActualArr[idx]) {
+                                return '● Período analizado en pantalla (la proyección sale de aquí)';
+                            }
+                            return '👉 Clic para seleccionar y ver la proyección desde este período';
                         }
                     }
                 }
             }
         }
     });
-
-    // Variable global para tracking de puntos visibles en eventos de clic
-    let puntosVisiblesActuales = [];
 
     // 6. Función Núcleo de Filtrado y Actualización de la Curva (RF-04)
     function aplicarFiltrosYActualizar() {
@@ -1816,7 +1958,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Aplicar filtro de solo alertas si está activo
         if (soloAlertas) {
-            visibles = visibles.filter(p => p.score > 35);
+            visibles = visibles.filter(p => p.score_prediccion > 35 || p.score_observado > 35);
         }
 
         // Control visual del mensaje de estado cuando no hay períodos visibles
@@ -1829,7 +1971,7 @@ document.addEventListener('DOMContentLoaded', function () {
             chart.update();
 
             if (badgeActivos) badgeActivos.textContent = `${periodosSeleccionados.size}/${periodosUnicos.length}`;
-            if (contadorPuntos) contadorPuntos.textContent = `0 de ${puntosOriginales.length} puntos`;
+            if (contadorPuntos) contadorPuntos.textContent = `0 de ${puntosOriginales.length} trimestres`;
             if (puntosFooter) puntosFooter.textContent = 0;
             if (btnRestablecerFiltros) btnRestablecerFiltros.classList.remove('d-none');
             return;
@@ -1840,59 +1982,67 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const M = visibles.length;
 
-        if (mostrarProyeccion) {
-            chart.data.labels = visibles.map(p => p.label).concat([periodoProyectadoLabel]);
-            chart.data.datasets[0].data = visibles.map(p => p.score).concat([null]);
-
-            // Dataset 1: Proyección a 90 días conectando Qt con Qt+1
-            const newProyectado = new Array(M + 1).fill(null);
-            newProyectado[M - 1] = visibles[M - 1].score;
-            newProyectado[M] = scoreProyectado;
-            chart.data.datasets[1].data = newProyectado;
-
-            const projRadii = new Array(M + 1).fill(0);
-            projRadii[M] = 8.5;
-            const projHoverRadii = new Array(M + 1).fill(0);
-            projHoverRadii[M] = 11;
-            const projColors = new Array(M + 1).fill(colorProyeccion.border);
-
-            chart.data.datasets[1].pointRadius = projRadii;
-            chart.data.datasets[1].pointHoverRadius = projHoverRadii;
-            chart.data.datasets[1].pointBackgroundColor = projColors;
-
-            esActualArr = visibles.map(p => p.es_actual).concat([false]);
-        } else {
-            chart.data.labels = visibles.map(p => p.label);
-            chart.data.datasets[0].data = visibles.map(p => p.score);
-            chart.data.datasets[1].data = [];
-            esActualArr = visibles.map(p => p.es_actual);
+        // Determinar índice del período activo dentro de los visibles
+        let activeIdx = visibles.findIndex(p => p.es_actual);
+        if (activeIdx === -1) {
+            activeIdx = M - 1;
+            visibles[activeIdx].es_actual = true;
         }
+        const puntoActivo = visibles[activeIdx];
 
-        const visibleScores = visibles.map(p => p.score);
-        const visiblePointColors = visibleScores.map(s => {
-            if (s > 70) return '#dc2626';     // Rojo
-            if (s > 35) return '#f59e0b';     // Amarillo
-            return '#10b981';                 // Verde
-        });
+        // Etiquetas del eje X: todas las visibles + la proyección del último período
+        const lastPunto = visibles[M - 1];
+        const nextFuturoLabel = lastPunto.periodo_proyectado || periodoProyectadoLabel;
+        const newLabels = visibles.map(p => p.label).concat([nextFuturoLabel]);
 
-        const visibleRadius = visibles.map(p => p.es_actual ? 7.5 : 4.5);
-        const visibleHoverRadius = visibles.map(p => p.es_actual ? 9.5 : 6.5);
-        const visibleBorderColor = visibles.map(p => p.es_actual ? '#0f172a' : '#ffffff');
-        const visibleBorderWidth = visibles.map(p => p.es_actual ? 3 : 2);
+        // Dataset 0: Datos Observados (longitud M + 1, con null al final)
+        const newObservados = visibles.map(p => p.score_observado).concat([null]);
 
-        if (mostrarProyeccion) {
-            visiblePointColors.push('transparent');
-            visibleRadius.push(0);
-            visibleHoverRadius.push(0);
-            visibleBorderColor.push('transparent');
-            visibleBorderWidth.push(0);
-        }
+        // Dataset 1: Tramo proyectado dinámico que SALE del período activo hacia su trimestre siguiente (+90 días)
+        const newProyectado = new Array(M + 1).fill(null);
+        let destIdx = (activeIdx < M - 1) ? (activeIdx + 1) : M;
+        newProyectado[activeIdx] = puntoActivo.score_observado;
+        newProyectado[destIdx] = puntoActivo.score_prediccion;
 
-        chart.data.datasets[0].pointBackgroundColor = visiblePointColors;
-        chart.data.datasets[0].pointRadius = visibleRadius;
-        chart.data.datasets[0].pointHoverRadius = visibleHoverRadius;
-        chart.data.datasets[0].pointBorderColor = visibleBorderColor;
-        chart.data.datasets[0].pointBorderWidth = visibleBorderWidth;
+        esActualArr = visibles.map(p => Boolean(p.es_actual)).concat([false]);
+        const colorActivoSem = getColorSemaforo(puntoActivo.score_prediccion);
+
+        // Styling Dataset 0 (Observados)
+        const obsPointRadii = visibles.map(p => p.es_actual ? 7.5 : 5.5).concat([0]);
+        const obsPointHoverRadii = visibles.map(p => p.es_actual ? 10 : 8).concat([0]);
+        const obsPointBorders = visibles.map(p => p.es_actual ? '#0f172a' : '#ffffff').concat(['transparent']);
+        const obsPointBorderWidths = visibles.map(p => p.es_actual ? 3 : 2).concat([0]);
+        const obsPointBg = visibles.map(p => '#2563eb').concat(['transparent']);
+
+        // Styling Dataset 1 (Proyección a 90 días)
+        const projPointRadii = new Array(M + 1).fill(0);
+        projPointRadii[activeIdx] = 4;
+        projPointRadii[destIdx] = 9;
+        const projPointHoverRadii = new Array(M + 1).fill(0);
+        projPointHoverRadii[destIdx] = 12;
+        const projPointBg = new Array(M + 1).fill(colorActivoSem.border);
+        projPointBg[activeIdx] = '#ffffff';
+
+        chart.data.labels = newLabels;
+
+        // Dataset 0
+        chart.data.datasets[0].data = newObservados;
+        chart.data.datasets[0].pointRadius = obsPointRadii;
+        chart.data.datasets[0].pointHoverRadius = obsPointHoverRadii;
+        chart.data.datasets[0].pointBorderColor = obsPointBorders;
+        chart.data.datasets[0].pointBorderWidth = obsPointBorderWidths;
+        chart.data.datasets[0].pointBackgroundColor = obsPointBg;
+
+        // Dataset 1
+        chart.data.datasets[1].data = newProyectado;
+        chart.data.datasets[1].borderColor = colorActivoSem.border;
+        chart.data.datasets[1].pointRadius = projPointRadii;
+        chart.data.datasets[1].pointHoverRadius = projPointHoverRadii;
+        chart.data.datasets[1].pointBackgroundColor = projPointBg;
+
+        // Respetar visibilidad elegida por el usuario
+        chart.setDatasetVisibility(0, visibilidadSeries.observados);
+        chart.setDatasetVisibility(1, visibilidadSeries.proyeccion);
 
         chart.update();
 
@@ -1910,17 +2060,22 @@ document.addEventListener('DOMContentLoaded', function () {
             badgeActivos.textContent = `${periodosSeleccionados.size}/${periodosUnicos.length}`;
         }
         if (contadorPuntos) {
-            contadorPuntos.textContent = `${visibles.length} de ${puntosOriginales.length} puntos`;
+            contadorPuntos.textContent = `${visibles.length} de ${puntosOriginales.length} trimestres`;
         }
         if (puntosFooter) {
             puntosFooter.textContent = visibles.length;
+        }
+        if (totalFooter) {
+            totalFooter.textContent = puntosOriginales.length;
         }
 
         // Mostrar u ocultar botón de restablecer si hay filtros aplicados
         const filtrosPersonalizados = (
             periodosSeleccionados.size !== periodosUnicos.length ||
             filtroRango !== 'todos' ||
-            soloAlertas
+            soloAlertas ||
+            !visibilidadSeries.observados ||
+            !visibilidadSeries.proyeccion
         );
         if (btnRestablecerFiltros) {
             btnRestablecerFiltros.classList.toggle('d-none', !filtrosPersonalizados);
@@ -2597,33 +2752,8 @@ document.addEventListener('DOMContentLoaded', function () {
         btnRestablecerDesdeMensaje.addEventListener('click', restablecerTodo);
     }
 
-    // Control interactivo del Ocultador / Alternador de Proyección Futura (Q_{t+1})
-    const btnToggleProyeccion = document.getElementById('btnToggleProyeccion');
-    const iconoToggleProyeccion = document.getElementById('iconoToggleProyeccion');
-    const textoToggleProyeccion = document.getElementById('textoToggleProyeccion');
-    const leyendaProyeccionItem = document.getElementById('leyendaProyeccionItem');
-
-    if (btnToggleProyeccion) {
-        btnToggleProyeccion.addEventListener('click', function () {
-            mostrarProyeccion = !mostrarProyeccion;
-            if (mostrarProyeccion) {
-                btnToggleProyeccion.classList.add('btn-outline-primary', 'active');
-                btnToggleProyeccion.classList.remove('btn-outline-secondary');
-                if (iconoToggleProyeccion) iconoToggleProyeccion.className = 'bi bi-eye-slash';
-                if (textoToggleProyeccion) textoToggleProyeccion.textContent = 'Ocultar Predicción';
-                if (leyendaProyeccionItem) leyendaProyeccionItem.style.opacity = '1';
-            } else {
-                btnToggleProyeccion.classList.remove('btn-outline-primary', 'active');
-                btnToggleProyeccion.classList.add('btn-outline-secondary');
-                if (iconoToggleProyeccion) iconoToggleProyeccion.className = 'bi bi-eye';
-                if (textoToggleProyeccion) textoToggleProyeccion.textContent = 'Mostrar Predicción';
-                if (leyendaProyeccionItem) leyendaProyeccionItem.style.opacity = '0.35';
-            }
-            aplicarFiltrosYActualizar();
-        });
-    }
-
     // Inicialización del Componente
+    actualizarBotonesVisibilidad();
     renderizarCheckboxesPeriodos();
     aplicarFiltrosYActualizar();
 });

@@ -263,13 +263,23 @@ class DashboardView(DashboardRolMixin, TemplateView):
                 top_3_variables = []
 
         # 3. Consulta de predicciones históricas para la curva de tendencia (RF-04)
+        # Ratios disponibles para identificar balance activo y asociar formulación de Altman (1983)
+        ratios_qs = RatioFinanciero.objects.all()
+        if empresa_usuario:
+            ratios_qs = ratios_qs.filter(empresa=empresa_usuario)
+        elif not user.is_superuser:
+            ratios_qs = ratios_qs.none()
+
         # Extraer todos los períodos históricos disponibles para los filtros
         periodos_disponibles = []
         for p in predicciones_qs:
             per = p.ratio.periodo if (p.ratio and p.ratio.periodo) else (p.fecha_prediccion.strftime('%d/%m/%Y') if p.fecha_prediccion else f"#{p.id}")
             if per and per not in periodos_disponibles:
                 periodos_disponibles.append(per)
-            periodos_disponibles.sort()
+        for r in ratios_qs:
+            if r.periodo and r.periodo not in periodos_disponibles:
+                periodos_disponibles.append(r.periodo)
+        periodos_disponibles.sort()
 
         # Hasta 20 evaluaciones históricas para graficación y filtrado dinámico (RF-04)
         predicciones_curva = predicciones_qs
@@ -281,47 +291,56 @@ class DashboardView(DashboardRolMixin, TemplateView):
         # Invertir a orden cronológico ascendente para el eje horizontal del gráfico
         predicciones_cronologicas = list(reversed(ultimas_predicciones))
 
-        chart_fechas = [
-            f"{p.ratio.periodo} ({p.fecha_prediccion.strftime('%d/%m %H:%M')})" if (p.ratio and p.ratio.periodo and p.fecha_prediccion)
-            else (p.fecha_prediccion.strftime('%d/%m %H:%M') if p.fecha_prediccion else f"#{p.id}")
-            for p in predicciones_cronologicas
-        ]
-        chart_scores = [
-            float(p.score_riesgo or 0.0)
-            for p in predicciones_cronologicas
-        ]
-        chart_niveles = [
-            p.nivel_semaforo or ('Rojo' if (p.score_riesgo or 0) > 70 else 'Amarillo' if (p.score_riesgo or 0) > 35 else 'Verde')
-            for p in predicciones_cronologicas
-        ]
-        chart_es_actual = [
-            bool(ultima_prediccion and p.id == ultima_prediccion.id)
-            for p in predicciones_cronologicas
-        ]
-        if ultima_prediccion and chart_es_actual and not any(chart_es_actual):
-            chart_es_actual[-1] = True
+        chart_puntos = []
+        periodos_pasados_labels = []
+        valores_observados = []
+        valores_predicciones = []
 
-        # Estructura enriquecida por punto para interactividad completa en el frontend (RF-04)
-        chart_puntos = [
-            {
+        for p in predicciones_cronologicas:
+            per_raw = p.ratio.periodo if (p.ratio and p.ratio.periodo) else (p.fecha_prediccion.strftime('%d/%m/%Y') if p.fecha_prediccion else f"#{p.id}")
+            p_fut, per_norm, _ = calcular_periodo_siguiente(per_raw)
+            lbl_clean = per_norm or per_raw
+            r_obj = p.ratio
+            if not r_obj and per_raw:
+                r_obj = ratios_qs.filter(periodo=per_raw).order_by('-id').first()
+
+            if r_obj:
+                sc_obs = calcular_score_observado(r_obj)
+            else:
+                sc_obs = float(p.score_riesgo or 35.0)
+
+            sc_pred = float(p.score_riesgo or 0.0)
+            niv_obs = 'Verde' if sc_obs <= 35 else ('Amarillo' if sc_obs <= 70 else 'Rojo')
+            niv_pred = p.nivel_semaforo or ('Verde' if sc_pred <= 35 else ('Amarillo' if sc_pred <= 70 else 'Rojo'))
+            es_act = bool(ultima_prediccion and p.id == ultima_prediccion.id)
+
+            periodos_pasados_labels.append(lbl_clean)
+            valores_observados.append(sc_obs)
+            valores_predicciones.append(sc_pred)
+
+            chart_puntos.append({
                 'id': p.id,
-                'periodo': p.ratio.periodo if (p.ratio and p.ratio.periodo) else (p.fecha_prediccion.strftime('%d/%m/%Y') if p.fecha_prediccion else f"#{p.id}"),
+                'periodo': per_raw,
+                'label': lbl_clean,
                 'fecha_corta': p.fecha_prediccion.strftime('%d/%m %H:%M') if p.fecha_prediccion else '',
                 'fecha_completa': p.fecha_prediccion.strftime('%d/%m/%Y %H:%M') if p.fecha_prediccion else '',
-                'label': chart_fechas[i],
-                'score': chart_scores[i],
-                'nivel': chart_niveles[i],
-                'es_actual': chart_es_actual[i],
-            }
-            for i, p in enumerate(predicciones_cronologicas)
-        ]
+                'score_observado': sc_obs,
+                'score_prediccion': sc_pred,
+                'score': sc_pred,
+                'nivel': niv_pred,
+                'nivel_observado': niv_obs,
+                'periodo_proyectado': p_fut,
+                'score_proyectado': sc_pred,
+                'es_actual': es_act,
+            })
 
-        # Ratios disponibles para identificar balance activo y ejecutar predicción si se desea
-        ratios_qs = RatioFinanciero.objects.all()
-        if empresa_usuario:
-            ratios_qs = ratios_qs.filter(empresa=empresa_usuario)
-        elif not user.is_superuser:
-            ratios_qs = ratios_qs.none()
+        if ultima_prediccion and chart_puntos and not any(pt['es_actual'] for pt in chart_puntos):
+            chart_puntos[-1]['es_actual'] = True
+
+        chart_scores = [pt['score'] for pt in chart_puntos]
+        chart_fechas = [pt['label'] for pt in chart_puntos]
+        chart_niveles = [pt['nivel'] for pt in chart_puntos]
+        chart_es_actual = [pt['es_actual'] for pt in chart_puntos]
 
         ultimo_ratio = (
             ultima_prediccion.ratio
@@ -335,6 +354,8 @@ class DashboardView(DashboardRolMixin, TemplateView):
             periodo_base_dashboard = ultima_prediccion.ratio.periodo
         elif ultimo_ratio and ultimo_ratio.periodo:
             periodo_base_dashboard = ultimo_ratio.periodo
+        elif chart_puntos:
+            periodo_base_dashboard = chart_puntos[-1]['periodo']
         else:
             periodo_base_dashboard = '2024-Q4'
 
@@ -342,13 +363,33 @@ class DashboardView(DashboardRolMixin, TemplateView):
         score_proyectado_dashboard = float(score) if score is not None else 35.0
         nivel_proyectado_dashboard = nivel if (nivel and nivel != 'Sin Datos') else ('Verde' if score_proyectado_dashboard <= 35 else 'Amarillo' if score_proyectado_dashboard <= 70 else 'Rojo')
 
-        score_base_dashboard = chart_scores[-1] if chart_scores else (float(score) if score is not None else 35.0)
-        score_anterior_dashboard = chart_scores[-2] if len(chart_scores) >= 2 else None
-        delta_info_dashboard = calcular_delta_riesgo(score_proyectado_dashboard, score_anterior_dashboard)
+        idx_act = -1
+        for idx_h, pt in enumerate(chart_puntos):
+            if pt['es_actual']:
+                idx_act = idx_h
+                break
+        if idx_act == -1 and chart_puntos:
+            idx_act = len(chart_puntos) - 1
 
-        timeline_proyectado_dashboard = []
-        if len(chart_scores) > 0:
-            timeline_proyectado_dashboard = [None] * (len(chart_scores) - 1) + [score_base_dashboard, score_proyectado_dashboard]
+        punto_activo = chart_puntos[idx_act] if (0 <= idx_act < len(chart_puntos)) else None
+        score_base_dashboard = punto_activo['score_observado'] if punto_activo else (float(score) if score is not None else 35.0)
+        score_actual_proy = punto_activo['score_prediccion'] if punto_activo else score_proyectado_dashboard
+        score_anterior_dashboard = valores_predicciones[idx_act - 1] if idx_act >= 1 else None
+        delta_info_dashboard = calcular_delta_riesgo(score_actual_proy, score_anterior_dashboard)
+
+        timeline_labels = list(periodos_pasados_labels) + [periodo_proyectado_dashboard]
+        timeline_observado_data = list(valores_observados) + [None]
+        timeline_predicciones_data = list(valores_predicciones) + [None]
+
+        M = len(periodos_pasados_labels)
+        timeline_proyectado_dashboard = [None] * len(timeline_labels)
+        if M > 0:
+            if idx_act == M - 1:
+                timeline_proyectado_dashboard[idx_act] = score_base_dashboard
+                timeline_proyectado_dashboard[M] = score_actual_proy
+            else:
+                timeline_proyectado_dashboard[idx_act] = score_base_dashboard
+                timeline_proyectado_dashboard[idx_act + 1] = score_actual_proy
         elif score is not None:
             timeline_proyectado_dashboard = [score_proyectado_dashboard]
 
@@ -543,6 +584,17 @@ class DashboardView(DashboardRolMixin, TemplateView):
             'chart_es_actual_json': json.dumps(chart_es_actual),
             'chart_puntos_json': json.dumps(chart_puntos, ensure_ascii=False),
             'top_3_shap_json': json.dumps(top_3_variables, ensure_ascii=False),
+            # Datos alineados para visualización idéntica y compatible con dashboard_predictivo
+            'timeline_puntos': chart_puntos,
+            'timeline_puntos_json': json.dumps(chart_puntos, ensure_ascii=False),
+            'timeline_labels': timeline_labels,
+            'timeline_labels_json': json.dumps(timeline_labels, ensure_ascii=False),
+            'timeline_observado_json': json.dumps(timeline_observado_data),
+            'timeline_predicciones_json': json.dumps(timeline_predicciones_data),
+            'timeline_historico_json': json.dumps(timeline_observado_data),
+            'valores_observados': valores_observados,
+            'valores_predicciones': valores_predicciones,
+            'etiquetas_periodos_pasados': periodos_pasados_labels,
             # Proyección a 90 días para el gráfico con alternador/ocultador
             'periodo_proyectado': periodo_proyectado_dashboard,
             'periodo_proyectado_json': json.dumps(periodo_proyectado_dashboard, ensure_ascii=False),
