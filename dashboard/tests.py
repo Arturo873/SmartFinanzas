@@ -451,3 +451,175 @@ class DashboardViewTests(TestCase):
         # Redirige automáticamente al dashboard
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, reverse('dashboard:dashboard'))
+
+
+class AlertaTempranaPredictivoTests(TestCase):
+    """
+    Pruebas unitarias para el Sistema de Alerta Temprana a 3 Meses (Q_t -> Q_{t+1}),
+    cálculo de horizontes temporales, velocidad de cambio (delta) y Dashboard Predictivo.
+    """
+
+    def setUp(self):
+        from AppWeb.viewsML import calcular_periodo_siguiente, calcular_delta_riesgo
+        self.calcular_periodo = calcular_periodo_siguiente
+        self.calcular_delta = calcular_delta_riesgo
+
+        # Rol y usuario Dueño
+        self.rol_dueno, _ = Rol.objects.get_or_create(id=1, defaults={'nombre': 'Dueño'})
+        self.empresa = Empresa.objects.create(rut='76.111.222-3', razon_social='Inversiones Alerta SpA')
+        self.usuario_dueno = Usuario.objects.create(
+            username='directivo_alerta',
+            email='directivo@alerta.cl',
+            rol=self.rol_dueno,
+            empresa=self.empresa
+        )
+
+        # Usuario Django de autenticación
+        self.auth_user = User.objects.create_user(
+            username='directivo_alerta',
+            password='Password123!',
+            email='directivo@alerta.cl'
+        )
+
+        from moduloETL.models import RatioFinanciero
+        from capaAnalitica.models import PrediccionRiesgo
+
+        self.ratio = RatioFinanciero.objects.create(
+            empresa=self.empresa,
+            periodo='2024-Q4',
+            v1_razon_corriente=1.5,
+            v2_capital_trabajo_activos=0.2,
+            v3_leverage_total=2.0,
+            v4_roa_operacional=0.08,
+            v5_margen_operacional=0.10,
+            v6_rotacion_activos=1.2,
+            v7_volatilidad_flujo=0.4,
+            fecha_calculo=timezone.now(),
+        )
+
+        self.prediccion = PrediccionRiesgo.objects.create(
+            ratio=self.ratio,
+            empresa=self.empresa,
+            score_riesgo=35.0,
+            nivel_semaforo='Verde',
+            fecha_prediccion=timezone.now(),
+            ejecutada_por_usuario=self.usuario_dueno
+        )
+
+    def test_calculo_periodo_siguiente_q4_a_q1(self):
+        """Verifica que 2024-Q4 se proyecte hacia 2025-Q1 con 90 días de horizonte."""
+        sig, base, dias = self.calcular_periodo('2024-Q4')
+        self.assertEqual(sig, '2025-Q1')
+        self.assertEqual(base, '2024-Q4')
+        self.assertEqual(dias, 90)
+
+    def test_calculo_periodo_siguiente_q1_a_q2(self):
+        """Verifica que 2024-Q1 se proyecte hacia 2024-Q2."""
+        sig, base, dias = self.calcular_periodo('2024-Q1')
+        self.assertEqual(sig, '2024-Q2')
+        self.assertEqual(base, '2024-Q1')
+        self.assertEqual(dias, 90)
+
+    def test_calculo_delta_riesgo_acelerando(self):
+        """Verifica cálculo de variación neta cuando el riesgo aumenta."""
+        delta = self.calcular_delta(45.5, 38.0)
+        self.assertEqual(delta['direccion'], 'acelerando')
+        self.assertEqual(delta['delta'], 7.5)
+        self.assertEqual(delta['flecha'], '↑')
+        self.assertTrue(delta['es_aumento'])
+
+    def test_calculo_delta_riesgo_reduciendo(self):
+        """Verifica cálculo de variación neta cuando el riesgo disminuye."""
+        delta = self.calcular_delta(32.0, 42.5)
+        self.assertEqual(delta['direccion'], 'reduciendo')
+        self.assertEqual(delta['delta'], -10.5)
+        self.assertEqual(delta['flecha'], '↓')
+        self.assertTrue(delta['es_reduccion'])
+
+    def test_calculo_delta_riesgo_estable(self):
+        """Verifica comportamiento cuando no hay variación significativa."""
+        delta = self.calcular_delta(25.0, 25.0)
+        self.assertEqual(delta['direccion'], 'estable')
+        self.assertEqual(delta['delta'], 0.0)
+
+    def test_dashboard_predictivo_view_status_200(self):
+        """Verifica que la vista DashboardPredictivoView responda 200 para usuarios autorizados."""
+        self.client.force_login(self.auth_user)
+        response = self.client.get(reverse('dashboard:dashboard_predictivo'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'ALERTA TEMPRANA A 3 MESES')
+        self.assertContains(response, 'Factores Determinantes de la Proyección')
+        self.assertNotContains(response, 'Mini Simulador de Sensibilidad Proactiva')
+        self.assertContains(response, 'Matriz de Validación Histórica')
+        self.assertContains(response, 'alertaTempranaChart')
+
+    def test_dashboard_predictivo_funciones_grafico(self):
+        """
+        Verifica que dashboard_predictivo incluya las funciones interactivas del gráfico portadas de dashboard:
+        dropdown de filtros, botones de rango rápido, filtro de alertas, contador y datos estructurados.
+        """
+        self.client.force_login(self.auth_user)
+        response = self.client.get(reverse('dashboard:dashboard_predictivo'))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+
+        # Controles de filtrado de períodos
+        self.assertIn('dropdownFiltroPeriodos', content)
+        self.assertIn('badgePeriodosActivos', content)
+        self.assertIn('listaCheckboxesPeriodos', content)
+        self.assertIn('btnMarcarTodos', content)
+        self.assertIn('btnDesmarcarTodos', content)
+
+        # Botones de rango temporal rápido
+        self.assertIn('btnRangoTodos', content)
+        self.assertIn('btnRangoUltimos3', content)
+        self.assertIn('btnRangoUltimos5', content)
+
+        # Botón de filtro de alertas y contadores
+        self.assertIn('btnFiltroAlertas', content)
+        self.assertIn('contadorPuntosGrafico', content)
+        self.assertIn('btnRestablecerFiltros', content)
+        self.assertIn('mensajeSinPeriodos', content)
+
+        # Contenedores de datos JSON seguros
+        self.assertIn('id="timeline-puntos-raw"', content)
+        self.assertIn('id="timeline-labels-raw"', content)
+        self.assertIn('id="timeline-historico-raw"', content)
+        self.assertIn('id="timeline-proyectado-raw"', content)
+        self.assertNotIn('id="simulador-config-raw"', content)
+
+        # Contexto del backend
+        self.assertIn('timeline_puntos_json', response.context)
+        puntos = json.loads(response.context['timeline_puntos_json'])
+        self.assertTrue(len(puntos) >= 1)
+        self.assertEqual(puntos[0]['periodo'], '2024-Q4')
+        self.assertTrue(puntos[0]['es_actual'])
+
+    def test_dashboard_general_proyeccion_y_ocultador(self):
+        """
+        Verifica que la vista general DashboardView incluya la proyección a 90 días (Q_{t+1})
+        y el botón interactivo para ocultar o mostrar la predicción.
+        """
+        self.client.force_login(self.auth_user)
+        response = self.client.get(reverse('dashboard:dashboard'))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+
+        # Botón ocultador de la predicción
+        self.assertIn('id="btnToggleProyeccion"', content)
+        self.assertIn('Ocultar Predicción', content)
+
+        # Leyenda de la proyección
+        self.assertIn('id="leyendaProyeccionItem"', content)
+        self.assertIn('Pronóstico 90d', content)
+
+        # Contenedores de proyección en dashboard general
+        self.assertIn('id="periodo-proyectado-raw"', content)
+        self.assertIn('id="timeline-proyectado-raw"', content)
+
+        # Contexto del backend
+        self.assertIn('periodo_proyectado', response.context)
+        self.assertIn('score_proyectado', response.context)
+        self.assertIn('timeline_proyectado_json', response.context)
+
+

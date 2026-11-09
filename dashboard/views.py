@@ -29,6 +29,7 @@ from moduloETL.services import detectar_anomalias_financieras
 from moduloTransaccional.models import Venta
 from capaAnalitica.models import PrediccionRiesgo
 from capaAnalitica.services import MotorRiesgo, ejecutar_y_persistir_prediccion, VARIABLES_FINANCIERAS
+from AppWeb.viewsML import calcular_periodo_siguiente, calcular_delta_riesgo
 from .pdf_generator import construir_informe_ejecutivo_pdf
 
 logger = logging.getLogger(__name__)
@@ -38,10 +39,12 @@ def resolver_usuario_bd(auth_user):
     """
     Obtiene la entidad Usuario del sistema a partir del usuario Django en sesión con caché en memoria.
     """
-    if not auth_user or not auth_user.is_authenticated:
+    if not auth_user:
         return None
     if isinstance(auth_user, Usuario):
         return auth_user
+    if not getattr(auth_user, 'is_authenticated', False):
+        return None
     if hasattr(auth_user, '_cached_usuario_db'):
         return auth_user._cached_usuario_db
 
@@ -63,7 +66,7 @@ class DashboardRolMixin(LoginRequiredMixin, UserPassesTestMixin):
 
     def get_user_role(self):
         user = self.request.user
-        if not user.is_authenticated:
+        if not user or not getattr(user, 'is_authenticated', True):
             return None
 
         # 1. PerfilUsuario en AppWeb
@@ -79,7 +82,7 @@ class DashboardRolMixin(LoginRequiredMixin, UserPassesTestMixin):
         return self.request.session.get('usuario_rol')
 
     def test_func(self):
-        if self.request.user.is_superuser:
+        if getattr(self.request.user, 'is_superuser', False):
             return True
         rol = self.get_user_role()
         return rol in self.roles_permitidos
@@ -201,6 +204,42 @@ class DashboardView(DashboardRolMixin, TemplateView):
             }
             for i, p in enumerate(predicciones_cronologicas)
         ]
+
+        # Proyección futura a 90 días (Q_{t+1}) para la curva de tendencia con alternador/ocultador
+        periodo_base_dashboard = ''
+        if ultima_prediccion and ultima_prediccion.ratio and ultima_prediccion.ratio.periodo:
+            periodo_base_dashboard = ultima_prediccion.ratio.periodo
+        elif ultimo_ratio and ultimo_ratio.periodo:
+            periodo_base_dashboard = ultimo_ratio.periodo
+        else:
+            periodo_base_dashboard = '2024-Q4'
+
+        periodo_proyectado_dashboard, periodo_base_norm_dashboard, dias_horizonte_dashboard = calcular_periodo_siguiente(periodo_base_dashboard)
+        score_proyectado_dashboard = float(score) if score is not None else 35.0
+        nivel_proyectado_dashboard = nivel if (nivel and nivel != 'Sin Datos') else ('Verde' if score_proyectado_dashboard <= 35 else 'Amarillo' if score_proyectado_dashboard <= 70 else 'Rojo')
+
+        # Si hay al menos 2 evaluaciones históricas, el punto base Qt refleja el score previo
+        # y la proyección conecta dicho nivel con score_proyectado_dashboard (mostrando la pendiente real)
+        if len(chart_scores) >= 2:
+            score_anterior_dashboard = chart_scores[-2]
+            score_base_dashboard = score_anterior_dashboard
+            chart_scores_ajustados = list(chart_scores)
+            chart_scores_ajustados[-1] = score_base_dashboard
+            if chart_puntos:
+                chart_puntos[-1]['score'] = score_base_dashboard
+                chart_puntos[-1]['nivel'] = 'Verde' if score_base_dashboard <= 35 else ('Amarillo' if score_base_dashboard <= 70 else 'Rojo')
+        else:
+            score_anterior_dashboard = None
+            score_base_dashboard = score_proyectado_dashboard
+            chart_scores_ajustados = list(chart_scores)
+
+        delta_info_dashboard = calcular_delta_riesgo(score_proyectado_dashboard, score_anterior_dashboard)
+
+        timeline_proyectado_dashboard = []
+        if len(chart_scores_ajustados) > 0:
+            timeline_proyectado_dashboard = [None] * (len(chart_scores_ajustados) - 1) + [score_base_dashboard, score_proyectado_dashboard]
+        elif score is not None:
+            timeline_proyectado_dashboard = [score_proyectado_dashboard]
 
         # 4. Total Ingreso_Real del día actual sumando transacciones de Venta (moduloTransaccional / app_caja)
         hoy = timezone.localdate()
@@ -401,14 +440,295 @@ class DashboardView(DashboardRolMixin, TemplateView):
             'periodo_filtro': periodo_filtro,
             'rango_filtro': rango_filtro,
             'chart_fechas_json': json.dumps(chart_fechas, ensure_ascii=False),
-            'chart_scores_json': json.dumps(chart_scores),
+            'chart_scores_json': json.dumps(chart_scores_ajustados),
             'chart_niveles_json': json.dumps(chart_niveles),
             'chart_es_actual_json': json.dumps(chart_es_actual),
             'chart_puntos_json': json.dumps(chart_puntos, ensure_ascii=False),
             'top_3_shap_json': json.dumps(top_3_variables, ensure_ascii=False),
+            # Proyección a 90 días para el gráfico con alternador/ocultador
+            'periodo_proyectado': periodo_proyectado_dashboard,
+            'periodo_proyectado_json': json.dumps(periodo_proyectado_dashboard, ensure_ascii=False),
+            'score_proyectado': score_proyectado_dashboard,
+            'score_base_dashboard': score_base_dashboard,
+            'nivel_proyectado': nivel_proyectado_dashboard,
+            'delta_info': delta_info_dashboard,
+            'timeline_proyectado_json': json.dumps(timeline_proyectado_dashboard),
         })
 
         return context
+
+
+class DashboardPredictivoView(DashboardView):
+    """
+    Controlador de la Interfaz de Resultados Predictivos y Alerta Temprana a 3 Meses (Q_t -> Q_{t+1}).
+    Transforma el diagnóstico estático a una herramienta proactiva de proyección financiera a 90 días.
+    """
+    template_name = 'dashboard/dashboard_predictivo.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        ultima_prediccion = context.get('ultima_prediccion')
+        ultimo_ratio = context.get('ultimo_ratio')
+        score = context.get('score')
+        nivel = context.get('nivel') or 'Sin Datos'
+        empresa_usuario = context.get('empresa_usuario')
+        user = self.request.user
+
+        # 1. Determinación de Q_t (período del balance analizado)
+        periodo_param = (self.request.GET.get('periodo') or '').strip()
+        periodo_balance_raw = ''
+        if periodo_param:
+            periodo_balance_raw = periodo_param
+        elif ultima_prediccion and ultima_prediccion.ratio and ultima_prediccion.ratio.periodo:
+            periodo_balance_raw = ultima_prediccion.ratio.periodo
+        elif ultimo_ratio and ultimo_ratio.periodo:
+            periodo_balance_raw = ultimo_ratio.periodo
+        elif context.get('info_periodo') and context['info_periodo'].get('periodo'):
+            periodo_balance_raw = context['info_periodo']['periodo']
+        else:
+            periodo_balance_raw = '2024-Q4'
+
+        # 2. Cálculo dinámico de Q_{t+1} (período futuro proyectado a 90 días)
+        periodo_proyectado, periodo_balance_norm, dias_horizonte = calcular_periodo_siguiente(periodo_balance_raw)
+
+        # 3. Consulta optimizada de períodos, ratios y predicciones (evita iterar 15.000+ registros)
+        ratios_qs = RatioFinanciero.objects.all()
+        if empresa_usuario:
+            ratios_qs = ratios_qs.filter(empresa=empresa_usuario)
+        elif not user.is_superuser:
+            ratios_qs = ratios_qs.none()
+
+        periodos_unicos = list(
+            ratios_qs.exclude(periodo__isnull=True)
+                     .exclude(periodo='')
+                     .values_list('periodo', flat=True)
+                     .distinct()
+        )
+
+        ratios_por_periodo = {}
+        for per in periodos_unicos:
+            r = ratios_qs.filter(periodo=per).order_by('-id').first()
+            if r:
+                ratios_por_periodo[per] = r
+
+        predicciones_qs = PrediccionRiesgo.objects.select_related('ratio', 'empresa')
+        if empresa_usuario:
+            predicciones_qs = predicciones_qs.filter(empresa=empresa_usuario)
+        elif not user.is_superuser:
+            predicciones_qs = predicciones_qs.none()
+
+        pred_por_periodo = {}
+        for p in predicciones_qs.order_by('-fecha_prediccion', '-id'):
+            if p.ratio and p.ratio.periodo and p.ratio.periodo not in pred_por_periodo:
+                pred_por_periodo[p.ratio.periodo] = p
+
+        from AppWeb.viewsML import predecir_riesgo
+
+        # Identificar secuencia cronológica de trimestres válidos
+        todos_periodos = sorted(ratios_por_periodo.keys())
+        periodos_trimestrales = [p for p in todos_periodos if 'Q' in p or 'q' in p] or todos_periodos
+
+        if periodo_balance_raw in periodos_trimestrales:
+            idx_balance = periodos_trimestrales.index(periodo_balance_raw)
+            periodos_visibles = periodos_trimestrales[:idx_balance + 1]
+        elif periodo_balance_norm in periodos_trimestrales:
+            idx_balance = periodos_trimestrales.index(periodo_balance_norm)
+            periodos_visibles = periodos_trimestrales[:idx_balance + 1]
+        else:
+            periodos_visibles = periodos_trimestrales
+
+        timeline_puntos = []
+        periodos_pasados_labels = []
+        valores_historicos = []
+        niveles_historicos = []
+
+        for per in periodos_visibles:
+            r_obj = ratios_por_periodo[per]
+            p_obj = pred_por_periodo.get(per)
+            if p_obj and p_obj.score_riesgo is not None:
+                sc = float(p_obj.score_riesgo)
+                niv = p_obj.nivel_semaforo or ('Verde' if sc <= 35 else 'Amarillo' if sc <= 70 else 'Rojo')
+                pid = p_obj.id
+            else:
+                vars_dict = {
+                    'razon_corriente': float(r_obj.v1_razon_corriente or 1.0),
+                    'capital_trabajo_sobre_activos': float(r_obj.v2_capital_trabajo_activos or 0.1),
+                    'leverage_total': float(r_obj.v3_leverage_total or 1.0),
+                    'roa_operacional': float(r_obj.v4_roa_operacional or 0.05),
+                    'margen_operacional': float(r_obj.v5_margen_operacional or 0.08),
+                    'rotacion_activos': float(r_obj.v6_rotacion_activos or 1.0),
+                    'volatilidad_flujo_caja': float(r_obj.v7_volatilidad_flujo or 0.5),
+                }
+                sc, niv, _ = predecir_riesgo(vars_dict)
+                pid = None
+
+            es_act = bool(per == periodo_balance_raw or per == periodo_balance_norm)
+            periodos_pasados_labels.append(per)
+            valores_historicos.append(sc)
+            niveles_historicos.append(niv)
+            timeline_puntos.append({
+                'id': pid,
+                'periodo': per,
+                'label': per,
+                'score': sc,
+                'nivel': niv,
+                'es_actual': es_act,
+            })
+
+        if not periodos_pasados_labels:
+            score_actual = float(score) if score is not None else 0.0
+            periodos_pasados_labels = [periodo_balance_norm]
+            valores_historicos = [score_actual]
+            niveles_historicos = [nivel]
+            timeline_puntos = [{
+                'id': ultima_prediccion.id if ultima_prediccion else None,
+                'periodo': periodo_balance_norm,
+                'label': periodo_balance_norm,
+                'score': score_actual,
+                'nivel': nivel,
+                'es_actual': True,
+            }]
+            score_anterior = None
+            score_base_qt = score_actual
+            delta_info = calcular_delta_riesgo(score_actual, score_anterior)
+        else:
+            if not any(p['es_actual'] for p in timeline_puntos):
+                timeline_puntos[-1]['es_actual'] = True
+
+            # Score de la inferencia activa que se proyecta hacia Q_{t+1} (a 90 días)
+            score_actual = float(score) if score is not None else (
+                next((p['score'] for p in timeline_puntos if p['es_actual']), timeline_puntos[-1]['score'])
+            )
+
+            # Encontrar índice del período activo para calcular delta respecto al trimestre anterior
+            idx_act = -1
+            for idx_h, per in enumerate(periodos_pasados_labels):
+                if per == periodo_balance_raw or per == periodo_balance_norm:
+                    idx_act = idx_h
+                    break
+            if idx_act == -1 and len(periodos_pasados_labels) > 0:
+                idx_act = len(periodos_pasados_labels) - 1
+
+            if idx_act >= 1:
+                score_anterior = valores_historicos[idx_act - 1]
+            else:
+                score_anterior = None
+            delta_info = calcular_delta_riesgo(score_actual, score_anterior)
+
+            # El punto del período analizado (Q_t) debe reflejar el nivel base/observado antes de la nueva proyección a 90 días.
+            # De esta forma, el tramo punteado hacia Q_{t+1} (score_actual) muestra la pendiente real intertrimestral (delta)
+            # en vez de una línea horizontal plana (delta=0).
+            if score_anterior is not None and idx_act >= 0 and idx_act < len(valores_historicos):
+                score_base_qt = score_anterior
+                valores_historicos[idx_act] = score_base_qt
+                if idx_act < len(niveles_historicos):
+                    niveles_historicos[idx_act] = 'Verde' if score_base_qt <= 35 else ('Amarillo' if score_base_qt <= 70 else 'Rojo')
+                if idx_act < len(timeline_puntos):
+                    timeline_puntos[idx_act]['score'] = score_base_qt
+                    timeline_puntos[idx_act]['nivel'] = niveles_historicos[idx_act]
+            else:
+                score_base_qt = score_actual
+
+        # 4. Listas separadas de datos para el Gráfico Temporal con Proyección Futura (Chart.js)
+        timeline_labels = list(periodos_pasados_labels) + [periodo_proyectado]
+        timeline_historico_data = list(valores_historicos) + [None]
+
+        if len(valores_historicos) > 0:
+            timeline_proyectado_data = [None] * (len(valores_historicos) - 1) + [score_base_qt, score_actual]
+        else:
+            timeline_proyectado_data = [score_actual]
+
+        # 5. Matriz de Validación Histórica (Backtesting Visual Retrospectivo) optimizada en O(1)
+        matriz_backtesting = []
+        lista_periodos_ordenados = sorted(ratios_por_periodo.keys())
+
+        for idx_p, p_base in enumerate(lista_periodos_ordenados):
+            p_fut, _, _ = calcular_periodo_siguiente(p_base)
+            r_base = ratios_por_periodo[p_base]
+
+            pred_asoc = pred_por_periodo.get(p_base)
+            score_bt = float(pred_asoc.score_riesgo) if pred_asoc and pred_asoc.score_riesgo is not None else 35.0
+            nivel_bt = pred_asoc.nivel_semaforo if pred_asoc else ('Verde' if score_bt <= 35 else 'Amarillo' if score_bt <= 70 else 'Rojo')
+            color_bt = 'Verde' if (nivel_bt == 'Verde' or score_bt <= 35) else ('Amarillo' if score_bt <= 70 else 'Rojo')
+
+            r_fut = ratios_por_periodo.get(p_fut)
+            if r_fut:
+                rc_fut = float(r_fut.v1_razon_corriente or 1.0)
+                lev_fut = float(r_fut.v3_leverage_total or 1.0)
+                if rc_fut >= 1.2 and lev_fut <= 3.0:
+                    estado_real = f"Solvente (RC: {rc_fut:.2f}x, Lev: {lev_fut:.2f}x)"
+                    resultado_val = "Acierto Preventivo"
+                    badge_val = "badge-status-solvente"
+                elif rc_fut < 1.0 or lev_fut > 5.0:
+                    estado_real = f"Tensión de Liquidez (RC: {rc_fut:.2f}x)"
+                    resultado_val = "Alerta Temprana Validada"
+                    badge_val = "badge-status-critico"
+                else:
+                    estado_real = f"Moderado Estable (RC: {rc_fut:.2f}x)"
+                    resultado_val = "Anticipación Correcta"
+                    badge_val = "badge-status-alerta"
+            else:
+                if p_base == periodo_balance_raw or p_base == periodo_balance_norm:
+                    estado_real = "Ventana Preventiva en Curso (90 días vigentes)"
+                    resultado_val = "Pronóstico Activo"
+                    badge_val = "badge-status-alerta"
+                else:
+                    estado_real = "Solvencia Preservada"
+                    resultado_val = "Acierto Histórico"
+                    badge_val = "badge-status-solvente"
+
+            matriz_backtesting.append({
+                'periodo_base': p_base,
+                'periodo_proyectado': p_fut,
+                'score_proyectado': score_bt,
+                'nivel_proyectado': nivel_bt,
+                'color_proyectado': color_bt,
+                'estado_real': estado_real,
+                'resultado': resultado_val,
+                'badge_clase': badge_val,
+                'es_activo': (p_base == periodo_balance_raw or p_base == periodo_balance_norm),
+            })
+
+        if not matriz_backtesting and score is not None:
+            matriz_backtesting.append({
+                'periodo_base': periodo_balance_norm,
+                'periodo_proyectado': periodo_proyectado,
+                'score_proyectado': score_actual,
+                'nivel_proyectado': nivel,
+                'color_proyectado': 'Verde' if nivel == 'Verde' else ('Amarillo' if nivel == 'Amarillo' else 'Rojo'),
+                'estado_real': "Ventana Preventiva en Curso (90 días vigentes)",
+                'resultado': "Pronóstico Activo",
+                'badge_clase': "badge-status-alerta",
+                'es_activo': True,
+            })
+
+        context.update({
+            'periodo_balance': periodo_balance_norm,
+            'periodo_balance_raw': periodo_balance_raw,
+            'periodo_proyectado': periodo_proyectado,
+            'ventana_preventiva_dias': dias_horizonte,
+            'delta_info': delta_info,
+
+            'etiquetas_periodos_pasados': periodos_pasados_labels,
+            'valores_historicos': valores_historicos,
+            'periodo_futuro_label': periodo_proyectado,
+            'valor_proyectado': score_actual,
+            'nivel_proyectado': nivel,
+
+            'timeline_labels_json': json.dumps(timeline_labels, ensure_ascii=False),
+            'timeline_historico_json': json.dumps(timeline_historico_data),
+            'timeline_proyectado_json': json.dumps(timeline_proyectado_data),
+            'timeline_puntos_json': json.dumps(timeline_puntos, ensure_ascii=False),
+            'total_evaluaciones_historicas': len(timeline_puntos),
+            'score_proyectado_float': score_actual,
+
+            'matriz_backtesting': matriz_backtesting,
+            'total_trimestres_backtesting': len(matriz_backtesting),
+        })
+
+        return context
+
 
 
 class GenerarPDFView(DashboardRolMixin, View):

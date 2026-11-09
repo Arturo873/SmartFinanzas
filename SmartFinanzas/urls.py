@@ -16,6 +16,8 @@ urlpatterns = [
     path('moduloETL/<path:subpath>', RedirectView.as_view(url='/etl/%(subpath)s', permanent=False)),
     path('moduloETL/', RedirectView.as_view(url='/etl/carga-nueva/', permanent=False)),
     path('dashboard/', include('dashboard.urls')),
+    path('dashboard_predictivo/', RedirectView.as_view(pattern_name='dashboard:dashboard_predictivo', permanent=False), name='dashboard_predictivo_redirect'),
+    path('dashboard-predictivo/', RedirectView.as_view(pattern_name='dashboard:dashboard_predictivo', permanent=False)),
     path('app/', include('AppWeb.urls')),
     path('', include('usuarios.urls')),
 ]   #path('', include('AppWeb.urls')),

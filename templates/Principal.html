@@ -360,8 +360,8 @@
                         </a>
                     </li>
                     <li>
-                        <a href="{% url 'principal' %}" class="nav-link {% if request.resolver_match.url_name == 'principal' %}active{% endif %}">
-                            <i class="bi bi-grid-1x2"></i>
+                        <a href="{% url 'dashboard:dashboard_predictivo' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard_predictivo' or request.resolver_match.url_name == 'dashboard_predictivo_alias' or request.resolver_match.url_name == 'dashboard_predictivo_underscore' or request.resolver_match.url_name == 'predictivo' %}active{% endif %}">
+                            <i class="bi bi-graph-up-arrow"></i>
                             <span>Información Predictiva</span>
                         </a>
                     </li>

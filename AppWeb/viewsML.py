@@ -273,3 +273,191 @@ RECOMENDACIONES_POR_ALERTA = {
 
 def obtener_recomendacion_general(color: str) -> dict:
     return RECOMENDACIONES_POR_ALERTA.get(color, RECOMENDACIONES_POR_ALERTA['Amarillo'])
+
+
+# ==============================================================================
+# SISTEMA DE ALERTA TEMPRANA A 3 MESES (Q_t -> Q_{t+1}, 90 DÍAS)
+# ==============================================================================
+
+import re
+from datetime import date, datetime
+
+
+def calcular_periodo_siguiente(periodo) -> tuple[str, str, int]:
+    """
+    Calcula dinámicamente el nombre del trimestre siguiente (Q_{t+1})
+    a partir de la fecha o período del balance ingresado (Q_t), estableciendo
+    la ventana de alerta temprana de 90 días (3 meses).
+
+    Retorna: (periodo_proyectado, periodo_actual_normalizado, dias_horizonte)
+    Ejemplo: '2024-Q4' -> ('2025-Q1', '2024-Q4', 90)
+             '2024-Q1' -> ('2024-Q2', '2024-Q1', 90)
+    """
+    dias_horizonte = 90
+
+    if not periodo:
+        ahora = date.today()
+        q = (ahora.month - 1) // 3 + 1
+        per_act = f"{ahora.year}-Q{q}"
+        next_q = 1 if q == 4 else q + 1
+        next_y = ahora.year + 1 if q == 4 else ahora.year
+        return f"{next_y}-Q{next_q}", per_act, dias_horizonte
+
+    if isinstance(periodo, (date, datetime)):
+        q = (periodo.month - 1) // 3 + 1
+        per_act = f"{periodo.year}-Q{q}"
+        next_q = 1 if q == 4 else q + 1
+        next_y = periodo.year + 1 if q == 4 else periodo.year
+        return f"{next_y}-Q{next_q}", per_act, dias_horizonte
+
+    periodo_str = str(periodo).strip()
+
+    # Patrón 1: '2024-Q4', '2024Q4', '2024_Q4', '2024 Q4'
+    m = re.search(r'(\d{4})\s*[-_/]?\s*[Qq](\d)', periodo_str)
+    if m:
+        año = int(m.group(1))
+        q = int(m.group(2))
+        per_act = f"{año}-Q{q}"
+        if q >= 4:
+            return f"{año + 1}-Q1", per_act, dias_horizonte
+        else:
+            return f"{año}-Q{q + 1}", per_act, dias_horizonte
+
+    # Patrón 2: 'Q4-2024', 'Q4 2024'
+    m = re.search(r'[Qq](\d)\s*[-_/]?\s*(\d{4})', periodo_str)
+    if m:
+        q = int(m.group(1))
+        año = int(m.group(2))
+        per_act = f"{año}-Q{q}"
+        if q >= 4:
+            return f"{año + 1}-Q1", per_act, dias_horizonte
+        else:
+            return f"{año}-Q{q + 1}", per_act, dias_horizonte
+
+    # Patrón 3: '2024-12' o '2024-12-31'
+    m = re.search(r'(\d{4})[-/](\d{1,2})', periodo_str)
+    if m:
+        año = int(m.group(1))
+        mes = int(m.group(2))
+        q = max(1, min(4, (mes - 1) // 3 + 1))
+        per_act = f"{año}-Q{q}"
+        if q >= 4:
+            return f"{año + 1}-Q1", per_act, dias_horizonte
+        else:
+            return f"{año}-Q{q + 1}", per_act, dias_horizonte
+
+    # Patrón 4: Solo año '2024'
+    m = re.search(r'(\d{4})', periodo_str)
+    if m:
+        año = int(m.group(1))
+        return f"{año + 1}-Q1", f"{año}-Q4", dias_horizonte
+
+    return f"{periodo_str}+90d", periodo_str, dias_horizonte
+
+
+def calcular_delta_riesgo(score_actual: float, score_anterior: float | None) -> dict:
+    """
+    Calcula la variación neta de puntos de riesgo (delta) respecto al trimestre
+    inmediatamente anterior, determinando si el riesgo se acelera o reduce.
+    """
+    if score_anterior is None:
+        return {
+            'delta': 0.0,
+            'delta_abs': 0.0,
+            'direccion': 'inicial',
+            'signo': '',
+            'texto': 'Línea base (1er trimestre)',
+            'mensaje': 'Primer registro evaluado. Se establece como punto de referencia inicial.',
+            'icono': 'bi-dash-lg',
+            'flecha': '→',
+            'color': 'secondary',
+            'color_clase': 'text-secondary',
+            'badge_clase': 'badge-status-neutral',
+            'es_aumento': False,
+            'es_reduccion': False,
+        }
+
+    diff = round(float(score_actual) - float(score_anterior), 1)
+    diff_abs = abs(diff)
+
+    if diff > 0.05:
+        return {
+            'delta': diff,
+            'delta_abs': diff_abs,
+            'direccion': 'acelerando',
+            'signo': '+',
+            'texto': f"+{diff:.1f} pts",
+            'mensaje': f"El riesgo proyectado se aceleró en +{diff:.1f} puntos respecto al trimestre previo.",
+            'icono': 'bi-arrow-up-right-circle-fill',
+            'flecha': '↑',
+            'color': 'danger' if diff >= 5.0 else 'warning',
+            'color_clase': 'text-danger' if diff >= 5.0 else 'text-warning',
+            'badge_clase': 'badge-status-critico' if diff >= 5.0 else 'badge-status-alerta',
+            'es_aumento': True,
+            'es_reduccion': False,
+        }
+    elif diff < -0.05:
+        return {
+            'delta': diff,
+            'delta_abs': diff_abs,
+            'direccion': 'reduciendo',
+            'signo': '',
+            'texto': f"{diff:.1f} pts",
+            'mensaje': f"El riesgo proyectado se redujo favorablemente en {diff_abs:.1f} puntos.",
+            'icono': 'bi-arrow-down-right-circle-fill',
+            'flecha': '↓',
+            'color': 'success',
+            'color_clase': 'text-success',
+            'badge_clase': 'badge-status-solvente',
+            'es_aumento': False,
+            'es_reduccion': True,
+        }
+    else:
+        return {
+            'delta': 0.0,
+            'delta_abs': 0.0,
+            'direccion': 'estable',
+            'signo': '',
+            'texto': '0.0 pts (Estable)',
+            'mensaje': 'El nivel de riesgo se mantiene sin variaciones respecto al trimestre previo.',
+            'icono': 'bi-dash-circle',
+            'flecha': '→',
+            'color': 'secondary',
+            'color_clase': 'text-secondary',
+            'badge_clase': 'badge-status-neutral',
+            'es_aumento': False,
+            'es_reduccion': False,
+        }
+
+
+def simular_sensibilidad_proactiva(variables: dict, mejora_liquidez_pct: float = 0.0, reduccion_leverage_pct: float = 0.0) -> dict:
+    """
+    Mini Simulador de Sensibilidad Proactiva ('¿Qué pasaría si...?'):
+    Modifica la Razón Corriente y el Leverage Total según porcentajes dados
+    y recalcula la probabilidad proyectada hacia Q_{t+1}.
+    """
+    vars_sim = dict(variables)
+
+    # 1. Mejora de Liquidez: aumenta razón corriente y capital de trabajo
+    if vars_sim.get('razon_corriente') is not None:
+        rc = float(vars_sim['razon_corriente'])
+        vars_sim['razon_corriente'] = max(0.1, rc * (1.0 + mejora_liquidez_pct / 100.0))
+
+    if vars_sim.get('capital_trabajo_sobre_activos') is not None:
+        cta = float(vars_sim['capital_trabajo_sobre_activos'])
+        vars_sim['capital_trabajo_sobre_activos'] = cta + (mejora_liquidez_pct / 100.0 * 0.08)
+
+    # 2. Reducción de Apalancamiento: reduce leverage total
+    if vars_sim.get('leverage_total') is not None:
+        lev = float(vars_sim['leverage_total'])
+        vars_sim['leverage_total'] = max(0.05, lev * (1.0 - reduccion_leverage_pct / 100.0))
+
+    puntaje_simulado, nivel_simulado, color_simulado = predecir_riesgo(vars_sim)
+    return {
+        'score_simulado': puntaje_simulado,
+        'nivel_simulado': nivel_simulado,
+        'color_simulado': color_simulado,
+        'mejora_liquidez_pct': mejora_liquidez_pct,
+        'reduccion_leverage_pct': reduccion_leverage_pct,
+    }
+

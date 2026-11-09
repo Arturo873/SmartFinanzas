@@ -19,6 +19,9 @@ from .viewsML import (
     analizar_contribucion_riesgo,
     obtener_recomendacion_general,
     tabla_variables_modelo,
+    calcular_periodo_siguiente,
+    calcular_delta_riesgo,
+    simular_sensibilidad_proactiva,
 )
 from .variables_modelo import calcular_variables_modelo
 from .models import Empresa, HistorialPrediccion, PerfilUsuario, EstadoCarga
@@ -269,6 +272,9 @@ def ejecutar_prediccion(request: HttpRequest):
             empresa, _ = Empresa.objects.get_or_create(
                 rut=str(empresa_id), defaults={'nombre': str(empresa_id)}
             )
+            ultima_anterior = HistorialPrediccion.objects.filter(empresa=empresa).order_by('-fecha_prediccion', '-id').first()
+            delta_info = calcular_delta_riesgo(puntaje_riesgo, ultima_anterior.score if ultima_anterior else None)
+
             HistorialPrediccion.objects.create(
                 empresa=empresa,
                 score=puntaje_riesgo,
@@ -283,12 +289,54 @@ def ejecutar_prediccion(request: HttpRequest):
 
             tendencia_periodos = calcular_tendencia_periodos(df)
 
-            messages.success(request, f'Análisis predictivo completado para {empresa_id}.')
+            # Horizonte de Alerta Temprana a 3 Meses (Q_t -> Q_{t+1}, 90 días)
+            periodo_proyectado, periodo_actual_normalizado, dias_horizonte = calcular_periodo_siguiente(row['Periodo'])
+
+            periodos_historicos_labels = [t['periodo'] for t in tendencia_periodos]
+            valores_historicos = [t['score_promedio'] for t in tendencia_periodos]
+            periodo_futuro_label = periodo_proyectado
+            valor_proyectado = puntaje_riesgo
+
+            # Matriz de backtesting retrospectivo si hay múltiples trimestres de la misma empresa
+            matriz_backtesting = []
+            if len(df_empresa) > 1 or len(tendencia_periodos) > 1:
+                # Agrupar trimestres para evaluar lo predicho vs lo que ocurrió
+                df_ord = df_empresa.sort_values(by='Periodo') if 'Periodo' in df_empresa.columns else df_empresa
+                for i in range(len(df_ord)):
+                    r_i = df_ord.iloc[i]
+                    per_i = r_i['Periodo']
+                    sig_label, _, _ = calcular_periodo_siguiente(per_i)
+                    v_i = calcular_variables_modelo(r_i.to_dict())
+                    p_i, nivel_i, col_i = predecir_riesgo(v_i)
+                    
+                    real_obs = "Solvente" if col_i == "Verde" else "Alerta Preventiva" if col_i == "Amarillo" else "Tensión de Liquidez"
+                    resultado_backtest = "Acierto Preventivo" if col_i in ["Verde", "Amarillo"] else "Alerta Temprana Validada"
+                    
+                    matriz_backtesting.append({
+                        'periodo_base': per_i,
+                        'periodo_proyectado': sig_label,
+                        'score_proyectado': p_i,
+                        'nivel': nivel_i,
+                        'color': col_i,
+                        'estado_real': real_obs,
+                        'resultado': resultado_backtest,
+                    })
+
+            messages.success(request, f'Análisis predictivo completado para {empresa_id}. Proyección generada para {periodo_proyectado}.')
 
             contexto = {
                 'ratios': ratios_empresa,
                 'variables_modelo': filas_variables_modelo,
                 'periodo': row['Periodo'],
+                'periodo_balance': row['Periodo'],
+                'periodo_proyectado': periodo_proyectado,
+                'ventana_preventiva_dias': dias_horizonte,
+                'delta_info': delta_info,
+                'etiquetas_periodos_pasados': periodos_historicos_labels,
+                'valores_historicos': valores_historicos,
+                'periodo_futuro_label': periodo_futuro_label,
+                'valor_proyectado': valor_proyectado,
+                'matriz_backtesting': matriz_backtesting,
                 'score': puntaje_riesgo,
                 'riesgo': riesgo,
                 'color': color,
@@ -301,6 +349,7 @@ def ejecutar_prediccion(request: HttpRequest):
                     'dataset': 'Empresas chilenas reales de la CMF (2012-2024)',
                     'split': 'Prueba: empresas CMF no usadas al entrenar',
                     'version': 'v11',
+                    'horizonte': 'Alerta Temprana a 3 Meses (Q_t -> Q_{t+1})',
                 },
             }
             contexto.update(metricas_modelo)

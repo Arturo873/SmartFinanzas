@@ -556,13 +556,17 @@
                 <span class="d-inline-block rounded-pill" style="width: 12px; height: 3px; background-color: #2563eb;"></span>
                 <span>Probabilidad Riesgo</span>
             </div>
-            <div class="d-flex align-items-center gap-1 text-muted-custom">
-                <span class="d-inline-block" style="width: 12px; border-top: 2px dashed #9ca3af;"></span>
-                <span>Umbral Alerta (35%)</span>
-            </div>
             <div class="d-flex align-items-center gap-1.5 text-main fw-semibold">
                 <span class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 10px; height: 10px; border: 2px solid #0f172a; background-color: #2563eb;"></span>
                 <span>Inferencia Activa</span>
+            </div>
+            <div class="d-flex align-items-center gap-1.5 fw-semibold text-main" id="leyendaProyeccionItem">
+                <span class="d-inline-block" style="width: 14px; border-top: 2.5px dashed {% if nivel == 'Verde' %}#16a34a{% elif nivel == 'Amarillo' %}#ca8a04{% else %}#dc2626{% endif %};"></span>
+                <span>Pronóstico 90d (Q<sub>t+1</sub>)</span>
+            </div>
+            <div class="d-flex align-items-center gap-1 text-muted-custom">
+                <span class="d-inline-block" style="width: 12px; border-top: 2px dashed #9ca3af;"></span>
+                <span>Umbral Alerta (35%)</span>
             </div>
         </div>
     </div>
@@ -619,6 +623,12 @@
             <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2 d-none d-sm-inline-flex align-items-center gap-1" id="btnFiltroAlertas">
                 <i class="bi bi-exclamation-triangle text-warning"></i>
                 <span>Solo Alertas</span>
+            </button>
+
+            <!-- Botón Ocultador / Alternador de Proyección Futura (Q_{t+1}) -->
+            <button type="button" class="btn btn-outline-primary btn-sm py-0.5 px-2.5 d-inline-flex align-items-center gap-1.5 active" id="btnToggleProyeccion" title="Alternar visibilidad del tramo proyectado hacia los siguientes 3 meses (Q_{t+1})">
+                <i class="bi bi-eye-slash" id="iconoToggleProyeccion"></i>
+                <span id="textoToggleProyeccion">Ocultar Predicción</span>
             </button>
         </div>
 
@@ -1301,6 +1311,8 @@
 <script type="application/json" id="chart-actual-raw">{{ chart_es_actual_json|default:"[]"|safe }}</script>
 <script type="application/json" id="chart-puntos-raw">{{ chart_puntos_json|default:"[]"|safe }}</script>
 <script type="application/json" id="periodos-disponibles-raw">{{ periodos_disponibles_json|default:"[]"|safe }}</script>
+<script type="application/json" id="periodo-proyectado-raw">{{ periodo_proyectado_json|default:'""'|safe }}</script>
+<script type="application/json" id="timeline-proyectado-raw">{{ timeline_proyectado_json|default:'[]'|safe }}</script>
 
 <!-- Curva de Tendencia y Control de Períodos Históricos (RF-04) -->
 <script>
@@ -1416,6 +1428,27 @@ document.addEventListener('DOMContentLoaded', function () {
     let filtroRango = 'todos'; // 'todos' | 'ultimos3' | 'ultimos5'
     let soloAlertas = false;
     let esActualArr = [];
+
+    // Datos de proyección futura a 90 días (Q_{t+1}) y control de ocultador/alternador
+    const periodoProyectadoElem = document.getElementById('periodo-proyectado-raw');
+    let periodoProyectadoLabel = '{{ periodo_proyectado|default:"Q_{t+1}" }}';
+    try {
+        if (periodoProyectadoElem && periodoProyectadoElem.textContent) {
+            const rawProy = JSON.parse(periodoProyectadoElem.textContent);
+            if (rawProy) periodoProyectadoLabel = rawProy;
+        }
+    } catch(e) {}
+
+    const scoreProyectado = parseFloat('{{ score_proyectado|default:score|default:35.0 }}') || 35.0;
+
+    function getColorSemaforo(sc) {
+        if (sc <= 35) return { border: '#16a34a', bg: '#22c55e', text: 'Verde (Solvente)' };
+        if (sc <= 70) return { border: '#ca8a04', bg: '#eab308', text: 'Amarillo (Alerta Preventiva)' };
+        return { border: '#dc2626', bg: '#ef4444', text: 'Rojo (Riesgo Crítico)' };
+    }
+    const colorProyeccion = getColorSemaforo(scoreProyectado);
+
+    let mostrarProyeccion = true;
 
     // Referencias a elementos del DOM
     const badgeActivos = document.getElementById('badgePeriodosActivos');
@@ -1572,26 +1605,45 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
-    // 5. Inicialización de la Instancia de Chart.js
+    // 5. Inicialización de la Instancia de Chart.js con Soporte de Proyección (Q_{t+1})
     const chart = new Chart(ctx, {
         type: 'line',
         plugins: [activePointLocatorPlugin],
         data: {
             labels: [],
-            datasets: [{
-                label: 'Score de Riesgo',
-                data: [],
-                borderColor: '#2563eb',
-                backgroundColor: gradient,
-                borderWidth: 2,
-                fill: true,
-                tension: 0.25,
-                pointBackgroundColor: [],
-                pointBorderColor: [],
-                pointBorderWidth: [],
-                pointRadius: [],
-                pointHoverRadius: [],
-            }]
+            datasets: [
+                // Dataset 0: Tramo Histórico Real (Línea continua con gradiente)
+                {
+                    label: 'Score de Riesgo',
+                    data: [],
+                    borderColor: '#2563eb',
+                    backgroundColor: gradient,
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.25,
+                    pointBackgroundColor: [],
+                    pointBorderColor: [],
+                    pointBorderWidth: [],
+                    pointRadius: [],
+                    pointHoverRadius: [],
+                },
+                // Dataset 1: Tramo Proyectado a 90 Días (Línea discontinua con color de semáforo)
+                {
+                    label: 'Pronóstico Preventivo (Q_{t+1})',
+                    data: [],
+                    borderColor: colorProyeccion.border,
+                    backgroundColor: 'rgba(202, 138, 4, 0.08)',
+                    borderWidth: 2.5,
+                    borderDash: [6, 6],
+                    pointBackgroundColor: [],
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2.5,
+                    pointRadius: [],
+                    pointHoverRadius: [],
+                    tension: 0.1,
+                    fill: false,
+                }
+            ]
         },
         options: {
             responsive: true,
@@ -1599,6 +1651,11 @@ document.addEventListener('DOMContentLoaded', function () {
             onClick: function(event, elements) {
                 if (!elements || elements.length === 0) return;
                 const dataIndex = elements[0].index;
+                const lastIdx = chart.data.labels.length - 1;
+
+                // Si se hace clic en el punto proyectado final (Q_{t+1}), no redirigir
+                if (mostrarProyeccion && dataIndex === lastIdx) return;
+
                 const punto = puntosVisiblesActuales[dataIndex];
                 if (!punto || !punto.id) return;
 
@@ -1636,8 +1693,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 },
                 x: {
                     ticks: {
-                        color: '#9ca3af',
-                        font: { family: "'Inter', sans-serif", size: 11 }
+                        color: function(context) {
+                            const lastIdx = chart ? (chart.data.labels.length - 1) : -1;
+                            if (mostrarProyeccion && context.index === lastIdx) {
+                                return colorProyeccion.border;
+                            }
+                            return '#9ca3af';
+                        },
+                        font: function(context) {
+                            const lastIdx = chart ? (chart.data.labels.length - 1) : -1;
+                            if (mostrarProyeccion && context.index === lastIdx) {
+                                return { family: "'Inter', monospace", size: 11, weight: 'bold' };
+                            }
+                            return { family: "'Inter', sans-serif", size: 11 };
+                        }
                     },
                     grid: { display: false, drawBorder: false },
                     border: { display: false }
@@ -1658,6 +1727,10 @@ document.addEventListener('DOMContentLoaded', function () {
                         title: function(items) {
                             if (!items || items.length === 0) return '';
                             const idx = items[0].dataIndex;
+                            const lastIdx = chart.data.labels.length - 1;
+                            if (mostrarProyeccion && idx === lastIdx) {
+                                return 'Pronóstico Preventivo Q_{t+1}: ' + items[0].label;
+                            }
                             const title = items[0].label || '';
                             if (esActualArr[idx]) {
                                 return title + '  [ACTUAL]';
@@ -1666,6 +1739,12 @@ document.addEventListener('DOMContentLoaded', function () {
                         },
                         label: function (context) {
                             const val = context.parsed.y;
+                            if (val === null || val === undefined) return '';
+                            const idx = context.dataIndex;
+                            const lastIdx = chart.data.labels.length - 1;
+                            if (mostrarProyeccion && context.datasetIndex === 1 && idx === lastIdx) {
+                                return 'Pronóstico preventivo a 3 meses: ' + val.toFixed(1) + '% de riesgo';
+                            }
                             let estado = 'Solvente';
                             if (val > 70) estado = 'Crítico';
                             else if (val > 35) estado = 'Alerta';
@@ -1676,6 +1755,14 @@ document.addEventListener('DOMContentLoaded', function () {
                                 lines.push('👉 Clic para seleccionar y ver este período');
                             }
                             return lines;
+                        },
+                        afterLabel: function(ctx) {
+                            const idx = ctx.dataIndex;
+                            const lastIdx = chart.data.labels.length - 1;
+                            if (mostrarProyeccion && ctx.datasetIndex === 1 && idx === lastIdx) {
+                                return 'Ventana preventiva: 90 días para tomar medidas correctivas.';
+                            }
+                            return null;
                         }
                     }
                 }
@@ -1706,26 +1793,75 @@ document.addEventListener('DOMContentLoaded', function () {
             visibles = visibles.filter(p => p.score > 35);
         }
 
-        // Actualizar arreglos de datos para Chart.js
-        esActualArr = visibles.map(p => p.es_actual);
+        // Control visual del mensaje de estado cuando no hay períodos visibles
+        if (visibles.length === 0) {
+            if (mensajeSinPeriodos) mensajeSinPeriodos.classList.remove('d-none');
+            ctx.style.opacity = '0.15';
+            chart.data.labels = [];
+            chart.data.datasets[0].data = [];
+            chart.data.datasets[1].data = [];
+            chart.update();
+
+            if (badgeActivos) badgeActivos.textContent = `${periodosSeleccionados.size}/${periodosUnicos.length}`;
+            if (contadorPuntos) contadorPuntos.textContent = `0 de ${puntosOriginales.length} puntos`;
+            if (puntosFooter) puntosFooter.textContent = 0;
+            if (btnRestablecerFiltros) btnRestablecerFiltros.classList.remove('d-none');
+            return;
+        }
+
+        if (mensajeSinPeriodos) mensajeSinPeriodos.classList.add('d-none');
+        ctx.style.opacity = '1';
+
+        const M = visibles.length;
+
+        if (mostrarProyeccion) {
+            chart.data.labels = visibles.map(p => p.label).concat([periodoProyectadoLabel]);
+            chart.data.datasets[0].data = visibles.map(p => p.score).concat([null]);
+
+            // Dataset 1: Proyección a 90 días conectando Qt con Qt+1
+            const newProyectado = new Array(M + 1).fill(null);
+            newProyectado[M - 1] = visibles[M - 1].score;
+            newProyectado[M] = scoreProyectado;
+            chart.data.datasets[1].data = newProyectado;
+
+            const projRadii = new Array(M + 1).fill(0);
+            projRadii[M] = 8.5;
+            const projHoverRadii = new Array(M + 1).fill(0);
+            projHoverRadii[M] = 11;
+            const projColors = new Array(M + 1).fill(colorProyeccion.border);
+
+            chart.data.datasets[1].pointRadius = projRadii;
+            chart.data.datasets[1].pointHoverRadius = projHoverRadii;
+            chart.data.datasets[1].pointBackgroundColor = projColors;
+
+            esActualArr = visibles.map(p => p.es_actual).concat([false]);
+        } else {
+            chart.data.labels = visibles.map(p => p.label);
+            chart.data.datasets[0].data = visibles.map(p => p.score);
+            chart.data.datasets[1].data = [];
+            esActualArr = visibles.map(p => p.es_actual);
+        }
 
         const visibleScores = visibles.map(p => p.score);
-        const visibleLabels = visibles.map(p => p.label);
-
         const visiblePointColors = visibleScores.map(s => {
             if (s > 70) return '#dc2626';     // Rojo
             if (s > 35) return '#f59e0b';     // Amarillo
             return '#10b981';                 // Verde
         });
 
-        const visibleRadius = esActualArr.map(act => act ? 7.5 : 4.5);
-        const visibleHoverRadius = esActualArr.map(act => act ? 9.5 : 6.5);
-        const visibleBorderColor = esActualArr.map(act => act ? '#0f172a' : '#ffffff');
-        const visibleBorderWidth = esActualArr.map(act => act ? 3 : 2);
+        const visibleRadius = visibles.map(p => p.es_actual ? 7.5 : 4.5);
+        const visibleHoverRadius = visibles.map(p => p.es_actual ? 9.5 : 6.5);
+        const visibleBorderColor = visibles.map(p => p.es_actual ? '#0f172a' : '#ffffff');
+        const visibleBorderWidth = visibles.map(p => p.es_actual ? 3 : 2);
 
-        // Actualizar el gráfico
-        chart.data.labels = visibleLabels;
-        chart.data.datasets[0].data = visibleScores;
+        if (mostrarProyeccion) {
+            visiblePointColors.push('transparent');
+            visibleRadius.push(0);
+            visibleHoverRadius.push(0);
+            visibleBorderColor.push('transparent');
+            visibleBorderWidth.push(0);
+        }
+
         chart.data.datasets[0].pointBackgroundColor = visiblePointColors;
         chart.data.datasets[0].pointRadius = visibleRadius;
         chart.data.datasets[0].pointHoverRadius = visibleHoverRadius;
@@ -1848,6 +1984,32 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     if (btnRestablecerDesdeMensaje) {
         btnRestablecerDesdeMensaje.addEventListener('click', restablecerTodo);
+    }
+
+    // Control interactivo del Ocultador / Alternador de Proyección Futura (Q_{t+1})
+    const btnToggleProyeccion = document.getElementById('btnToggleProyeccion');
+    const iconoToggleProyeccion = document.getElementById('iconoToggleProyeccion');
+    const textoToggleProyeccion = document.getElementById('textoToggleProyeccion');
+    const leyendaProyeccionItem = document.getElementById('leyendaProyeccionItem');
+
+    if (btnToggleProyeccion) {
+        btnToggleProyeccion.addEventListener('click', function () {
+            mostrarProyeccion = !mostrarProyeccion;
+            if (mostrarProyeccion) {
+                btnToggleProyeccion.classList.add('btn-outline-primary', 'active');
+                btnToggleProyeccion.classList.remove('btn-outline-secondary');
+                if (iconoToggleProyeccion) iconoToggleProyeccion.className = 'bi bi-eye-slash';
+                if (textoToggleProyeccion) textoToggleProyeccion.textContent = 'Ocultar Predicción';
+                if (leyendaProyeccionItem) leyendaProyeccionItem.style.opacity = '1';
+            } else {
+                btnToggleProyeccion.classList.remove('btn-outline-primary', 'active');
+                btnToggleProyeccion.classList.add('btn-outline-secondary');
+                if (iconoToggleProyeccion) iconoToggleProyeccion.className = 'bi bi-eye';
+                if (textoToggleProyeccion) textoToggleProyeccion.textContent = 'Mostrar Predicción';
+                if (leyendaProyeccionItem) leyendaProyeccionItem.style.opacity = '0.35';
+            }
+            aplicarFiltrosYActualizar();
+        });
     }
 
     // Inicialización del Componente
