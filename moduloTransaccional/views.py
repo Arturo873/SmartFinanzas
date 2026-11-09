@@ -74,7 +74,7 @@ class RolRequeridoMixin(LoginRequiredMixin, UserPassesTestMixin):
             f"No tienes los permisos requeridos para ingresar a esta sección. "
             f"Rol necesario: {', '.join(self.roles_permitidos)}."
         )
-        return redirect('home')
+        return redirect('dashboard:dashboard')
 
 
 class VentaCreateView(RolRequeridoMixin, CreateView):

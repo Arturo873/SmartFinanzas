@@ -82,7 +82,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'SmartFinanzas.wsgi.application'
 
 LOGIN_URL = 'usuarios:login'
-LOGIN_REDIRECT_URL = 'principal'
+LOGIN_REDIRECT_URL = 'dashboard:dashboard'
 LOGOUT_REDIRECT_URL = 'usuarios:login'
 
 

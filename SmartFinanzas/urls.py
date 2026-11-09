@@ -7,10 +7,10 @@ from django.views.generic import TemplateView, RedirectView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('principal/', TemplateView.as_view(template_name='Principal.html'), name='principal'),
-    path('Principal.html', TemplateView.as_view(template_name='Principal.html'), name='principal_html'),
-    path('home/', TemplateView.as_view(template_name='Principal.html'), name='home'),
-    path('base/', TemplateView.as_view(template_name='Principal.html'), name='base_preview'),
+    path('principal/', RedirectView.as_view(pattern_name='dashboard:dashboard', permanent=False), name='principal'),
+    path('Principal.html', RedirectView.as_view(pattern_name='dashboard:dashboard', permanent=False), name='principal_html'),
+    path('home/', RedirectView.as_view(pattern_name='dashboard:dashboard', permanent=False), name='home'),
+    path('base/', RedirectView.as_view(pattern_name='dashboard:dashboard', permanent=False), name='base_preview'),
     path('transaccional/', include('moduloTransaccional.urls')),
     path('etl/', include('moduloETL.urls')),
     path('moduloETL/<path:subpath>', RedirectView.as_view(url='/etl/%(subpath)s', permanent=False)),

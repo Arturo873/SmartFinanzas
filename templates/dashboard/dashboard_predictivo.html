@@ -339,7 +339,7 @@
     <div class="card-header py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-2 border-default bg-white">
         <div>
             <div class="d-flex align-items-center gap-2 mb-0.5">
-                <h2 class="h6 fw-semibold text-main mb-0">Monitor de Solvencia Contable (Altman 1983) &amp; Pronóstico Preventivo AI (90 días)</h2>
+                <h2 class="h6 fw-semibold text-main mb-0">Monitoreo</h2>
                 <span class="badge border font-monospace badge-status-proyeccion fs-micro">
                     Tramo Histórico + Proyección a 90 Días
                 </span>
@@ -1712,6 +1712,9 @@ document.addEventListener('DOMContentLoaded', function () {
         btnMarcarTodos.addEventListener('click', function () {
             periodosSeleccionados = new Set(periodosUnicos);
             document.querySelectorAll('.check-periodo-item').forEach(c => { c.checked = true; });
+            visibilidadSeries.observados = true;
+            visibilidadSeries.proyeccion = true;
+            actualizarBotonesVisibilidad();
             setRangoActivo('todos');
             aplicarFiltrosYActualizar();
         });
@@ -1740,6 +1743,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
             setRangoActivo('todos');
             aplicarFiltrosYActualizar();
+            try {
+                const url = new URL(window.location.href);
+                if (url.searchParams.has('periodo')) {
+                    url.searchParams.delete('periodo');
+                    window.history.replaceState(null, '', url.toString());
+                }
+            } catch (e) {}
         });
     }
 
@@ -1784,6 +1794,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
         setRangoActivo('todos');
         aplicarFiltrosYActualizar();
+        try {
+            const url = new URL(window.location.href);
+            if (url.searchParams.has('periodo')) {
+                url.searchParams.delete('periodo');
+                window.history.replaceState(null, '', url.toString());
+            }
+        } catch (e) {}
     }
 
     if (btnRestablecerFiltros) {

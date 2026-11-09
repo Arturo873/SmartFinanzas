@@ -259,11 +259,18 @@ class DashboardRolMixin(LoginRequiredMixin, UserPassesTestMixin):
 
     def handle_no_permission(self):
         if self.request.user.is_authenticated:
+            rol = self.get_user_role()
+            if rol == 'Trabajador':
+                messages.info(
+                    self.request,
+                    "Redirección por perfil: El rol Trabajador opera en el Punto de Venta Operativo."
+                )
+                return redirect('moduloTransaccional:venta_crear')
             messages.error(
                 self.request,
-                "Acceso restringido: El Panel Gerencial está reservado únicamente para Dueños y Contadores."
+                "Acceso restringido: El Panel Gerencial está reservado únicamente para Dueños, Contadores y Administradores."
             )
-            return redirect('principal')
+            return redirect('moduloTransaccional:venta_crear')
         return super().handle_no_permission()
 
 
@@ -364,66 +371,104 @@ class DashboardView(DashboardRolMixin, TemplateView):
         elif not user.is_superuser:
             ratios_qs = ratios_qs.none()
 
-        # Extraer todos los períodos históricos disponibles para los filtros
-        periodos_disponibles = []
-        for p in predicciones_qs:
-            per = p.ratio.periodo if (p.ratio and p.ratio.periodo) else (p.fecha_prediccion.strftime('%d/%m/%Y') if p.fecha_prediccion else f"#{p.id}")
-            if per and per not in periodos_disponibles:
-                periodos_disponibles.append(per)
-        for r in ratios_qs:
-            if r.periodo and r.periodo not in periodos_disponibles:
-                periodos_disponibles.append(r.periodo)
-        periodos_disponibles.sort()
+        # 3. Consulta y construcción completa de períodos para el Monitor de Solvencia Contable (RF-04)
+        periodos_unicos = list(
+            ratios_qs.exclude(periodo__isnull=True)
+                     .exclude(periodo='')
+                     .values_list('periodo', flat=True)
+                     .distinct()
+        )
 
-        # Hasta 20 evaluaciones históricas para graficación y filtrado dinámico (RF-04)
-        predicciones_curva = predicciones_qs
-        if periodo_param and not (self.request.headers.get('x-requested-with') == 'XMLHttpRequest' or self.request.GET.get('ajax') == '1'):
-            predicciones_curva = predicciones_curva.filter(
-                Q(ratio__periodo=periodo_param) | Q(ratio__periodo__icontains=periodo_param)
-            )
-        ultimas_predicciones = list(predicciones_curva.order_by('-fecha_prediccion', '-id')[:20])
-        # Invertir a orden cronológico ascendente para el eje horizontal del gráfico
-        predicciones_cronologicas = list(reversed(ultimas_predicciones))
+        ratios_por_periodo = {}
+        for per in periodos_unicos:
+            r = ratios_qs.filter(periodo=per).order_by('-id').first()
+            if r:
+                ratios_por_periodo[per] = r
+
+        pred_por_periodo = {}
+        for p in predicciones_qs.order_by('-fecha_prediccion', '-id'):
+            if p.ratio and p.ratio.periodo and p.ratio.periodo not in pred_por_periodo:
+                pred_por_periodo[p.ratio.periodo] = p
+
+        from AppWeb.viewsML import predecir_riesgo
+
+        # Secuencia cronológica completa de períodos únicos (preservar toda la serie sin recortar por periodo_param)
+        todos_periodos = sorted(ratios_por_periodo.keys())
+        periodos_visibles = list(todos_periodos)
+
+        # Si no hay ratios en módulo ETL pero sí hay predicciones en capa analítica
+        if not periodos_visibles and predicciones_qs.exists():
+            for p in predicciones_qs.order_by('fecha_prediccion', 'id'):
+                p_per = p.ratio.periodo if (p.ratio and p.ratio.periodo) else (p.fecha_prediccion.strftime('%d/%m/%Y') if p.fecha_prediccion else f"#{p.id}")
+                if p_per not in periodos_visibles:
+                    periodos_visibles.append(p_per)
+                    pred_por_periodo[p_per] = p
+
+        periodos_disponibles = list(periodos_visibles)
 
         chart_puntos = []
         periodos_pasados_labels = []
         valores_observados = []
         valores_predicciones = []
 
-        for p in predicciones_cronologicas:
-            per_raw = p.ratio.periodo if (p.ratio and p.ratio.periodo) else (p.fecha_prediccion.strftime('%d/%m/%Y') if p.fecha_prediccion else f"#{p.id}")
-            p_fut, per_norm, _ = calcular_periodo_siguiente(per_raw)
-            lbl_clean = per_norm or per_raw
-            r_obj = p.ratio
-            if not r_obj and per_raw:
-                r_obj = ratios_qs.filter(periodo=per_raw).order_by('-id').first()
+        for per in periodos_visibles:
+            p_fut, per_norm, _ = calcular_periodo_siguiente(per)
+            r_obj = ratios_por_periodo.get(per)
+            p_obj = pred_por_periodo.get(per)
+
+            if p_obj and p_obj.score_riesgo is not None:
+                raw_ml = float(p_obj.score_riesgo)
+                pid = p_obj.id
+                fecha_pred = p_obj.fecha_prediccion
+            elif r_obj:
+                vars_dict = {
+                    'razon_corriente': float(r_obj.v1_razon_corriente or 1.0),
+                    'capital_trabajo_sobre_activos': float(r_obj.v2_capital_trabajo_activos or 0.1),
+                    'leverage_total': float(r_obj.v3_leverage_total or 1.0),
+                    'roa_operacional': float(r_obj.v4_roa_operacional or 0.05),
+                    'margen_operacional': float(r_obj.v5_margen_operacional or 0.08),
+                    'rotacion_activos': float(r_obj.v6_rotacion_activos or 1.0),
+                    'volatilidad_flujo_caja': float(r_obj.v7_volatilidad_flujo or 0.5),
+                }
+                raw_ml, _, _ = predecir_riesgo(vars_dict)
+                pid = None
+                fecha_pred = r_obj.fecha_calculo
+            else:
+                raw_ml = 35.0
+                pid = None
+                fecha_pred = None
 
             if r_obj:
                 sc_obs = calcular_score_observado(r_obj)
                 z_val = calcular_z_score_altman_1983(r_obj)
+                carga_obj = getattr(r_obj, 'carga', None)
+                pat_val = float(getattr(carga_obj, 'patrimonio', 1.0) or 1.0) if carga_obj else 1.0
             else:
-                sc_obs = float(p.score_riesgo or 35.0)
+                sc_obs = raw_ml
                 z_val = 2.60
+                pat_val = 1.0
 
-            carga_obj = getattr(r_obj, 'carga', None) if r_obj else None
-            pat_val = float(getattr(carga_obj, 'patrimonio', 1.0) or 1.0) if carga_obj else 1.0
-
-            raw_ml = float(p.score_riesgo or 0.0)
             sc_pred = calibrar_score_proyeccion(raw_ml, sc_obs)
             niv_obs = 'Verde' if sc_obs <= 35 else ('Amarillo' if sc_obs <= 70 else 'Rojo')
             niv_pred = 'Verde' if sc_pred <= 35 else ('Amarillo' if sc_pred <= 70 else 'Rojo')
-            es_act = bool(ultima_prediccion and p.id == ultima_prediccion.id)
+
+            lbl_clean = per_norm or per
+            es_act = bool(
+                (periodo_param and (per == periodo_param or lbl_clean == periodo_param)) or
+                (not periodo_param and ultima_prediccion and p_obj and p_obj.id == ultima_prediccion.id) or
+                (not periodo_param and not ultima_prediccion and ultimo_ratio and r_obj and r_obj.id == ultimo_ratio.id)
+            )
 
             periodos_pasados_labels.append(lbl_clean)
             valores_observados.append(sc_obs)
             valores_predicciones.append(sc_pred)
 
             chart_puntos.append({
-                'id': p.id,
-                'periodo': per_raw,
+                'id': pid,
+                'periodo': per,
                 'label': lbl_clean,
-                'fecha_corta': p.fecha_prediccion.strftime('%d/%m %H:%M') if p.fecha_prediccion else '',
-                'fecha_completa': p.fecha_prediccion.strftime('%d/%m/%Y %H:%M') if p.fecha_prediccion else '',
+                'fecha_corta': fecha_pred.strftime('%d/%m %H:%M') if (fecha_pred and hasattr(fecha_pred, 'strftime')) else '',
+                'fecha_completa': fecha_pred.strftime('%d/%m/%Y %H:%M') if (fecha_pred and hasattr(fecha_pred, 'strftime')) else '',
                 'altman_z': z_val,
                 'patrimonio_neto': pat_val,
                 'score_observado': sc_obs,
@@ -448,7 +493,11 @@ class DashboardView(DashboardRolMixin, TemplateView):
         ultimo_ratio = (
             ultima_prediccion.ratio
             if (ultima_prediccion and ultima_prediccion.ratio)
-            else ratios_qs.order_by('-fecha_calculo', '-id').first()
+            else (
+                ratios_qs.filter(Q(periodo=periodo_param) | Q(periodo__icontains=periodo_param)).order_by('-id').first()
+                if periodo_param
+                else ratios_qs.order_by('-fecha_calculo', '-id').first()
+            )
         )
 
         # Proyección futura a 90 días (Q_{t+1}) para la curva de tendencia con alternador/ocultador
@@ -804,13 +853,15 @@ class DashboardPredictivoView(DashboardView):
 
         from AppWeb.viewsML import predecir_riesgo
 
-        # Identificar secuencia cronológica de trimestres válidos
+        # Secuencia cronológica completa de períodos válidos (preservar toda la serie sin recortar por periodo_param)
         todos_periodos = sorted(ratios_por_periodo.keys())
-        periodos_trimestrales = [p for p in todos_periodos if 'Q' in p or 'q' in p] or todos_periodos
-
-        # IMPORTANTE: Preservar todos los trimestres disponibles sin recortar con [:idx_balance + 1]
-        # para que el frontend disponga de la historia completa y el botón 'Todos' pueda restablecerla.
-        periodos_visibles = list(periodos_trimestrales)
+        periodos_visibles = list(todos_periodos)
+        if not periodos_visibles and predicciones_qs.exists():
+            for p in predicciones_qs.order_by('fecha_prediccion', 'id'):
+                p_per = p.ratio.periodo if (p.ratio and p.ratio.periodo) else (p.fecha_prediccion.strftime('%d/%m/%Y') if p.fecha_prediccion else f"#{p.id}")
+                if p_per not in periodos_visibles:
+                    periodos_visibles.append(p_per)
+                    pred_por_periodo[p_per] = p
 
         timeline_puntos = []
         periodos_pasados_labels = []
@@ -1032,7 +1083,11 @@ class GenerarPDFView(DashboardRolMixin, View):
         ultimo_ratio = (
             ultima_prediccion.ratio
             if (ultima_prediccion and ultima_prediccion.ratio)
-            else ratios_qs.order_by('-fecha_calculo', '-id').first()
+            else (
+                ratios_qs.filter(Q(periodo=periodo_param) | Q(periodo__icontains=periodo_param)).order_by('-id').first()
+                if periodo_param
+                else ratios_qs.order_by('-fecha_calculo', '-id').first()
+            )
         )
         ratio_asociado_prediccion = ultimo_ratio
 

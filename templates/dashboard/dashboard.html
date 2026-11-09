@@ -605,7 +605,7 @@
 <div class="card mb-4 d-flex flex-column justify-content-between">
     <div class="card-header py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-2 border-default">
         <div>
-            <h2 class="h6 fw-semibold text-main mb-0">Monitor de Solvencia Contable (Altman 1983) &amp; Pronóstico Preventivo AI (90 días)</h2>
+            <h2 class="h6 fw-semibold text-main mb-0">Monitoreo</h2>
             <p class="text-muted-custom mb-0 fs-caption">Evolución histórica de solvencia contable observada (Altman 1983 Z'') y predicción de riesgo a 3 meses (Q<sub>t</sub> &rarr; Q<sub>t+1</sub>)</p>
         </div>
         <!-- Leyenda Visual del Gráfico -->
@@ -2755,6 +2755,9 @@ document.addEventListener('DOMContentLoaded', function () {
         btnMarcarTodos.addEventListener('click', function () {
             periodosSeleccionados = new Set(periodosUnicos);
             document.querySelectorAll('.check-periodo-item').forEach(c => { c.checked = true; });
+            visibilidadSeries.observados = true;
+            visibilidadSeries.proyeccion = true;
+            actualizarBotonesVisibilidad();
             setRangoActivo('todos');
             aplicarFiltrosYActualizar();
         });
@@ -2774,9 +2777,19 @@ document.addEventListener('DOMContentLoaded', function () {
             periodosSeleccionados = new Set(periodosUnicos);
             document.querySelectorAll('.check-periodo-item').forEach(c => { c.checked = true; });
             soloAlertas = false;
-            if (btnFiltroAlertas) btnFiltroAlertas.classList.remove('active', 'btn-warning');
+            if (btnFiltroAlertas) btnFiltroAlertas.classList.remove('active', 'btn-warning', 'text-white');
+            visibilidadSeries.observados = true;
+            visibilidadSeries.proyeccion = true;
+            actualizarBotonesVisibilidad();
             setRangoActivo('todos');
             aplicarFiltrosYActualizar();
+            try {
+                const url = new URL(window.location.href);
+                if (url.searchParams.has('periodo')) {
+                    url.searchParams.delete('periodo');
+                    window.history.replaceState(null, '', url.toString());
+                }
+            } catch (e) {}
         });
     }
 
@@ -2813,8 +2826,18 @@ document.addEventListener('DOMContentLoaded', function () {
         soloAlertas = false;
         if (btnFiltroAlertas) btnFiltroAlertas.classList.remove('active', 'btn-warning', 'text-white');
         document.querySelectorAll('.check-periodo-item').forEach(c => { c.checked = true; });
+        visibilidadSeries.observados = true;
+        visibilidadSeries.proyeccion = true;
+        actualizarBotonesVisibilidad();
         setRangoActivo('todos');
         aplicarFiltrosYActualizar();
+        try {
+            const url = new URL(window.location.href);
+            if (url.searchParams.has('periodo')) {
+                url.searchParams.delete('periodo');
+                window.history.replaceState(null, '', url.toString());
+            }
+        } catch (e) {}
     }
 
     if (btnRestablecerFiltros) {

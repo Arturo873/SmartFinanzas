@@ -39,13 +39,25 @@ def sincronizar_sesion(request, usuario_db):
     auth_login(request, auth_user)
 
 
+def redireccionar_segun_rol(usuario_db):
+    """
+    Determina la URL de destino según el rol del usuario:
+    - Trabajador: Punto de Venta Operativo (moduloTransaccional:venta_crear).
+    - Dueño / Contador / Administrador / Otros: Panel Gerencial (dashboard:dashboard).
+    """
+    if usuario_db and usuario_db.rol and usuario_db.rol.nombre == 'Trabajador':
+        return 'moduloTransaccional:venta_crear'
+    return 'dashboard:dashboard'
+
+
 def login_view(request):
     """
     Vista de inicio de sesión que autentica usuarios en el sistema.
-    Redirige a 'principal' tras una autenticación exitosa.
+    Redirige a 'dashboard:dashboard' (o POS si Trabajador) tras una autenticación exitosa.
     """
     if request.user.is_authenticated:
-        return redirect('principal')
+        usuario_db = Usuario.objects.select_related('rol').filter(username=request.user.username).first()
+        return redirect(redireccionar_segun_rol(usuario_db))
 
     form = LoginForm(request.POST or None)
 
@@ -53,7 +65,7 @@ def login_view(request):
         usuario_db = form.cleaned_data['usuario_db']
         sincronizar_sesion(request, usuario_db)
         messages.success(request, f"Bienvenido(a), {usuario_db.username} ({usuario_db.rol.nombre if usuario_db.rol else 'Usuario'}).")
-        return redirect('principal')
+        return redirect(redireccionar_segun_rol(usuario_db))
 
     return render(request, 'usuarios/login.html', {'form': form})
 
@@ -73,7 +85,8 @@ def registro_view(request):
     Vista de registro de nuevos usuarios en el sistema.
     """
     if request.user.is_authenticated:
-        return redirect('principal')
+        usuario_db = Usuario.objects.select_related('rol').filter(username=request.user.username).first()
+        return redirect(redireccionar_segun_rol(usuario_db))
 
     form = RegistroForm(request.POST or None)
 
@@ -84,7 +97,7 @@ def registro_view(request):
             request,
             f"¡Cuenta creada con éxito! Has sido registrado como {usuario_db.rol.nombre}."
         )
-        return redirect('principal')
+        return redirect(redireccionar_segun_rol(usuario_db))
 
     empresas = list(Empresa.objects.all().order_by('id'))
     return render(request, 'usuarios/registro.html', {

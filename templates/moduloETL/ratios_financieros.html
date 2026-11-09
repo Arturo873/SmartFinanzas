@@ -130,9 +130,7 @@
                         <th class="text-end" title="V5: Margen Operacional (EBIT / Ingresos)">V5 Margen</th>
                         <th class="text-end" title="V6: Rotación de Activos (Ingresos / Activo Total)">V6 RotAct</th>
                         <th class="text-end" title="V7: Volatilidad del Flujo de Caja">V7 Volat</th>
-                        <th class="text-end" title="Z''EM Altman: Índice de Solvencia Mercados Emergentes">Z''EM</th>
-                        <th class="text-end" title="Ref: Prueba Ácida ((Activo Circ - Inv) / Pasivo Circ)">P. Ácida</th>
-                        <th class="pe-3 text-center">Acción</th>
+                        <th class="pe-3 text-center">Ver</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -165,25 +163,16 @@
                                 {{ r.v7_volatilidad_flujo|floatformat:2|default:"Neutra" }}
                             {% endif %}
                         </td>
-                        <td class="text-end">
-                            <span class="badge {% if r.ref_z_altman and r.ref_z_altman >= 2.60 %}bg-success-subtle text-success border border-success-subtle{% elif r.ref_z_altman and r.ref_z_altman >= 1.10 %}bg-warning-subtle text-warning border border-warning-subtle{% else %}bg-danger-subtle text-danger border border-danger-subtle{% endif %}">
-                                {{ r.ref_z_altman|floatformat:2 }}
-                            </span>
-                        </td>
-                        <td class="text-end">{{ r.ref_prueba_acida|floatformat:2 }}</td>
                         <td class="pe-3 text-center font-sans-serif">
-                            <form method="POST" action="{% url 'moduloETL:ejecutar_analisis' %}" class="d-inline m-0 form-ejecutar-analisis">
-                                {% csrf_token %}
-                                <input type="hidden" name="ratio_id" value="{{ r.id }}">
-                                <button type="submit" class="btn btn-outline-primary btn-sm py-0.5 px-2 shadow-sm btn-ejecutar-analisis" title="Ejecutar Análisis para el período {{ r.periodo }}">
-                                    <i class="bi bi-cpu me-1"></i>Ejecutar Análisis
-                                </button>
-                            </form>
+                            <a href="{% url 'dashboard:dashboard' %}?periodo={{ r.periodo|urlencode }}" class="btn btn-primary btn-sm py-1 px-3 shadow-sm d-inline-flex align-items-center gap-1" title="Ver análisis en el Dashboard para el período {{ r.periodo }}">
+                                <i class="bi bi-eye"></i>
+                                <span>Ver</span>
+                            </a>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="12" class="text-center py-5 text-muted font-sans-serif">
+                        <td colspan="10" class="text-center py-5 text-muted font-sans-serif">
                             <i class="bi bi-calculator-fill fs-1 d-block mb-2 text-secondary"></i>
                             No hay ratios calculados para tu empresa.<br>
                             <a href="{% url 'moduloETL:carga_datos' %}" class="btn btn-primary btn-sm mt-3">

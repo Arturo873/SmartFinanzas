@@ -136,8 +136,14 @@ class CargaArchivoView(RolRequeridoMixin, View):
             context['error_mensaje'] = 'El archivo supera el límite de 25 MB permitido (RNF-10).'
             return render(request, self.template_name, context)
 
-        orientacion_modo = request.POST.get('orientacion_modo', 'auto')
-        modo_layout = 'horizontal' if orientacion_modo == 'cmf' else None
+        # Validación obligatoria de aceptación de términos IFRS (Check de certificación)
+        terminos_aceptados = request.POST.get('terminos_aceptados')
+        if not terminos_aceptados:
+            context['error_mensaje'] = 'Debe certificar la exactitud contable del balance y aceptar los Términos de Ingesta, Veracidad y Validación IFRS para procesar el archivo.'
+            return render(request, self.template_name, context)
+
+        # Enfoque estricto: El sistema procesa exclusivamente estados financieros horizontales (CMF / IFRS)
+        modo_layout = 'horizontal'
 
         usuario_db = resolver_usuario_bd(request.user)
         empresa_usuario = usuario_db.empresa if usuario_db else None

@@ -65,42 +65,6 @@
         </div>
     </div>
     <div class="card-body p-4">
-        <!-- Metadatos de la Empresa Detectada -->
-        <div class="row g-3 mb-4">
-            <div class="col-sm-6 col-md-3">
-                <div class="p-3 bg-light rounded-3 border">
-                    <div class="text-muted small">Razón Social:</div>
-                    <div class="fw-bold text-dark text-truncate" title="{{ etl_resultado.metadatos.razon_social }}">
-                        {{ etl_resultado.metadatos.razon_social|default:"N/A" }}
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-md-3">
-                <div class="p-3 bg-light rounded-3 border">
-                    <div class="text-muted small">RUT:</div>
-                    <div class="fw-bold text-dark font-monospace">
-                        {{ etl_resultado.metadatos.rut|default:"N/A" }}
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-md-3">
-                <div class="p-3 bg-light rounded-3 border">
-                    <div class="text-muted small">Moneda Reporte:</div>
-                    <div class="fw-bold text-dark">
-                        {{ etl_resultado.metadatos.moneda|default:"CLP" }}
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-md-3">
-                <div class="p-3 bg-light rounded-3 border">
-                    <div class="text-muted small">Orientación:</div>
-                    <span class="badge {% if etl_resultado.layout == 'horizontal' %}bg-primary-subtle text-primary border border-primary-subtle{% else %}bg-info-subtle text-info border border-info-subtle{% endif %}">
-                        {{ etl_resultado.layout|upper }}
-                    </span>
-                </div>
-            </div>
-        </div>
-
         <!-- Advertencias Contables si existen -->
         {% if etl_resultado.advertencias %}
             <div class="alert alert-warning shadow-sm mb-4">
@@ -299,38 +263,20 @@
                         </div>
                     </div>
 
-                    <!-- Selector de Formato / Auto-detección -->
-                    <div class="row g-3 mb-4">
-                        <div class="col-sm-6">
-                            <div class="border rounded-3 p-3 h-100 bg-white shadow-sm">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="orientacion_modo" id="modoAuto" value="auto" checked>
-                                    <label class="form-check-label fw-semibold text-dark" for="modoAuto">
-                                        <i class="bi bi-magic text-primary me-1"></i>Detección Automática (Recomendado)
-                                    </label>
-                                </div>
-                                <div class="text-muted small mt-1 ms-4 ps-1">
-                                    Identifica automáticamente si el reporte es CMF horizontal o PYME vertical.
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-sm-6">
-                            <div class="border rounded-3 p-3 h-100 bg-white shadow-sm">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="orientacion_modo" id="modoCMF" value="cmf">
-                                    <label class="form-check-label fw-semibold text-dark" for="modoCMF">
-                                        <i class="bi bi-building-check text-success me-1"></i>Estándar CMF Oficial
-                                    </label>
-                                </div>
-                                <div class="text-muted small mt-1 ms-4 ps-1">
-                                    Optimizado para reportes descargados directamente del portal de la CMF.
-                                </div>
+                    <!-- Formato IFRS Requerido (Horizontal CMF) -->
+                    <input type="hidden" name="orientacion_modo" value="horizontal" id="orientacionModo">
+                    <div class="alert alert-light border shadow-sm rounded-3 py-2.5 px-3 mb-4 d-flex align-items-center gap-2.5 text-muted small">
+                        <i class="bi bi-file-earmark-spreadsheet text-primary fs-4 flex-shrink-0"></i>
+                        <div>
+                            <strong class="text-dark">Formato Estándar CMF / IFRS: Exclusivo Horizontal</strong>
+                            <div class="text-secondary" style="font-size: 0.78rem;">
+                                Columnas correspondientes a cuentas contables y filas a períodos trimestrales históricos.
                             </div>
                         </div>
                     </div>
 
                     <!-- Aceptación de Términos Contables IFRS -->
-                    <div class="card bg-light border-0 p-3 mb-4 rounded-3">
+                    <div class="card bg-light border-0 p-3 mb-4 rounded-3" id="cardCheckTerminos">
                         <div class="form-check m-0">
                             <input class="form-check-input" type="checkbox" id="checkTerminosETL" name="terminos_aceptados" required>
                             <label class="form-check-label small text-dark" for="checkTerminosETL">
@@ -339,6 +285,9 @@
                                     Términos de Ingesta, Veracidad y Validación IFRS
                                 </a> <span class="text-danger">*</span>
                             </label>
+                        </div>
+                        <div id="errorCheckTerminos" class="text-danger small mt-2 fw-semibold d-none">
+                            <i class="bi bi-exclamation-circle-fill me-1"></i>Debes certificar la exactitud contable marcando la casilla antes de procesar el archivo.
                         </div>
                     </div>
 
@@ -719,17 +668,51 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Spinner en submit de carga de balance
+    const errorCheckTerminos = document.getElementById('errorCheckTerminos');
+    const cardCheckTerminos = document.getElementById('cardCheckTerminos');
+
+    if (checkPrincipalETL) {
+        checkPrincipalETL.addEventListener('change', function() {
+            if (this.checked) {
+                this.classList.remove('is-invalid');
+                if (errorCheckTerminos) errorCheckTerminos.classList.add('d-none');
+                if (cardCheckTerminos) cardCheckTerminos.classList.remove('border', 'border-danger');
+            }
+        });
+    }
+
+    // Spinner y validación en submit de carga de balance
     if (formCarga) {
         formCarga.addEventListener('submit', function(e) {
-            if (inputArchivo && inputArchivo.files && inputArchivo.files.length > 0) {
-                const archivo = inputArchivo.files[0];
-                if (archivo.size > LIMITE_MAX_BYTES) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return false;
-                }
+            // 1. Validar que se haya seleccionado un archivo
+            if (!inputArchivo || !inputArchivo.files || inputArchivo.files.length === 0) {
+                e.preventDefault();
+                e.stopPropagation();
+                alert('Debe seleccionar un archivo Excel (.xlsx, .xls) o CSV (.csv) para procesar.');
+                if (inputArchivo) inputArchivo.focus();
+                return false;
             }
+
+            // 2. Validar tamaño de archivo (25 MB)
+            const archivo = inputArchivo.files[0];
+            if (archivo.size > LIMITE_MAX_BYTES) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+
+            // 3. Validar obligatoriedad del check de Términos IFRS
+            if (checkPrincipalETL && !checkPrincipalETL.checked) {
+                e.preventDefault();
+                e.stopPropagation();
+                checkPrincipalETL.focus();
+                checkPrincipalETL.classList.add('is-invalid');
+                if (cardCheckTerminos) cardCheckTerminos.classList.add('border', 'border-danger');
+                if (errorCheckTerminos) errorCheckTerminos.classList.remove('d-none');
+                return false;
+            }
+
+            // 4. Si es válido, activar spinner
             if (btnSubmit) {
                 btnSubmit.disabled = true;
                 btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Extrayendo y procesando ratios en memoria...';

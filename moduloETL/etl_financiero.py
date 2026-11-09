@@ -450,23 +450,27 @@ class FinancialETLProcessor:
                 best_col_idx = c_idx
                 col_canon_map = matches
 
-        # 3. Decidir orientación
-        if self.force_layout == "horizontal" and max_row_matches >= 2:
-            self._metadata.formato_detectado = "horizontal"
-            return self._extract_horizontal(grid, best_row_idx, row_canon_map)
-        elif self.force_layout == "vertical" and max_col_matches >= 2:
-            self._metadata.formato_detectado = "vertical"
-            return self._extract_vertical(grid, best_col_idx, col_canon_map)
-        elif max_row_matches >= max_col_matches and max_row_matches >= 3:
-            self._metadata.formato_detectado = "horizontal"
-            return self._extract_horizontal(grid, best_row_idx, row_canon_map)
-        elif max_col_matches >= 3:
-            self._metadata.formato_detectado = "vertical"
-            return self._extract_vertical(grid, best_col_idx, col_canon_map)
-        else:
+        # 3. Decidir orientación: El sistema procesa exclusivamente formato horizontal (CMF / IFRS)
+        if self.force_layout == "horizontal" or self.force_layout is None:
+            if max_row_matches >= 2:
+                self._metadata.formato_detectado = "horizontal"
+                return self._extract_horizontal(grid, best_row_idx, row_canon_map)
+            elif max_col_matches >= 3:
+                raise InvalidFormatError(
+                    "El archivo parece estar estructurado en formato vertical. "
+                    "El sistema opera exclusivamente con estados financieros en formato horizontal estandarizado CMF / IFRS "
+                    "(donde las cuentas contables se ubican como encabezados de columnas y las filas representan períodos trimestrales). "
+                    "Por favor transponga las cuentas a columnas antes de cargarlo."
+                )
+            else:
+                raise InvalidFormatError(
+                    f"No se detectaron suficientes cuentas contables canónicas reconocibles en formato horizontal. "
+                    f"Coincidencias encontradas: {max_row_matches} (mínimo requerido: 2)."
+                )
+        elif self.force_layout == "vertical":
             raise InvalidFormatError(
-                f"No se detectaron suficientes cuentas contables canónicas reconocibles en el archivo. "
-                f"Coincidencias máx filas: {max_row_matches}, columnas: {max_col_matches} (mínimo requerido: 3)."
+                "La ingesta de estados en formato vertical está inhabilitada. "
+                "El sistema opera exclusivamente con estados financieros horizontales bajo norma CMF / IFRS."
             )
 
     def _extract_horizontal(self, grid: List[List[Any]], header_row_idx: int, canon_map: Dict[str, int]) -> pd.DataFrame:
