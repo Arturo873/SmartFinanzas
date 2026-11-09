@@ -110,6 +110,76 @@ def calcular_score_observado(r_obj) -> float:
     return round(float(max(5.0, min(95.0, score))), 1)
 
 
+def construir_matriz_backtesting(ratios_por_periodo, pred_por_periodo, periodo_balance_raw, periodo_balance_norm, periodo_proyectado, score_actual, nivel):
+    """
+    Construye la Matriz de Validación Histórica (Backtesting Retrospectivo a 90 Días: Q_t -> Q_{t+1})
+    contrastando las inferencias previas del modelo predictivo frente a la realidad contable de Altman (1983).
+    """
+    matriz_backtesting = []
+    lista_periodos_ordenados = sorted(ratios_por_periodo.keys())
+
+    for idx_p, p_base in enumerate(lista_periodos_ordenados):
+        p_fut, _, _ = calcular_periodo_siguiente(p_base)
+        r_base = ratios_por_periodo[p_base]
+
+        pred_asoc = pred_por_periodo.get(p_base)
+        score_bt = float(pred_asoc.score_riesgo) if pred_asoc and pred_asoc.score_riesgo is not None else 35.0
+        nivel_bt = pred_asoc.nivel_semaforo if pred_asoc else ('Verde' if score_bt <= 35 else 'Amarillo' if score_bt <= 70 else 'Rojo')
+        color_bt = 'Verde' if (nivel_bt == 'Verde' or score_bt <= 35) else ('Amarillo' if score_bt <= 70 else 'Rojo')
+
+        r_fut = ratios_por_periodo.get(p_fut)
+        if r_fut:
+            z_fut = calcular_z_score_altman_1983(r_fut)
+            if z_fut >= 2.60:
+                estado_real = f"Solvente (Altman Z'': {z_fut:.2f})"
+                resultado_val = "Acierto Preventivo" if score_bt <= 35 else "Falsa Alarma Superada"
+                badge_val = "badge-status-solvente"
+            elif z_fut < 1.10:
+                estado_real = f"Insolvente / Quiebra (Altman Z'': {z_fut:.2f})"
+                resultado_val = "Alerta Temprana Validada" if score_bt > 35 else "Insolvencia Sobrevenida"
+                badge_val = "badge-status-critico"
+            else:
+                estado_real = f"Zona Gris / Tensión (Altman Z'': {z_fut:.2f})"
+                resultado_val = "Anticipación Correcta"
+                badge_val = "badge-status-alerta"
+        else:
+            if p_base == periodo_balance_raw or p_base == periodo_balance_norm:
+                estado_real = "Ventana Preventiva en Curso (90 días vigentes)"
+                resultado_val = "Pronóstico Activo"
+                badge_val = "badge-status-alerta"
+            else:
+                estado_real = "Solvencia Preservada"
+                resultado_val = "Acierto Histórico"
+                badge_val = "badge-status-solvente"
+
+        matriz_backtesting.append({
+            'periodo_base': p_base,
+            'periodo_proyectado': p_fut,
+            'score_proyectado': score_bt,
+            'nivel_proyectado': nivel_bt,
+            'color_proyectado': color_bt,
+            'estado_real': estado_real,
+            'resultado': resultado_val,
+            'badge_clase': badge_val,
+            'es_activo': (p_base == periodo_balance_raw or p_base == periodo_balance_norm),
+        })
+
+    if not matriz_backtesting and score_actual is not None:
+        matriz_backtesting.append({
+            'periodo_base': periodo_balance_norm,
+            'periodo_proyectado': periodo_proyectado,
+            'score_proyectado': score_actual,
+            'nivel_proyectado': nivel,
+            'color_proyectado': 'Verde' if nivel == 'Verde' else ('Amarillo' if nivel == 'Amarillo' else 'Rojo'),
+            'estado_real': "Ventana Preventiva en Curso (90 días vigentes)",
+            'resultado': "Pronóstico Activo",
+            'badge_clase': "badge-status-alerta",
+            'es_activo': True,
+        })
+
+    return matriz_backtesting
+
+
 
 def resolver_usuario_bd(auth_user):
     """
@@ -393,6 +463,26 @@ class DashboardView(DashboardRolMixin, TemplateView):
         elif score is not None:
             timeline_proyectado_dashboard = [score_proyectado_dashboard]
 
+        # Construcción de la Matriz de Validación Histórica (Backtesting a 90 Días: Q_t -> Q_{t+1})
+        ratios_por_periodo_dict = {}
+        for r in ratios_qs.exclude(periodo__isnull=True).exclude(periodo='').order_by('id'):
+            ratios_por_periodo_dict[r.periodo] = r
+
+        pred_por_periodo_dict = {}
+        for p in predicciones_qs.order_by('-fecha_prediccion', '-id'):
+            if p.ratio and p.ratio.periodo and p.ratio.periodo not in pred_por_periodo_dict:
+                pred_por_periodo_dict[p.ratio.periodo] = p
+
+        matriz_backtesting_dashboard = construir_matriz_backtesting(
+            ratios_por_periodo=ratios_por_periodo_dict,
+            pred_por_periodo=pred_por_periodo_dict,
+            periodo_balance_raw=periodo_base_dashboard,
+            periodo_balance_norm=periodo_base_norm_dashboard,
+            periodo_proyectado=periodo_proyectado_dashboard,
+            score_actual=score_actual_proy,
+            nivel=nivel_proyectado_dashboard,
+        )
+
         # 4. Total Ingreso_Real del día actual sumando transacciones de Venta (moduloTransaccional / app_caja)
         hoy = timezone.localdate()
         ventas_hoy_qs = Venta.objects.filter(fecha__date=hoy)
@@ -603,6 +693,13 @@ class DashboardView(DashboardRolMixin, TemplateView):
             'nivel_proyectado': nivel_proyectado_dashboard,
             'delta_info': delta_info_dashboard,
             'timeline_proyectado_json': json.dumps(timeline_proyectado_dashboard),
+            # Sistema de Alerta Temprana a 3 Meses (Q_t -> Q_{t+1}) y Backtesting
+            'periodo_balance': periodo_base_norm_dashboard,
+            'periodo_balance_raw': periodo_base_dashboard,
+            'ventana_preventiva_dias': dias_horizonte_dashboard,
+            'matriz_backtesting': matriz_backtesting_dashboard,
+            'total_trimestres_backtesting': len(matriz_backtesting_dashboard),
+            'score_base_qt': score_base_dashboard,
         })
 
         return context
@@ -804,67 +901,15 @@ class DashboardPredictivoView(DashboardView):
                 timeline_proyectado_data[idx_act + 1] = score_actual
 
         # 5. Matriz de Validación Histórica (Backtesting Visual Retrospectivo) optimizada en O(1)
-        matriz_backtesting = []
-        lista_periodos_ordenados = sorted(ratios_por_periodo.keys())
-
-        for idx_p, p_base in enumerate(lista_periodos_ordenados):
-            p_fut, _, _ = calcular_periodo_siguiente(p_base)
-            r_base = ratios_por_periodo[p_base]
-
-            pred_asoc = pred_por_periodo.get(p_base)
-            score_bt = float(pred_asoc.score_riesgo) if pred_asoc and pred_asoc.score_riesgo is not None else 35.0
-            nivel_bt = pred_asoc.nivel_semaforo if pred_asoc else ('Verde' if score_bt <= 35 else 'Amarillo' if score_bt <= 70 else 'Rojo')
-            color_bt = 'Verde' if (nivel_bt == 'Verde' or score_bt <= 35) else ('Amarillo' if score_bt <= 70 else 'Rojo')
-
-            r_fut = ratios_por_periodo.get(p_fut)
-            if r_fut:
-                z_fut = calcular_z_score_altman_1983(r_fut)
-                if z_fut >= 2.60:
-                    estado_real = f"Solvente (Altman Z'': {z_fut:.2f})"
-                    resultado_val = "Acierto Preventivo" if score_bt <= 35 else "Falsa Alarma Superada"
-                    badge_val = "badge-status-solvente"
-                elif z_fut < 1.10:
-                    estado_real = f"Insolvente / Quiebra (Altman Z'': {z_fut:.2f})"
-                    resultado_val = "Alerta Temprana Validada" if score_bt > 35 else "Insolvencia Sobrevenida"
-                    badge_val = "badge-status-critico"
-                else:
-                    estado_real = f"Zona Gris / Tensión (Altman Z'': {z_fut:.2f})"
-                    resultado_val = "Anticipación Correcta"
-                    badge_val = "badge-status-alerta"
-            else:
-                if p_base == periodo_balance_raw or p_base == periodo_balance_norm:
-                    estado_real = "Ventana Preventiva en Curso (90 días vigentes)"
-                    resultado_val = "Pronóstico Activo"
-                    badge_val = "badge-status-alerta"
-                else:
-                    estado_real = "Solvencia Preservada"
-                    resultado_val = "Acierto Histórico"
-                    badge_val = "badge-status-solvente"
-
-            matriz_backtesting.append({
-                'periodo_base': p_base,
-                'periodo_proyectado': p_fut,
-                'score_proyectado': score_bt,
-                'nivel_proyectado': nivel_bt,
-                'color_proyectado': color_bt,
-                'estado_real': estado_real,
-                'resultado': resultado_val,
-                'badge_clase': badge_val,
-                'es_activo': (p_base == periodo_balance_raw or p_base == periodo_balance_norm),
-            })
-
-        if not matriz_backtesting and score is not None:
-            matriz_backtesting.append({
-                'periodo_base': periodo_balance_norm,
-                'periodo_proyectado': periodo_proyectado,
-                'score_proyectado': score_actual,
-                'nivel_proyectado': nivel,
-                'color_proyectado': 'Verde' if nivel == 'Verde' else ('Amarillo' if nivel == 'Amarillo' else 'Rojo'),
-                'estado_real': "Ventana Preventiva en Curso (90 días vigentes)",
-                'resultado': "Pronóstico Activo",
-                'badge_clase': "badge-status-alerta",
-                'es_activo': True,
-            })
+        matriz_backtesting = construir_matriz_backtesting(
+            ratios_por_periodo=ratios_por_periodo,
+            pred_por_periodo=pred_por_periodo,
+            periodo_balance_raw=periodo_balance_raw,
+            periodo_balance_norm=periodo_balance_norm,
+            periodo_proyectado=periodo_proyectado,
+            score_actual=score_actual,
+            nivel=nivel,
+        )
 
         context.update({
             'periodo_balance': periodo_balance_norm,
