@@ -339,13 +339,13 @@
     <div class="card-header py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-2 border-default bg-white">
         <div>
             <div class="d-flex align-items-center gap-2 mb-0.5">
-                <h2 class="h6 fw-semibold text-main mb-0">Línea Temporal Continua de Riesgo con Proyección Futura (Chart.js)</h2>
+                <h2 class="h6 fw-semibold text-main mb-0">Monitor de Solvencia Contable (Altman 1983) &amp; Pronóstico Preventivo AI (90 días)</h2>
                 <span class="badge border font-monospace badge-status-proyeccion fs-micro">
                     Tramo Histórico + Proyección a 90 Días
                 </span>
             </div>
             <p class="text-muted-custom mb-0 fs-caption">
-                Conecta los trimestres observados con la proyección futura mediante línea discontinua coloreada según el semáforo predictivo.
+                Evolución histórica de solvencia contable observada (Altman 1983 Z'') y predicción de riesgo a 3 meses (Q<sub>t</sub> &rarr; Q<sub>t+1</sub>)
             </p>
         </div>
 
@@ -357,11 +357,11 @@
             </div>
             <div class="d-flex align-items-center gap-1.5 text-main fw-semibold">
                 <span class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 10px; height: 10px; border: 2px solid #0f172a; background-color: #2563eb;"></span>
-                <span>Período Seleccionado</span>
+                <span>Período Actual (Q<sub>t</sub>)</span>
             </div>
             <div class="d-flex align-items-center gap-1.5 fw-semibold text-main" id="leyendaProyeccion">
                 <span class="d-inline-block" style="width: 14px; border-top: 3px dashed {% if nivel == 'Verde' %}#16a34a{% elif nivel == 'Amarillo' %}#ca8a04{% else %}#dc2626{% endif %};" id="indicadorLeyendaProyeccion"></span>
-                <span id="textoLeyendaProyeccion">Pronóstico a 90 Días (Q<sub>t+1</sub>)</span>
+                <span id="textoLeyendaProyeccion">Pronóstico Preventivo 90d (Q<sub>t+1</sub>)</span>
             </div>
             <div class="d-flex align-items-center gap-2 border-start ps-2">
                 <span class="badge border badge-status-solvente fs-micro py-0.5">Verde &le;35</span>
@@ -415,8 +415,8 @@
             <!-- Botones Pills de Rango Rápido -->
             <div class="btn-group btn-group-sm" role="group" aria-label="Rango Temporal">
                 <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2 active" id="btnRangoTodos">Todos</button>
-                <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2" id="btnRangoUltimos3">Últimos 3</button>
-                <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2" id="btnRangoUltimos5">Últimos 5</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2" id="btnRangoUltimos4">Últimos 4</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2" id="btnRangoUltimos8">Últimos 8</button>
             </div>
 
             <!-- Botón para filtrar solo Alertas -->
@@ -937,22 +937,57 @@ document.addEventListener('DOMContentLoaded', function () {
     const canvasChart = document.getElementById('alertaTempranaChart');
     if (!canvasChart) return;
 
+    // =========================================================================
+    // ALGORITMO DE NORMALIZACIÓN: DE ALTMAN Z'' A PORCENTAJE DE RIESGO (0-100%)
+    // =========================================================================
+    function altmanZToRiskPercentage(zScore, patrimonioNeto = 1) {
+        // Si el patrimonio neto es negativo o cero, insolvencia inmediata (Riesgo Máximo)
+        if (patrimonioNeto <= 0) return 98.0;
+        if (zScore >= 2.60) {
+            // Zona Segura: mapea de 2.60 (35%) hacia arriba (mínimo 5%)
+            const risk = 35 - ((zScore - 2.60) / (4.50 - 2.60)) * 30;
+            return Math.max(5.0, Math.min(35.0, parseFloat(risk.toFixed(1))));
+        } else if (zScore >= 1.10) {
+            // Zona Gris: mapea linealmente entre 1.10 (70%) y 2.60 (35%)
+            const risk = 70 - ((zScore - 1.10) / (2.60 - 1.10)) * 35;
+            return parseFloat(risk.toFixed(1));
+        } else {
+            // Zona Crítica: mapea de 1.10 (70%) hacia abajo (hasta 100%)
+            const risk = 70 + ((1.10 - zScore) / (1.10 - (-2.0))) * 30;
+            return Math.min(100.0, parseFloat(risk.toFixed(1)));
+        }
+    }
+
     // Normalizar puntos históricos originales para filtrado interactivo (RF-04)
     let puntosOriginales = [];
     if (timelinePuntosRaw && timelinePuntosRaw.length > 0) {
-        puntosOriginales = timelinePuntosRaw.map((p, idx) => ({
-            id: p.id || (idx + 1),
-            periodo: p.periodo || `Periodo ${idx + 1}`,
-            label: p.label || p.periodo || `Punto ${idx + 1}`,
-            score_observado: typeof p.score_observado === 'number' ? p.score_observado : (typeof p.score === 'number' ? p.score : 35.0),
-            score_prediccion: typeof p.score_prediccion === 'number' ? p.score_prediccion : (typeof p.score === 'number' ? p.score : 35.0),
-            score: typeof p.score === 'number' ? p.score : 35.0,
-            nivel: p.nivel || (p.score > 70 ? 'Rojo' : (p.score > 35 ? 'Amarillo' : 'Verde')),
-            nivel_observado: p.nivel_observado || 'Verde',
-            periodo_proyectado: p.periodo_proyectado || `Q_{t+1}`,
-            score_proyectado: typeof p.score_proyectado === 'number' ? p.score_proyectado : (typeof p.score === 'number' ? p.score : 35.0),
-            es_actual: Boolean(p.es_actual)
-        }));
+        puntosOriginales = timelinePuntosRaw.map((p, idx) => {
+            const zScoreVal = typeof p.altman_z === 'number' ? p.altman_z : null;
+            const patVal = typeof p.patrimonio_neto === 'number' ? p.patrimonio_neto : 1;
+            let scObs = typeof p.score_observado === 'number' ? p.score_observado : null;
+            if (scObs === null && zScoreVal !== null) {
+                scObs = altmanZToRiskPercentage(zScoreVal, patVal);
+            } else if (scObs === null) {
+                scObs = typeof p.score === 'number' ? p.score : 35.0;
+            }
+
+            return {
+                id: p.id || (idx + 1),
+                periodo: p.periodo || `Periodo ${idx + 1}`,
+                label: p.label || p.periodo || `Punto ${idx + 1}`,
+                altman_z: zScoreVal,
+                patrimonio_neto: patVal,
+                score_observado: scObs,
+                score_prediccion: typeof p.score_prediccion === 'number' ? p.score_prediccion : (typeof p.score === 'number' ? p.score : 35.0),
+                score_ml_raw: p.score_ml_raw,
+                score: typeof p.score === 'number' ? p.score : 35.0,
+                nivel: p.nivel || (p.score > 70 ? 'Rojo' : (p.score > 35 ? 'Amarillo' : 'Verde')),
+                nivel_observado: p.nivel_observado || (scObs > 70 ? 'Rojo' : (scObs > 35 ? 'Amarillo' : 'Verde')),
+                periodo_proyectado: p.periodo_proyectado || `Q_{t+1}`,
+                score_proyectado: typeof p.score_proyectado === 'number' ? p.score_proyectado : (typeof p.score === 'number' ? p.score : 35.0),
+                es_actual: Boolean(p.es_actual)
+            };
+        });
     } else if (timelineObservado.length > 0 || timelineHistorico.length > 0) {
         const obsList = timelineObservado.length > 0 ? timelineObservado : timelineHistorico;
         const histValidos = obsList.filter(v => v !== null && v !== undefined);
@@ -962,8 +997,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 id: idx + 1,
                 periodo: timelineLabels[idx] || `P-${idx + 1}`,
                 label: timelineLabels[idx] || `Punto ${idx + 1}`,
+                altman_z: null,
+                patrimonio_neto: 1,
                 score_observado: s,
                 score_prediccion: predVal,
+                score_ml_raw: null,
                 score: s,
                 nivel: s > 70 ? 'Rojo' : (s > 35 ? 'Amarillo' : 'Verde'),
                 nivel_observado: s > 70 ? 'Rojo' : (s > 35 ? 'Amarillo' : 'Verde'),
@@ -1020,8 +1058,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnMarcarTodos = document.getElementById('btnMarcarTodos');
     const btnDesmarcarTodos = document.getElementById('btnDesmarcarTodos');
     const btnRangoTodos = document.getElementById('btnRangoTodos');
-    const btnRangoUltimos3 = document.getElementById('btnRangoUltimos3');
-    const btnRangoUltimos5 = document.getElementById('btnRangoUltimos5');
+    const btnRangoUltimos4 = document.getElementById('btnRangoUltimos4') || document.getElementById('btnRangoUltimos3');
+    const btnRangoUltimos8 = document.getElementById('btnRangoUltimos8') || document.getElementById('btnRangoUltimos5');
+    const btnRangoUltimos3 = btnRangoUltimos4;
+    const btnRangoUltimos5 = btnRangoUltimos8;
     const btnFiltroAlertas = document.getElementById('btnFiltroAlertas');
     const btnRestablecerDesdeMensaje = document.getElementById('btnRestablecerDesdeMensaje');
     const btnToggleObservados = document.getElementById('btnToggleObservados');
@@ -1150,20 +1190,20 @@ document.addEventListener('DOMContentLoaded', function () {
             const y35 = y.getPixelForValue(35);
             const yBottom = chartArea.bottom;
 
-            // Franja Roja (Zona Crítica: 70 a 100)
-            ctx.fillStyle = 'rgba(239, 68, 68, 0.06)';
+            // Franja Roja (Zona Crítica de Insolvencia: 70 a 100)
+            ctx.fillStyle = 'rgba(254, 226, 226, 0.45)'; // #fee2e2
             ctx.fillRect(chartArea.left, yTop, chartArea.width, y70 - yTop);
 
-            // Franja Amarilla (Zona Preventiva: 35 a 70)
-            ctx.fillStyle = 'rgba(245, 158, 11, 0.06)';
+            // Franja Amarilla (Zona Preventiva / Alerta: 35 a 70)
+            ctx.fillStyle = 'rgba(254, 249, 195, 0.45)'; // #fef9c3
             ctx.fillRect(chartArea.left, y70, chartArea.width, y35 - y70);
 
             // Franja Verde (Zona Solvente: 0 a 35)
-            ctx.fillStyle = 'rgba(34, 197, 94, 0.06)';
+            ctx.fillStyle = 'rgba(220, 252, 231, 0.45)'; // #dcfce7
             ctx.fillRect(chartArea.left, y35, chartArea.width, yBottom - y35);
 
             // Líneas divisorias de umbral sutiles
-            ctx.strokeStyle = 'rgba(220, 38, 38, 0.25)';
+            ctx.strokeStyle = 'rgba(220, 38, 38, 0.35)';
             ctx.setLineDash([4, 4]);
             ctx.lineWidth = 1;
             ctx.beginPath();
@@ -1171,21 +1211,21 @@ document.addEventListener('DOMContentLoaded', function () {
             ctx.lineTo(chartArea.right, y70);
             ctx.stroke();
 
-            ctx.strokeStyle = 'rgba(202, 138, 4, 0.25)';
+            ctx.strokeStyle = 'rgba(202, 138, 4, 0.35)';
             ctx.beginPath();
             ctx.moveTo(chartArea.left, y35);
             ctx.lineTo(chartArea.right, y35);
             ctx.stroke();
 
             // Rótulos explicativos en la franja
-            ctx.font = '10px Inter, system-ui, sans-serif';
-            ctx.fillStyle = 'rgba(220, 38, 38, 0.7)';
-            ctx.fillText('Zona Crítica (>70%)', chartArea.left + 8, yTop + 14);
+            ctx.font = '600 10px Inter, system-ui, sans-serif';
+            ctx.fillStyle = 'rgba(185, 28, 28, 0.85)';
+            ctx.fillText('Zona Crítica de Insolvencia (>70%)', chartArea.left + 8, yTop + 14);
 
-            ctx.fillStyle = 'rgba(180, 83, 9, 0.7)';
-            ctx.fillText('Zona Preventiva (35-70%)', chartArea.left + 8, y70 + 14);
+            ctx.fillStyle = 'rgba(161, 98, 7, 0.85)';
+            ctx.fillText('Zona Preventiva / Alerta (35-70%)', chartArea.left + 8, y70 + 14);
 
-            ctx.fillStyle = 'rgba(22, 163, 74, 0.7)';
+            ctx.fillStyle = 'rgba(21, 128, 61, 0.85)';
             ctx.fillText('Zona Solvente (0-35%)', chartArea.left + 8, y35 + 14);
 
             ctx.restore();
@@ -1349,7 +1389,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     },
                     title: {
                         display: true,
-                        text: 'Probabilidad de Insolvencia (%)',
+                        text: 'Nivel de Riesgo / Deterioro (%)',
                         font: { size: 11, weight: '500' }
                     }
                 },
@@ -1391,35 +1431,39 @@ document.addEventListener('DOMContentLoaded', function () {
                             const idx = items[0].dataIndex;
                             const lastIdx = chartInstance.data.labels.length - 1;
                             if (idx === lastIdx && items[0].datasetIndex === 1) {
-                                return 'Pronóstico Preventivo Q_{t+1}: ' + items[0].label;
+                                return 'Pronóstico Preventivo AI (90 días - Q_{t+1}): ' + items[0].label;
                             }
                             const isAct = esActualArr[idx];
-                            return 'Trimestre ' + items[0].label + (isAct ? '  [PERÍODO SELECCIONADO]' : '');
+                            return 'Trimestre ' + items[0].label + (isAct ? '  [ACTUAL]' : '');
                         },
                         label: function(ctx) {
                             const val = ctx.parsed.y;
                             if (val === null || val === undefined) return '';
                             const idx = ctx.dataIndex;
                             const lastIdx = chartInstance.data.labels.length - 1;
+                            const punto = (puntosVisiblesActuales && puntosVisiblesActuales[idx]) 
+                                || (puntosVisiblesActuales && idx === lastIdx ? puntosVisiblesActuales[puntosVisiblesActuales.length - 1] : null);
 
                             if (ctx.datasetIndex === 1) {
-                                if (idx === lastIdx || idx > 0) {
-                                    return 'Pronóstico preventivo a 3 meses: ' + val.toFixed(1) + '% de riesgo proyectado';
-                                }
-                                return 'Base de proyección: ' + val.toFixed(1) + '%';
+                                let estadoProy = val > 70 ? 'Crítica (>70%)' : (val > 35 ? 'Preventiva / Alerta (35-70%)' : 'Solvente (≤35%)');
+                                return 'Pronóstico Machine Learning 90d: ' + val.toFixed(1) + '% | Probabilidad de Insolvencia: ' + estadoProy;
                             }
-                            let estado = val > 70 ? 'Zona Quiebra (Z < 1.10)' : (val > 35 ? 'Zona Gris / Alerta' : 'Zona Segura (Z ≥ 2.60)');
-                            return 'Insolvencia Observada (Altman 1983): ' + val.toFixed(1) + '% (' + estado + ')';
+
+                            const zScoreStr = (punto && punto.altman_z !== null && punto.altman_z !== undefined) 
+                                ? Number(punto.altman_z).toFixed(2) 
+                                : '--';
+                            let zonaTexto = val > 70 ? 'Zona Crítica' : (val > 35 ? 'Zona Gris' : 'Zona Segura');
+                            return 'Riesgo: ' + val.toFixed(1) + '% | Altman Z\'\': ' + zScoreStr + ' | ' + zonaTexto;
                         },
                         afterLabel: function(ctx) {
                             const idx = ctx.dataIndex;
                             if (ctx.datasetIndex === 1) {
-                                return 'Ventana preventiva: 90 días para tomar medidas correctivas.';
+                                return 'Pronóstico preventivo generado por Random Forest AI anticipando el estado en Q_{t+1}.';
                             }
                             if (esActualArr[idx]) {
-                                return '● Período analizado en pantalla (la proyección sale de aquí)';
+                                return '● Balance actual seleccionado (la línea proyectada sale desde aquí hacia Q_{t+1})';
                             }
-                            return '👉 Clic para seleccionar y ver la proyección desde este período';
+                            return '👉 Clic para situar el análisis en este trimestre';
                         }
                     }
                 }
@@ -1538,10 +1582,10 @@ document.addEventListener('DOMContentLoaded', function () {
         let visibles = puntosOriginales.filter(p => periodosSeleccionados.has(p.periodo));
         puntosVisiblesActuales = visibles;
 
-        if (filtroRango === 'ultimos3') {
-            visibles = visibles.slice(-3);
-        } else if (filtroRango === 'ultimos5') {
-            visibles = visibles.slice(-5);
+        if (filtroRango === 'ultimos4' || filtroRango === 'ultimos3') {
+            visibles = visibles.slice(-4);
+        } else if (filtroRango === 'ultimos8' || filtroRango === 'ultimos5') {
+            visibles = visibles.slice(-8);
         }
 
         if (soloAlertas) {
@@ -1665,12 +1709,12 @@ document.addEventListener('DOMContentLoaded', function () {
     // Manejo de botones de rango
     function setRangoActivo(rango) {
         filtroRango = rango;
-        [btnRangoTodos, btnRangoUltimos3, btnRangoUltimos5].forEach(btn => {
+        [btnRangoTodos, btnRangoUltimos4, btnRangoUltimos8].forEach(btn => {
             if (btn) btn.classList.remove('active');
         });
         if (rango === 'todos' && btnRangoTodos) btnRangoTodos.classList.add('active');
-        if (rango === 'ultimos3' && btnRangoUltimos3) btnRangoUltimos3.classList.add('active');
-        if (rango === 'ultimos5' && btnRangoUltimos5) btnRangoUltimos5.classList.add('active');
+        if ((rango === 'ultimos4' || rango === 'ultimos3') && btnRangoUltimos4) btnRangoUltimos4.classList.add('active');
+        if ((rango === 'ultimos8' || rango === 'ultimos5') && btnRangoUltimos8) btnRangoUltimos8.classList.add('active');
     }
 
     if (btnMarcarTodos) {
@@ -1708,20 +1752,20 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    if (btnRangoUltimos3) {
-        btnRangoUltimos3.addEventListener('click', function () {
+    if (btnRangoUltimos4) {
+        btnRangoUltimos4.addEventListener('click', function () {
             periodosSeleccionados = new Set(periodosUnicos);
             document.querySelectorAll('.check-periodo-item').forEach(c => { c.checked = true; });
-            setRangoActivo('ultimos3');
+            setRangoActivo('ultimos4');
             aplicarFiltrosYActualizar();
         });
     }
 
-    if (btnRangoUltimos5) {
-        btnRangoUltimos5.addEventListener('click', function () {
+    if (btnRangoUltimos8) {
+        btnRangoUltimos8.addEventListener('click', function () {
             periodosSeleccionados = new Set(periodosUnicos);
             document.querySelectorAll('.check-periodo-item').forEach(c => { c.checked = true; });
-            setRangoActivo('ultimos5');
+            setRangoActivo('ultimos8');
             aplicarFiltrosYActualizar();
         });
     }

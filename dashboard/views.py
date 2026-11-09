@@ -83,31 +83,59 @@ def calcular_z_score_altman_1983(r_obj) -> float:
 
 def calcular_score_observado(r_obj) -> float:
     """
-    Calcula el puntaje de insolvencia contable observado (0 a 100%) a partir de la
-    formulación clásica de Edward Altman (1983) para empresas no manufactureras
-    y mercados emergentes (Z''-Score).
+    Convierte el Z'' de Altman (1983) a una escala de Riesgo de 0% a 100%
+    compatible con los umbrales de SmartFinanzas y el algoritmo de normalización frontend.
 
     Mapeo de Zonas Canónicas de Altman (1983) al Semáforo Gerencial:
       - Z'' >= 2.60 : Zona Segura / Solvente      -> Score <= 35.0% (Verde)
       - 1.10 <= Z'' < 2.60 : Zona Gris / Alerta   -> Score 35.0% a 70.0% (Amarillo)
-      - Z'' < 1.10  : Zona de Quiebra / Distress  -> Score > 70.0% (Rojo)
+      - Z'' < 1.10 o Patrimonio <= 0 : Zona Crítica / Quiebra -> Score > 70.0% (Rojo)
     """
     if not r_obj:
         return 35.0
 
+    # Si el patrimonio neto es negativo o cero, insolvencia inmediata (Riesgo Máximo 98%)
+    carga = getattr(r_obj, 'carga', None)
+    patrimonio = float(getattr(carga, 'patrimonio', None) or 1.0) if carga else 1.0
+    if patrimonio <= 0:
+        return 98.0
+
     z_score = calcular_z_score_altman_1983(r_obj)
 
     if z_score >= 2.60:
-        # Zona Segura: puntuación entre 5% y 35% (a mayor Z'', menor riesgo de quiebra)
-        score = 35.0 - (z_score - 2.60) * 10.0
+        # Zona Segura: mapea de 2.60 (35%) hacia arriba (mínimo 5%)
+        risk = 35.0 - ((z_score - 2.60) / (4.50 - 2.60)) * 30.0
+        return round(float(max(5.0, min(35.0, risk))), 1)
     elif z_score >= 1.10:
-        # Zona Gris: interpolación lineal exacta entre 35% (Z=2.60) y 70% (Z=1.10)
-        score = 35.0 + (2.60 - z_score) * (35.0 / 1.50)
+        # Zona Gris: mapea linealmente entre 1.10 (70%) y 2.60 (35%)
+        risk = 70.0 - ((z_score - 1.10) / (2.60 - 1.10)) * 35.0
+        return round(float(risk), 1)
     else:
-        # Zona de Quiebra (Distress): puntuación entre 70% y 95% (a menor Z'', mayor riesgo)
-        score = 70.0 + (1.10 - z_score) * 20.0
+        # Zona Crítica: mapea de 1.10 (70%) hacia abajo (hasta 100%)
+        risk = 70.0 + ((1.10 - z_score) / (1.10 - (-2.0))) * 30.0
+        return round(float(min(100.0, max(70.0, risk))), 1)
 
-    return round(float(max(5.0, min(95.0, score))), 1)
+
+def calibrar_score_proyeccion(score_ml_raw: float, score_observado: float) -> float:
+    """
+    Calibra la predicción de Machine Learning (Random Forest) a 90 días (Q_{t+1})
+    para garantizar consistencia con la salud financiera observada de la empresa (Q_t),
+    evitando caídas artificiales por el sesgo de probabilidad base del modelo.
+    """
+    if score_ml_raw is None:
+        score_ml_raw = 5.0
+
+    # Calibración de la probabilidad cruda de Random Forest al rango [5%, 98%]
+    if score_ml_raw <= 5.0:
+        ml_calibrado = 5.0 + (score_ml_raw / 5.0) * 30.0
+    elif score_ml_raw <= 15.0:
+        ml_calibrado = 35.0 + ((score_ml_raw - 5.0) / 10.0) * 35.0
+    else:
+        ml_calibrado = 70.0 + min(28.0, ((score_ml_raw - 15.0) / 15.0) * 28.0)
+
+    # Blending ponderado: 35% estado contable observado + 65% señal de proyección IA
+    score_final = 0.35 * float(score_observado) + 0.65 * float(ml_calibrado)
+    return round(float(max(5.0, min(98.0, score_final))), 1)
 
 
 def construir_matriz_backtesting(ratios_por_periodo, pred_por_periodo, periodo_balance_raw, periodo_balance_norm, periodo_proyectado, score_actual, nivel):
@@ -376,12 +404,18 @@ class DashboardView(DashboardRolMixin, TemplateView):
 
             if r_obj:
                 sc_obs = calcular_score_observado(r_obj)
+                z_val = calcular_z_score_altman_1983(r_obj)
             else:
                 sc_obs = float(p.score_riesgo or 35.0)
+                z_val = 2.60
 
-            sc_pred = float(p.score_riesgo or 0.0)
+            carga_obj = getattr(r_obj, 'carga', None) if r_obj else None
+            pat_val = float(getattr(carga_obj, 'patrimonio', 1.0) or 1.0) if carga_obj else 1.0
+
+            raw_ml = float(p.score_riesgo or 0.0)
+            sc_pred = calibrar_score_proyeccion(raw_ml, sc_obs)
             niv_obs = 'Verde' if sc_obs <= 35 else ('Amarillo' if sc_obs <= 70 else 'Rojo')
-            niv_pred = p.nivel_semaforo or ('Verde' if sc_pred <= 35 else ('Amarillo' if sc_pred <= 70 else 'Rojo'))
+            niv_pred = 'Verde' if sc_pred <= 35 else ('Amarillo' if sc_pred <= 70 else 'Rojo')
             es_act = bool(ultima_prediccion and p.id == ultima_prediccion.id)
 
             periodos_pasados_labels.append(lbl_clean)
@@ -394,9 +428,12 @@ class DashboardView(DashboardRolMixin, TemplateView):
                 'label': lbl_clean,
                 'fecha_corta': p.fecha_prediccion.strftime('%d/%m %H:%M') if p.fecha_prediccion else '',
                 'fecha_completa': p.fecha_prediccion.strftime('%d/%m/%Y %H:%M') if p.fecha_prediccion else '',
+                'altman_z': z_val,
+                'patrimonio_neto': pat_val,
                 'score_observado': sc_obs,
                 'score_prediccion': sc_pred,
-                'score': sc_pred,
+                'score_ml_raw': raw_ml,
+                'score': raw_ml,
                 'nivel': niv_pred,
                 'nivel_observado': niv_obs,
                 'periodo_proyectado': p_fut,
@@ -430,9 +467,6 @@ class DashboardView(DashboardRolMixin, TemplateView):
             periodo_base_dashboard = '2024-Q4'
 
         periodo_proyectado_dashboard, periodo_base_norm_dashboard, dias_horizonte_dashboard = calcular_periodo_siguiente(periodo_base_dashboard)
-        score_proyectado_dashboard = float(score) if score is not None else 35.0
-        nivel_proyectado_dashboard = nivel if (nivel and nivel != 'Sin Datos') else ('Verde' if score_proyectado_dashboard <= 35 else 'Amarillo' if score_proyectado_dashboard <= 70 else 'Rojo')
-
         idx_act = -1
         for idx_h, pt in enumerate(chart_puntos):
             if pt['es_actual']:
@@ -443,7 +477,9 @@ class DashboardView(DashboardRolMixin, TemplateView):
 
         punto_activo = chart_puntos[idx_act] if (0 <= idx_act < len(chart_puntos)) else None
         score_base_dashboard = punto_activo['score_observado'] if punto_activo else (float(score) if score is not None else 35.0)
-        score_actual_proy = punto_activo['score_prediccion'] if punto_activo else score_proyectado_dashboard
+        score_actual_proy = punto_activo['score_prediccion'] if punto_activo else (float(score) if score is not None else 35.0)
+        score_proyectado_dashboard = score_actual_proy
+        nivel_proyectado_dashboard = 'Verde' if score_proyectado_dashboard <= 35 else ('Amarillo' if score_proyectado_dashboard <= 70 else 'Rojo')
         score_anterior_dashboard = valores_predicciones[idx_act - 1] if idx_act >= 1 else None
         delta_info_dashboard = calcular_delta_riesgo(score_actual_proy, score_anterior_dashboard)
 
@@ -790,8 +826,7 @@ class DashboardPredictivoView(DashboardView):
             r_obj = ratios_por_periodo[per]
             p_obj = pred_por_periodo.get(per)
             if p_obj and p_obj.score_riesgo is not None:
-                sc_pred = float(p_obj.score_riesgo)
-                niv_pred = p_obj.nivel_semaforo or ('Verde' if sc_pred <= 35 else 'Amarillo' if sc_pred <= 70 else 'Rojo')
+                raw_ml = float(p_obj.score_riesgo)
                 pid = p_obj.id
             else:
                 vars_dict = {
@@ -803,11 +838,17 @@ class DashboardPredictivoView(DashboardView):
                     'rotacion_activos': float(r_obj.v6_rotacion_activos or 1.0),
                     'volatilidad_flujo_caja': float(r_obj.v7_volatilidad_flujo or 0.5),
                 }
-                sc_pred, niv_pred, _ = predecir_riesgo(vars_dict)
+                raw_ml, _, _ = predecir_riesgo(vars_dict)
                 pid = None
 
+            z_val = calcular_z_score_altman_1983(r_obj)
+            carga_obj = getattr(r_obj, 'carga', None)
+            pat_val = float(getattr(carga_obj, 'patrimonio', 1.0) or 1.0) if carga_obj else 1.0
             sc_obs = calcular_score_observado(r_obj)
             niv_obs = 'Verde' if sc_obs <= 35 else ('Amarillo' if sc_obs <= 70 else 'Rojo')
+
+            sc_pred = calibrar_score_proyeccion(raw_ml, sc_obs)
+            niv_pred = 'Verde' if sc_pred <= 35 else ('Amarillo' if sc_pred <= 70 else 'Rojo')
 
             lbl_clean = per_norm or per
             es_act = bool(per == periodo_balance_raw or per == periodo_balance_norm or per_norm == periodo_balance_norm)
@@ -819,8 +860,11 @@ class DashboardPredictivoView(DashboardView):
                 'id': pid,
                 'periodo': per,
                 'label': lbl_clean,
+                'altman_z': z_val,
+                'patrimonio_neto': pat_val,
                 'score_observado': sc_obs,
                 'score_prediccion': sc_pred,
+                'score_ml_raw': raw_ml,
                 'score': sc_pred,
                 'nivel': niv_pred,
                 'nivel_observado': niv_obs,
