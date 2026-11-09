@@ -25,7 +25,7 @@ class PrediccionRiesgo(models.Model):
         null=True, blank=True, verbose_name="Impacto de Variables (JSON/Texto)"
     )
     version_modelo = models.CharField(
-        max_length=20, null=True, blank=True, verbose_name="Versión del Modelo ML"
+        max_length=50, null=True, blank=True, verbose_name="Versión del Modelo ML"
     )
     tiempo_inferencia_ms = models.IntegerField(
         null=True, blank=True, verbose_name="Tiempo de Inferencia (ms)"

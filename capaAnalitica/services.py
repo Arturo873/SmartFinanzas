@@ -186,6 +186,7 @@ class MotorRiesgo:
 
     def _resolver_ruta_metricas(self):
         rutas = [
+            settings.BASE_DIR / 'capaAnalitica' / 'modelo' / 'metricas_trimestral_optimizado.joblib',
             settings.BASE_DIR / 'capaAnalitica' / 'modelo' / 'metricas_v11.joblib',
             settings.BASE_DIR / 'capaAnalitica' / 'modelo' / 'metricas.joblib',
             settings.BASE_DIR / 'AppWeb' / 'modelo_oficial' / 'metricas_v11.joblib',
@@ -404,7 +405,7 @@ def ejecutar_y_persistir_prediccion(ratio_obj_o_id, usuario=None, empresa=None):
         nivel_semaforo=resultado['nivel'],
         variables_influyentes=json.dumps(resultado['top_3_variables'], ensure_ascii=False),
         impacto_variables=json.dumps(resultado['shap_values'], ensure_ascii=False),
-        version_modelo=resultado.get('version_modelo', '1.1'),
+        version_modelo=str(resultado.get('version_modelo', '1.1'))[:50],
         tiempo_inferencia_ms=tiempo_ms,
         ejecutada_por_usuario=usuario,
         empresa=empresa,

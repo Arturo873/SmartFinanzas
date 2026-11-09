@@ -9,6 +9,7 @@ el panel gerencial interactivo y emitir informes ejecutivos en PDF.
 
 import io
 import json
+import math
 import logging
 from decimal import Decimal
 from django.contrib import messages
@@ -84,36 +85,31 @@ def calcular_z_score_altman_1983(r_obj) -> float:
 def calcular_score_observado(r_obj) -> float:
     """
     Convierte el Z'' de Altman (1983) a una escala de Riesgo de 0% a 100%
-    compatible con los umbrales de SmartFinanzas y el algoritmo de normalización frontend.
+    mediante la función sigmoide calibrada:
+    P(Riesgo %) = 100.0 / (1.0 + exp(1.15 * (Z'' - 1.85)))
 
     Mapeo de Zonas Canónicas de Altman (1983) al Semáforo Gerencial:
-      - Z'' >= 2.60 : Zona Segura / Solvente      -> Score <= 35.0% (Verde)
-      - 1.10 <= Z'' < 2.60 : Zona Gris / Alerta   -> Score 35.0% a 70.0% (Amarillo)
-      - Z'' < 1.10 o Patrimonio <= 0 : Zona Crítica / Quiebra -> Score > 70.0% (Rojo)
+      - Z'' = 2.60 : Umbral Solvente / Seguro     -> ~29.7% (Zona Verde <= 35.0%)
+      - Z'' = 1.85 : Centro Zona Gris / Alerta    -> 50.0%  (Zona Amarilla 35.0% a 70.0%)
+      - Z'' = 1.10 : Umbral Crítico / Insolvente -> ~70.3% (Zona Roja > 70.0%)
+      - Patrimonio Neto <= 0 : Quiebra Técnica Inmediata -> 99.0% (Rojo Crítico)
     """
     if not r_obj:
         return 35.0
 
-    # Si el patrimonio neto es negativo o cero, insolvencia inmediata (Riesgo Máximo 98%)
+    # Si el patrimonio neto es negativo o cero, insolvencia inmediata (Riesgo Crítico 99%)
     carga = getattr(r_obj, 'carga', None)
     patrimonio = float(getattr(carga, 'patrimonio', None) or 1.0) if carga else 1.0
     if patrimonio <= 0:
-        return 98.0
+        return 99.0
 
     z_score = calcular_z_score_altman_1983(r_obj)
 
-    if z_score >= 2.60:
-        # Zona Segura: mapea de 2.60 (35%) hacia arriba (mínimo 5%)
-        risk = 35.0 - ((z_score - 2.60) / (4.50 - 2.60)) * 30.0
-        return round(float(max(5.0, min(35.0, risk))), 1)
-    elif z_score >= 1.10:
-        # Zona Gris: mapea linealmente entre 1.10 (70%) y 2.60 (35%)
-        risk = 70.0 - ((z_score - 1.10) / (2.60 - 1.10)) * 35.0
-        return round(float(risk), 1)
-    else:
-        # Zona Crítica: mapea de 1.10 (70%) hacia abajo (hasta 100%)
-        risk = 70.0 + ((1.10 - z_score) / (1.10 - (-2.0))) * 30.0
-        return round(float(min(100.0, max(70.0, risk))), 1)
+    # Evaluación continua con la sigmoide calibrada (con guarda numérica contra overflow)
+    arg = 1.15 * (z_score - 1.85)
+    arg = max(-35.0, min(35.0, arg))
+    risk = 100.0 / (1.0 + math.exp(arg))
+    return round(float(max(1.0, min(99.0, risk))), 1)
 
 
 def calibrar_score_proyeccion(score_ml_raw: float, score_observado: float) -> float:

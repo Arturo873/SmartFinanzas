@@ -1470,24 +1470,15 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // =========================================================================
-    // ALGORITMO DE NORMALIZACIÓN: DE ALTMAN Z'' A PORCENTAJE DE RIESGO (0-100%)
+    // FUNCIÓN SIGMOIDE CALIBRADA: DE ALTMAN Z'' A PORCENTAJE DE RIESGO (0-100%)
     // =========================================================================
     function altmanZToRiskPercentage(zScore, patrimonioNeto = 1) {
-        // Si el patrimonio neto es negativo o cero, insolvencia inmediata (Riesgo Máximo)
-        if (patrimonioNeto <= 0) return 98.0;
-        if (zScore >= 2.60) {
-            // Zona Segura: mapea de 2.60 (35%) hacia arriba (mínimo 5%)
-            const risk = 35 - ((zScore - 2.60) / (4.50 - 2.60)) * 30;
-            return Math.max(5.0, Math.min(35.0, parseFloat(risk.toFixed(1))));
-        } else if (zScore >= 1.10) {
-            // Zona Gris: mapea linealmente entre 1.10 (70%) y 2.60 (35%)
-            const risk = 70 - ((zScore - 1.10) / (2.60 - 1.10)) * 35;
-            return parseFloat(risk.toFixed(1));
-        } else {
-            // Zona Crítica: mapea de 1.10 (70%) hacia abajo (hasta 100%)
-            const risk = 70 + ((1.10 - zScore) / (1.10 - (-2.0))) * 30;
-            return Math.min(100.0, parseFloat(risk.toFixed(1)));
-        }
+        // Guarda contable: Si el patrimonio neto es negativo o cero -> Quiebra Técnica Inmediata
+        if (patrimonioNeto <= 0) return 99.0;
+        // P(Riesgo %) = 100.0 / (1.0 + exp(1.15 * (Z'' - 1.85)))
+        const arg = Math.max(-35.0, Math.min(35.0, 1.15 * (zScore - 1.85)));
+        const risk = 100.0 / (1.0 + Math.exp(arg));
+        return parseFloat(Math.max(1.0, Math.min(99.0, risk)).toFixed(1));
     }
 
     // Normalizar puntos para manipulación y filtrado interactivo (RF-04)
