@@ -214,7 +214,7 @@
                     </div>
 
                     <!-- Certificación y Términos de Rendición y Arqueo Físico -->
-                    <div class="card bg-light border-0 p-3 mb-4 rounded-3">
+                    <div class="card bg-light border-0 p-3 mb-4 rounded-3" id="cardCheckCierre">
                         <div class="form-check m-0">
                             <input class="form-check-input" type="checkbox" id="checkTerminosCierre" name="terminos_aceptados" {% if request.POST.terminos_aceptados %}checked{% endif %} required>
                             <label class="form-check-label small text-dark" for="checkTerminosCierre">
@@ -224,13 +224,16 @@
                                 </a> <span class="text-danger">*</span>
                             </label>
                         </div>
+                        <div id="errorCheckCierre" class="text-danger small mt-2 fw-semibold d-none">
+                            <i class="bi bi-exclamation-circle-fill me-1"></i>Debes certificar el arqueo físico y aceptar los términos legales para confirmar el cierre.
+                        </div>
                     </div>
 
                     <div class="d-flex justify-content-end gap-2">
                         <a href="{% url 'moduloTransaccional:historial_cierres' %}" class="btn btn-outline-secondary px-4">
                             Cancelar
                         </a>
-                        <button type="submit" class="btn btn-success btn-lg px-4 fw-semibold shadow-sm" id="btnConfirmarCierre">
+                        <button type="submit" class="btn btn-success btn-lg px-4 fw-semibold shadow-sm" id="btnConfirmarCierre" {% if not request.POST.terminos_aceptados %}disabled{% endif %}>
                             <i class="bi bi-check-circle-fill me-2"></i>Confirmar y Cerrar Caja
                         </button>
                     </div>
@@ -459,6 +462,27 @@ document.addEventListener('DOMContentLoaded', function () {
                 modalInstance.hide();
             }
         });
+    }
+
+    // Bloqueo dinámico del botón de confirmación si el check no está marcado
+    const btnConfirmarCierre = document.getElementById('btnConfirmarCierre');
+    const cardCheckCierre = document.getElementById('cardCheckCierre');
+    const errorCheckCierre = document.getElementById('errorCheckCierre');
+
+    function actualizarEstadoBtnCierre() {
+        if (!btnConfirmarCierre) return;
+        const marcado = checkPrincipalCierre && checkPrincipalCierre.checked;
+        btnConfirmarCierre.disabled = !marcado;
+        if (marcado) {
+            if (checkPrincipalCierre) checkPrincipalCierre.classList.remove('is-invalid');
+            if (cardCheckCierre) cardCheckCierre.classList.remove('border', 'border-danger');
+            if (errorCheckCierre) errorCheckCierre.classList.add('d-none');
+        }
+    }
+
+    if (checkPrincipalCierre) {
+        checkPrincipalCierre.addEventListener('change', actualizarEstadoBtnCierre);
+        actualizarEstadoBtnCierre();
     }
 
     if (formCierre) {

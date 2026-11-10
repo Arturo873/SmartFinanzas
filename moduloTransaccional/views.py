@@ -532,6 +532,12 @@ class CierreCajaCreateView(RolRequeridoMixin, CreateView):
         return super().form_invalid(form)
 
     def form_valid(self, form):
+        # 0. Validación de Aceptación de Términos Legales de Arqueo y Cierre
+        terminos_aceptados = self.request.POST.get('terminos_aceptados')
+        if not terminos_aceptados:
+            form.add_error(None, "Debe certificar bajo fe de arqueo y aceptar los Términos Legales de Rendición de Fondos y Cierre Contable para continuar.")
+            return self.form_invalid(form)
+
         # 1. Validación defensiva de datos y estado del día
         try:
             datos = self._obtener_datos_del_dia()

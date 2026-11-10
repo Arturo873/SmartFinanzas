@@ -90,14 +90,18 @@ def registro_view(request):
 
     form = RegistroForm(request.POST or None)
 
-    if request.method == 'POST' and form.is_valid():
-        usuario_db = form.save()
-        sincronizar_sesion(request, usuario_db)
-        messages.success(
-            request,
-            f"¡Cuenta creada con éxito! Has sido registrado como {usuario_db.rol.nombre}."
-        )
-        return redirect(redireccionar_segun_rol(usuario_db))
+    if request.method == 'POST':
+        terminos_aceptados = request.POST.get('terminos_aceptados')
+        if not terminos_aceptados:
+            form.add_error(None, "Debe aceptar los Términos de Servicio, Tratamiento de Datos y Confidencialidad para registrarse.")
+        elif form.is_valid():
+            usuario_db = form.save()
+            sincronizar_sesion(request, usuario_db)
+            messages.success(
+                request,
+                f"¡Cuenta creada con éxito! Has sido registrado como {usuario_db.rol.nombre}."
+            )
+            return redirect(redireccionar_segun_rol(usuario_db))
 
     empresas = list(Empresa.objects.all().order_by('id'))
     return render(request, 'usuarios/registro.html', {

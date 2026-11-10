@@ -6,8 +6,9 @@
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Django](https://img.shields.io/badge/Django-5.x%20/%206.x-092E20?style=for-the-badge&logo=django&logoColor=white)](https://www.djangoproject.com/)
 [![Scikit-Learn](https://img.shields.io/badge/Scikit_Learn-1.5+-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)](https://scikit-learn.org/)
-[![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=for-the-badge&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
+[![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com/)
 [![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white)](https://getbootstrap.com/)
+[![Chart.js](https://img.shields.io/badge/Chart.js-4.x-FF6384?style=for-the-badge&logo=chartdotjs&logoColor=white)](https://www.chartjs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
 **Proyecto de Título – Ingeniería en Informática · INACAP La Serena**  
@@ -20,126 +21,142 @@
 
 ## 📑 Tabla de Contenido
 1. [Descripción del Proyecto](#descripción-del-proyecto)
-2. [Arquitectura Tecnológica y Estructura del Sistema](#arquitectura-tecnológica-y-estructura-del-sistema)
-3. [Características Principales](#características-principales)
-4. [Modelo Predictivo y Fundamento Científico](#modelo-predictivo-y-fundamento-científico)
-5. [Instalación y Despliegue Local](#instalación-y-despliegue-local)
-6. [Guía de Uso por Roles](#guía-de-uso-por-roles)
-7. [Plan de Pruebas y Aseguramiento de Calidad](#plan-de-pruebas-y-aseguramiento-de-calidad)
-8. [Cumplimiento Normativo y Seguridad](#cumplimiento-normativo-y-seguridad)
+2. [Arquitectura Modular del Sistema](#arquitectura-modular-del-sistema)
+3. [Módulos y Características Principales](#módulos-y-características-principales)
+4. [Pipeline ETL y Transformación IFRS / CMF](#pipeline-etl-y-transformación-ifrs--cmf)
+5. [Motor Predictivo y Catálogo de Recomendaciones a 90 Días](#motor-predictivo-y-catálogo-de-recomendaciones-a-90-días)
+6. [Gobernanza Jurídica y Verificación de Casillas Obligatorias](#gobernanza-jurídica-y-verificación-de-casillas-obligatorias)
+7. [Instalación y Despliegue Local](#instalación-y-despliegue-local)
+8. [Documentación Técnica Especializada](#documentación-técnica-especializada)
 9. [Autores y Agradecimientos](#autores-y-agradecimientos)
 
 ---
 
-## <a id="descripción-del-proyecto"></a> Descripción del Proyecto
+## <a id="descripción-del-proyecto"></a>1. Descripción del Proyecto
 
-**SmartFinanzas** es una plataforma web desarrollada en Python y Django orientada a mitigar la brecha operativa y analítica que enfrentan las Pequeñas y Medianas Empresas (PYMES) chilenas frente al riesgo de insolvencia y asfixia financiera.
+**SmartFinanzas** es una plataforma web desarrollada en Python y Django orientada a mitigar la brecha operativa y analítica que enfrentan las Pequeñas y Medianas Empresas (PYMES) chilenas frente al riesgo de asfixia financiera e insolvencia.
 
-A diferencia de las herramientas convencionales como planillas Excel o tableros de BI (que únicamente describen el pasado de forma reactiva), SmartFinanzas implementa un **enfoque predictivo de ciencia aplicada**:
-* **Pipeline ETL Inteligente:** Ingesta y valida rigurosamente balances contables en formatos `.xlsx` y `.csv` exportados desde sistemas ERP (como Facto), comprobando la ecuación patrimonial y consistencia matemática antes de cualquier cálculo.
-* **Ingeniería Financiera Desacoplada:** Transforma los estados financieros en un vector de **7 variables adimensionales** (V_1 a V_7) respaldadas en literatura académica chilena e internacional (Altman, Riquelme, Zurita, Ringeling).
-* **Motor Predictivo de Machine Learning (Modelo Oficial v11):** Clasificador *Random Forest* entrenado exclusivamente con estados financieros reales de empresas chilenas reportados ante la Comisión para el Mercado Financiero (CMF), capaz de inferir la probabilidad de insolvencia con semáforos de alerta temprana y un módulo de **explicabilidad transparente** que expone las causas del riesgo financiero.
+A diferencia de las herramientas convencionales como planillas Excel o tableros de BI (que únicamente describen el pasado de forma retrospectiva), SmartFinanzas implementa un **enfoque predictivo y prescriptivo de ciencia aplicada**:
+* **Pipeline ETL Inteligente:** Ingesta y valida rigurosamente balances contables en formatos `.xlsx` y `.csv` exportados desde sistemas ERP (como Facto) o la CMF, normalizando nomenclaturas IFRS y verificando la ecuación patrimonial antes de cualquier cálculo.
+* **Ingeniería Financiera Desacoplada:** Transforma los estados financieros en un vector de **7 variables adimensionales** ($X_1$ a $X_7$) respaldadas en literatura chilena e internacional (Altman, Zurita, Ringeling, Riquelme).
+* **Motor Predictivo de Machine Learning:** Clasificador *Random Forest* entrenado sobre estados financieros reales reportados ante la Comisión para el Mercado Financiero (CMF), capaz de inferir la probabilidad de insolvencia para los próximos 90 días ($Q_t \to Q_{t+1}$) con explicabilidad local **SHAP**.
+* **Planes de Acción Preventivos:** Catálogo de recomendaciones financieras en **Lenguaje Ejecutivo Accesible** (*Business Plain Spanish*), que prescribe qué medidas operativas concretas debe adoptar la gerencia para mitigar el deterioro o consolidar la solvencia.
 
 > [!NOTE]
 > El proyecto está validado funcionalmente con la empresa distribuidora mayorista **Nstock Importaciones** (La Serena, Chile).
 
 ---
 
-## <a id="arquitectura-tecnológica-y-estructura-del-sistema"></a> Arquitectura Tecnológica y Estructura del Sistema
+## <a id="arquitectura-modular-del-sistema"></a>2. Arquitectura Modular del Sistema
 
-El proyecto está diseñado bajo un patrón arquitectónico en Django modular y desacoplado, donde la lógica de ratios contables y el motor analítico de Machine Learning operan de forma independiente de la base de datos y la interfaz gráfica.
-
-### Estructura del Repositorio
+El proyecto está diseñado bajo un patrón arquitectónico de **Monolito Modular Desacoplado**, donde la ingesta contable, la capa analítica de inferencia y la gestión transaccional operan con estricta separación de responsabilidades:
 
 ```text
 SmartFinanzas/
 │
-├── SmartFinanzas/                     # Configuración principal del proyecto Django
-│   ├── settings.py                    # Configuración global (Apps, Base de datos SQLite3, Auth)
+├── SmartFinanzas/                     # Configuración central del proyecto Django
+│   ├── settings.py                    # Configuración global (Apps, Base de datos MySQL, Auth)
 │   ├── urls.py                        # Enrutador principal de URLs
-│   ├── asgi.py                        # Entrada ASGI para despliegues asíncronos
-│   └── wsgi.py                        # Entrada WSGI para servidores de producción
+│   ├── asgi.py                        # Entrada ASGI
+│   └── wsgi.py                        # Entrada WSGI
 │
-├── AppWeb/                            # Aplicación principal del sistema
-│   ├── migrations/                    # Control de versiones del esquema de base de datos
-│   ├── modelo_oficial/                # Artefactos ML preentrenados y serializados
-│   │   ├── modelo_riesgo_v11.joblib   # Clasificador Random Forest oficial v11 (Joblib)
-│   │   └── metricas_v11.joblib        # Métricas de validación en prueba real no vista
-│   ├── templates/AppWeb/              # Plantillas HTML (Bootstrap 5 + Chart.js)
-│   │   ├── base.html                  # Plantilla base y diseño responsivo
-│   │   ├── index.html                 # Tablero principal de control
-│   │   ├── cargaDatos.html            # Interfaz de carga masiva ETL para el Contador
-│   │   ├── resultado_prediccion.html  # Panel de resultados, semáforo, top 3 y gráficos
-│   │   ├── resultado_prediccion_pdf.html # Plantilla para exportación a PDF
-│   │   ├── login.html                 # Autenticación de usuarios
-│   │   └── registro.html              # Registro con asignación de rol (Dueño / Contador)
-│   ├── admin.py                       # Configuración del panel de administración Django
-│   ├── apps.py                        # Registro y metadatos de la aplicación AppWeb
-│   ├── decorators.py                  # Decorador @rol_requerido para control de acceso (RBAC)
-│   ├── models.py                      # Modelos ORM: PerfilUsuario, EstadoCarga, Empresa, HistorialPrediccion
-│   ├── urls.py                        # Rutas y endpoints internos de la app
-│   ├── variables_modelo.py            # Fórmulas de las 7 variables adimensionales (puro Python desacoplado)
-│   ├── views.py                       # Vistas: flujo de autenticación, ETL de carga, predicción y PDF
-│   ├── viewsML.py                     # Motor analítico: inferencia ML, explicabilidad y recomendaciones
-│   └── tests.py                       # Suite automatizada de pruebas unitarias e integración (11 tests)
+├── moduloETL/                         # Motor de Ingesta, Parseo y Normalización Contable
+│   ├── etl_financiero.py              # Procesador OOD en memoria (Pandas/OpenPyXL) sin dependencias de DB
+│   ├── services.py                    # Servicios de almacenamiento y cálculo de ratios en base de datos
+│   ├── models.py                      # Modelos: CargaFinanciera, Balance, RatioFinanciero
+│   ├── forms.py                       # Formulario de carga con control de tamaño (25 MB máx)
+│   ├── views.py                       # Vistas: subida de balance, extracción y selección de períodos
+│   └── tests_etl_financiero.py        # Suite de pruebas automatizadas del motor ETL
 │
-├── DatasetEntrenamientoML/            # Datasets base y experimentos previos (CMF, quiebras internacionales)
+├── capaAnalitica/                     # Servicio de Inferencia ML, Explicabilidad y Recomendaciones
+│   ├── modelo_oficial/                # Clasificador Random Forest v11 (.joblib) y métricas
+│   ├── services.py                    # Servicio de inferencia probabilística y explicabilidad SHAP local
+│   ├── catalogo_recomendaciones.py    # Catálogo Maestro: Matriz de 9 transiciones macro y 7 tácticas operativas
+│   └── models.py                      # Modelos: PrediccionRiesgo, VariableInfluencia, Recomendacion
 │
-├── DatasetSinteticoEntrenamientoML/   # Pipeline de datos y scripts del modelo oficial v11
-│   ├── paso1_extraer_cmf.py           # Extracción y filtrado de estados financieros IFRS de la CMF
-│   ├── paso2_generar_sinteticos.py    # Generación y validación comparativa de sintéticos
-│   ├── paso3_entrenar_evaluar.py      # Script de entrenamiento y evaluación oficial del modelo
-│   └── paso4_analisis_tamano.py       # Análisis de desempeño segregado por tamaño de empresa (PYME vs Grande)
+├── moduloTransaccional/               # Operación Diaria de Caja, Ventas y Arqueos
+│   ├── models.py                      # Modelos: Venta, RetiroCajaChica, CierreCaja, MetodoPago
+│   ├── forms.py                       # Formularios con cuadratura estricta y justificación obligatoria
+│   └── views.py                       # Vistas de registro de ventas, retiros y sellado inmutable de cierre
 │
-├── PlantillasPrueba/                  # Archivos .csv y .xlsx de balance para pruebas funcionales y masivas
+├── dashboard/                         # Interfaz Analítica y Reportes Ejecutivos
+│   ├── views.py                       # Controlador del Dashboard General y Dashboard Predictivo a 90 días
+│   ├── urls.py                        # Rutas de navegación y endpoint de exportación a PDF
+│   └── templates/dashboard/           # Vistas responsivas (Chart.js interactivo con backtesting visual)
 │
-├── documentacion/                     # Documentación técnica, bitácoras de entrenamiento y arquitectura
-│   ├── ARCHITECTURE.md                # Diagramas y detalles de la arquitectura de software
-│   ├── SETUP_WINDOWS.md               # Guía paso a paso para entorno Windows
-│   ├── SETUP_LINUX.md                 # Guía paso a paso para entorno Linux
-│   ├── resultados_entrenamiento_v11.md# Reporte formal de métricas del modelo oficial v11
-│   └── fuentes_modelo_ml.md           # Respaldo bibliográfico y justificación matemática de variables
+├── usuarios/                          # Autenticación, Gobernanza y Roles (RBAC)
+│   ├── models.py                      # Modelos: Usuario, Rol (Dueño / Contador / Trabajador), Empresa
+│   ├── forms.py                       # Formularios de autenticación y registro
+│   └── views.py                       # Flujo de login, registro con términos legales y logout
+│
+├── templates/                         # Plantillas HTML globales y de módulos (Bootstrap 5.3)
+│   ├── base.html                      # Layout maestro con navegación lateral y diseño responsivo
+│   ├── moduloETL/                     # Vistas de carga de balance y ratios
+│   └── moduloTransaccional/           # Vistas de cierre de caja y ventas
+│
+├── docs/                              # Documentación Técnica, Legal y Metodológica Formal
+│   ├── plan_recomendaciones_predictivas.md # Arquitectura del plan de acción y literatura chilena
+│   ├── avisos_legales_y_concursales.md     # Marco legal concursal (Ley 20.720/21.563) y responsabilidades
+│   ├── transformacion_ifrs_etl.md          # Especificación del pipeline de transformación IFRS
+│   └── metodologia_medicion_insolvencia.md # Fundamento científico y formulación matemática
 │
 ├── manage.py                          # Script de gestión de comandos de Django
-├── requirements.txt                   # Lista de dependencias del entorno Python
-└── db.sqlite3                         # Base de datos local SQLite (autogenerada)
+└── requirements.txt                   # Dependencias del entorno virtual Python
 ```
 
 ---
 
-## <a id="características-principales"></a>Características Principales
+## <a id="módulos-y-características-principales"></a>3. Módulos y Características Principales
 
-* **Control Transaccional de Caja:** Registro diario de ventas desglosado por método de pago (Efectivo, Débito, Crédito, Transferencia), deducción automática de comisiones de adquirencia, gestión de retiros de caja chica y arqueo con justificación obligatoria de descuadres.
-* **Proceso ETL Robusto:** Validación sintáctica de archivos `.xlsx` y `.csv` importados desde sistemas ERP (como ERP Facto), previniendo nulos, errores de tipo y descuadres contables antes del procesamiento analítico.
-* **Motor Predictivo con Explicabilidad:** Generación de un score de riesgo ($0$ a $100$) clasificado en un semáforo de tres niveles (Verde, Amarillo, Rojo), complementado con un panel que expone las tres variables de mayor impacto en la predicción.
-* **Recomendaciones Automatizadas:** Emisión de pautas de gestión financiera orientadas a corregir el vector de riesgo detectado.
-* **Reportería Ejecutiva:** Exportación de informes gerenciales completos en formato PDF (`ReportLab`).
-
----
-
-## <a id="modelo-predictivo-y-fundamento-científico"></a>Modelo Predictivo y Fundamento Científico
-
-El clasificador supervisado se fundamenta en un vector de **7 variables adimensionales** rigurosamente depuradas para el ecosistema PYME, evitando sesgos de escala e incongruencias tributarias:
-
-| ID | Variable / Feature | Categoría | Rol en la Detección Temprana |
-| :--- | :--- | :--- | :--- |
-| **V1** | **Razón Corriente** | Liquidez Inmediata | Cobertura de compromisos exigibles a corto plazo. |
-| **V2** | **Capital de Trabajo / Activos** | Liquidez Estructural | Magnitud del colchón de maniobra normalizado. |
-| **V3** | **Leverage Total** | Endeudamiento | Nivel de compromiso patrimonial frente a terceros. |
-| **V4** | **ROA Operacional** | Rentabilidad | Productividad bruta del activo total. |
-| **V5** | **Margen Operacional** | Eficiencia de Costos | Cojín de rentabilidad por cada peso vendido. |
-| **V6** | **Rotación de Activos** | Eficiencia de Activos | Dinamismo comercial y control de inmovzbilización. |
-| **V7** | **Volatilidad del Flujo** | Volatilidad Diaria | Riesgo estocástico de asfixia por caja (Merton / Zurita). |
-
-* **Estrategia de Entrenamiento:** Entrenado sobre estados financieros IFRS de la CMF (2012–2024) etiquetados mediante la zona de riesgo del modelo Altman $Z''_{EM} < 1.10$ o patrimonio negativo. 
-* **Mitigación de Desbalance:** Uso de *Borderline-SMOTE* y filtrado estricto mediante una **matriz de reglas axiomáticas** en Pandas/NumPy para anular registros sintéticos contablemente inviables.
-* **Métricas de Evaluación:** Optimización centrada en la clase minoritaria mediante PR-AUC ($\ge 80\%$), Recall ($\ge 70\%$) y F1-score ($\ge 70\%$).
+* **Control Transaccional de Caja:** Registro diario de ventas por método de pago (Efectivo, Débito, Crédito, Transferencia), deducción de comisiones, retiros de caja chica y arqueo ciego con **justificación obligatoria de descuadres** (NIA 240 / Código de Comercio).
+* **Pipeline ETL Financiero:** Ingesta horizontal de balances con detección automática de cuentas IFRS, conversión defensiva de signos contables y comprobación de la ecuación patrimonial.
+* **Dashboard Predictivo a 90 Días:** Monitoreo gráfico de la curva de insolvencia ($Q_t \to Q_{t+1}$), selección dinámica de períodos, matriz de validación histórica retrospectiva (backtesting) y explicabilidad Top 3 SHAP.
+* **Plan de Acción Preventivo:** Prescripción gerencial estructurada en 3 niveles (*Situación Actual, Acción Recomendada, Paso a Paso Sugerido*) redactada en Lenguaje Ejecutivo Accesible sin jerga abstracta.
+* **Reportería Ejecutiva Oficial:** Generación de informes gerenciales descargables en PDF con sellado temporal y deslinde fiduciario.
 
 ---
 
-## <a id="instalación-y-despliegue-local"></a>Instalación y Despliegue Local
+## <a id="pipeline-etl-y-transformación-ifrs--cmf"></a>4. Pipeline ETL y Transformación IFRS / CMF
 
-Sigue estos pasos para clonar y poner en marcha el entorno de desarrollo:
+El motor `FinancialETLProcessor` homologa la nomenclatura de los estados financieros a través de un diccionario léxico de sinónimos contables (`CANONICAL_SYNONYMS`):
+1. **Normalización fonética:** Remoción de acentos, caracteres especiales y conversión a minúsculas sin espacios (`normalize_text`).
+2. **Parseo numérico defensivo:** Conversión de paréntesis contables `(monto)` a números negativos, remoción de signos monetarios (`$`, `UF`) y detección adaptativa de separadores de miles y decimales (`clean_number`).
+3. **Regla Fallback de EBIT:** Si el balance no detalla el Resultado Operacional, se deduce como:
+   $$\text{EBIT} = \text{Ganancia Antes de Impuestos (EBT)} + \text{Costos Financieros}$$
+4. **Validaciones Axiomáticas:** Comprobación estricta de Activo Total $> 0$, tolerancia de desbalance patrimonial $\le 5\%$, detección de quiebra técnica (Patrimonio Neto $\le 0$) y coherencia de subcuentas corrientes.
+5. **Cálculo de los 7 Ratios Adimensionales ($X_1$ a $X_7$):** Razón Corriente, Capital de Trabajo sobre Activos, Leverage Total, ROA Operacional, Margen Operacional, Rotación de Activos y Volatilidad de Flujo de Caja.
+
+> *Para mayores detalles técnicos, consulte [docs/transformacion_ifrs_etl.md](docs/transformacion_ifrs_etl.md).*
+
+---
+
+## <a id="motor-predictivo-y-catálogo-de-recomendaciones-a-90-días"></a>5. Motor Predictivo y Catálogo de Recomendaciones a 90 Días
+
+El subsistema analítico vincula la probabilidad de insolvencia a la literatura empírica de quiebras en Chile (Zurita 2008, Ringeling 2004, Riquelme 2018 y Ley 20.720):
+* **Matriz de Transición Intertemporal ($3 \times 3$):** Evalúa el par $(\text{Score}_{Q_t}, \text{Score}_{Q_{t+1}})$ clasificando el riesgo en tres zonas:
+  * **Verde (Solvente):** $Score \le 35\%$
+  * **Amarillo (Alerta Preventiva):** $35\% < Score \le 70\%$
+  * **Rojo (Riesgo Crítico):** $Score > 70\%$
+* **Lenguaje Ejecutivo Accesible:** Diagnósticos cuantitativos traducidos a dinero real cotidiano (*"Por cada $1.000 que debe pagar, dispone de $1.170 en recursos inmediatos..."* o *"El nivel de deuda actual supera en 4.8 veces el patrimonio de los dueños..."*).
+* **Persistencia Fiduciaria:** Cada recomendación se almacena en la tabla MySQL `recomendacion` vinculada por Foreign Key unívoca a la clave primaria del período evaluado (`prediccion_id`).
+
+> *Para mayores detalles metodológicos, consulte [docs/plan_recomendaciones_predictivas.md](docs/plan_recomendaciones_predictivas.md).*
+
+---
+
+## <a id="gobernanza-jurídica-y-verificación-de-casillas-obligatorias"></a>6. Gobernanza Jurídica y Verificación de Casillas Obligatorias
+
+El sistema implementa un mecanismo estricto de **control de certificaciones obligatorias**:
+* **Bloqueo Visual y Funcional:** En todos los formularios críticos (Carga de Balances, Cierre de Caja, Registro de Usuarios y Descarga de Informes ML), los botones de acción inician en estado **`disabled`**.
+* **Condición de Habilitación:** El botón se habilita únicamente cuando el usuario marca de forma voluntaria la casilla de aceptación y certificación legal.
+* **Validación en Doble Capa:** Si el usuario desmarca la casilla, el botón se bloquea de inmediato. Además, tanto JavaScript en el frontend (`addEventListener('submit')`) como las vistas Django en el backend (`request.POST.get('terminos_aceptados')`) rechazan cualquier petición que no incluya la certificación explícita.
+* **Marco Concursal Chileno (Ley 20.720 y Ley 21.563):** Define las vías de Reorganización Judicial, Reorganización Simplificada para MiPymes, deber de diligencia de administradores y advertencia sobre delitos concursales (insolvencia fraudulenta).
+
+> *Para el estudio jurídico completo de cada módulo y estado de riesgo, consulte [docs/avisos_legales_y_concursales.md](docs/avisos_legales_y_concursales.md).*
+
+---
+
+## <a id="instalación-y-despliegue-local"></a>7. Instalación y Despliegue Local
 
 ### 1. Clonar el repositorio
 ```bash
@@ -153,12 +170,6 @@ cd SmartFinanzas
   python -m venv venv
   .\venv\Scripts\Activate.ps1
   ```
-  *(Si PowerShell restringe la ejecución de scripts, ejecuta: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`)*
-* **En Windows (CMD):**
-  ```cmd
-  python -m venv venv
-  venv\Scripts\activate.bat
-  ```
 * **En Linux / macOS:**
   ```bash
   python3 -m venv venv
@@ -171,69 +182,52 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 4. Configurar variables de entorno y base de datos
-Crea un archivo `.env` en la raíz del proyecto basándote en el entorno de MySQL configurado:
+### 4. Configurar variables de entorno (.env)
+Crea un archivo `.env` en la raíz del proyecto configurado para MySQL:
 ```env
 DEBUG=True
 SECRET_KEY=tu-clave-secreta-django
-DB_NAME=smartfinanzas_db
-DB_USER=tu_usuario_mysql
-DB_PASSWORD=tu_contraseña_mysql
-DB_HOST=localhost
+DB_NAME=smartfinanzas3
+DB_USER=root
+DB_PASSWORD=
+DB_HOST=127.0.0.1
 DB_PORT=3306
 ```
 
-### 5. Aplicar migraciones y poblar datos iniciales
+### 5. Aplicar migraciones
 ```bash
 python manage.py makemigrations
 python manage.py migrate
-python manage.py loaddata initial_data.json  # Roles y métodos de pago base
-  ```
+```
 
 ### 6. Ejecutar el servidor de desarrollo
 ```bash
 python manage.py runserver
 ```
-Accede a la plataforma en tu navegador mediante `http://127.0.0.1:8000/`.
+Accede a la plataforma en tu navegador web mediante:  
+`http://127.0.0.1:8000/`
 
 ---
 
-## <a id="guía-de-uso-por-roles"></a>Guía de Uso por Roles
+## <a id="documentación-técnica-especializada"></a>8. Documentación Técnica Especializada
 
-El sistema implementa control de acceso basado en roles:
-1. **Dueño (Gerente General):** Opera el módulo transaccional de caja (registra retiros de caja chica, ejecuta el cierre diario y justifica descuadres), consulta el Dashboard analítico y toma decisiones preventivas.
-2. **Trabajador:** Registra las ventas diarias con sus respectivos métodos de pago y aplica descuentos manuales autorizados.
-3. **Contador (Externo):** Realiza la carga de las planillas financieras exportadas desde ERP Facto, valida la tabla de ratios calculados por el ETL y ejecuta la inferencia del motor predictivo.
-4. **Administrador:** Gestiona cuentas de usuario, asignación de roles y parámetros generales de la empresa en el panel de control.
+Para profundizar en la arquitectura, modelos matemáticos y fundamentos jurídicos de la plataforma, consulte los documentos disponibles en el directorio `docs/`:
 
----
-
-## <a id="plan-de-pruebas-y-aseguramiento-de-calidad"></a>Plan de Pruebas y Aseguramiento de Calidad
-
-* **Pruebas Unitarias e Integración:** Ejecución de la suite automatizada con `Pytest`:
-```bash
-  pytest --cov=. --cov-report=html
-  ```
-* **Pruebas de Carga y Rendimiento:** Verificación de tiempos de respuesta (< 3 segundos) mediante simulaciones concurrentes con **Apache JMeter**.
-* **Auditoría de Seguridad:** Validación nativa de Django contra vulnerabilidades OWASP Top 10 (Inyección SQL, XSS, CSRF) y cumplimiento estricto de cifrado en tránsito HTTPS/TLS.
+1. [docs/plan_recomendaciones_predictivas.md](docs/plan_recomendaciones_predictivas.md): Diseño del Plan de Acción a 90 Días, matriz de transición intertemporal y fundamentación empírica en literatura chilena.
+2. [docs/avisos_legales_y_concursales.md](docs/avisos_legales_y_concursales.md): Análisis exhaustivo de los avisos legales, deberes de administración, responsabilidad civil/penal y procedimientos de la Ley 20.720 y Ley 21.563 por semáforo de riesgo.
+3. [docs/transformacion_ifrs_etl.md](docs/transformacion_ifrs_etl.md): Especificación técnica del pipeline ETL, diccionario de sinónimos contables, validaciones axiomáticas y cálculo de los 7 ratios financieros.
+4. [docs/metodologia_medicion_insolvencia.md](docs/metodologia_medicion_insolvencia.md): Formulación matemática del modelo Altman EMS y fundamentación de las variables canónicas.
 
 ---
 
-## <a id="cumplimiento-normativo-y-seguridad"></a>Cumplimiento Normativo y Seguridad
-
-* **Protección de Datos:** Diseñado en estricto cumplimiento con la **Ley 19.628** sobre Protección de la Vida Privada y adaptado a las exigencias de gobernanza de la **Ley 21.719** (Agencia de Protección de Datos Personales).
-* **Calidad de Software:** Alineado con las dimensiones prioritarias del estándar internacional **ISO/IEC 25010** (Seguridad, Usabilidad, Mantenibilidad y Fiabilidad).
-
----
-
-## <a id="autores-y-agradecimientos"></a>Autores y Agradecimientos
+## <a id="autores-y-agradecimientos"></a>9. Autores y Agradecimientos
 
 * **Ignacio Pozo Pozo** – Desarrollo Fullstack, Ingeniería de Datos & Machine Learning.
 * **Arturo Quiroga Tello** – Gestión de Proyecto, Desarrollo Fullstack, Testing & QA.
 * **Carlos Covarrubias Astudillo** – Docente Guía y Asesoría Metodológica.
 * **Juan Pablo Yáñez Riquelme** – Docente Consultor y Asesor Técnico en Machine Learning.
 * **Alexis Vázquez & Natalia Pezoa** – Representantes de *Nstock Importaciones* (Validación Operativa y Pruebas de Campo).
-* **INACAP Sede La Serena** – Espacio CreaEmpresas y Dirección Académica del Área de Tecnologías de Información.
+* **INACAP Sede La Serena** – Área de Tecnologías de Información y Ciberseguridad.
 
 ---
-*SmartFinanzas – Desarrollado con fines profesionales e innovación tecnológica aplicada al ecosistema PYME.*
+*SmartFinanzas – Innovación analítica y tecnológica aplicada a la preservación de la solvencia empresarial.*

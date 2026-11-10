@@ -211,7 +211,7 @@
                     </div>
 
                     <!-- Aceptación de Términos y Condiciones con Modal Normativo -->
-                    <div class="card bg-light border-0 p-3 mb-4 rounded-3">
+                    <div class="card bg-light border-0 p-3 mb-4 rounded-3" id="cardCheckRegistro">
                         <div class="form-check m-0">
                             <input class="form-check-input" type="checkbox" id="checkTerminosRegistro" name="terminos_aceptados" required>
                             <label class="form-check-label small text-dark" for="checkTerminosRegistro">
@@ -221,10 +221,13 @@
                                 </a> <span class="text-danger">*</span>
                             </label>
                         </div>
+                        <div id="errorCheckRegistro" class="text-danger small mt-2 fw-semibold d-none">
+                            <i class="bi bi-exclamation-circle-fill me-1"></i>Debes aceptar los Términos de Servicio y Confidencialidad para registrarte.
+                        </div>
                     </div>
 
                     <div class="d-grid mb-3">
-                        <button type="submit" class="btn btn-primary btn-lg fw-semibold shadow-sm" id="btnSubmitRegistro">
+                        <button type="submit" class="btn btn-primary btn-lg fw-semibold shadow-sm" id="btnSubmitRegistro" disabled>
                             <i class="bi bi-check2-circle me-1"></i>Crear Cuenta
                         </button>
                     </div>
@@ -361,6 +364,42 @@
                 if (modalEl && typeof bootstrap !== 'undefined') {
                     const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
                     modalInstance.hide();
+                }
+            });
+        }
+
+        // Bloqueo estricto del botón de envío si el check no está marcado
+        const btnSubmitRegistro = document.getElementById('btnSubmitRegistro');
+        const cardCheckRegistro = document.getElementById('cardCheckRegistro');
+        const errorCheckRegistro = document.getElementById('errorCheckRegistro');
+        const formRegistro = document.querySelector('form');
+
+        function actualizarEstadoBtnRegistro() {
+            if (!btnSubmitRegistro) return;
+            const marcado = checkPrincipal && checkPrincipal.checked;
+            btnSubmitRegistro.disabled = !marcado;
+            if (marcado) {
+                if (checkPrincipal) checkPrincipal.classList.remove('is-invalid');
+                if (cardCheckRegistro) cardCheckRegistro.classList.remove('border', 'border-danger');
+                if (errorCheckRegistro) errorCheckRegistro.classList.add('d-none');
+            }
+        }
+
+        if (checkPrincipal) {
+            checkPrincipal.addEventListener('change', actualizarEstadoBtnRegistro);
+            actualizarEstadoBtnRegistro();
+        }
+
+        if (formRegistro) {
+            formRegistro.addEventListener('submit', function (e) {
+                if (checkPrincipal && !checkPrincipal.checked) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    checkPrincipal.focus();
+                    checkPrincipal.classList.add('is-invalid');
+                    if (cardCheckRegistro) cardCheckRegistro.classList.add('border', 'border-danger');
+                    if (errorCheckRegistro) errorCheckRegistro.classList.remove('d-none');
+                    return false;
                 }
             });
         }

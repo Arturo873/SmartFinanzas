@@ -296,7 +296,7 @@
                         <a href="{% url 'moduloETL:ratios_financieros' %}" class="btn btn-outline-secondary">
                             Cancelar
                         </a>
-                        <button type="submit" class="btn btn-primary px-4 shadow-sm fw-semibold" id="btnSubmit">
+                        <button type="submit" class="btn btn-primary px-4 shadow-sm fw-semibold" id="btnSubmit" disabled>
                             <i class="bi bi-lightning-charge-fill me-1"></i>Procesar y Extraer Ratios
                         </button>
                     </div>
@@ -556,6 +556,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const selectedFileSize = document.getElementById('selectedFileSize');
     const btnRemoverArchivo = document.getElementById('btnRemoverArchivo');
 
+    function actualizarEstadoBtnSubmit() {
+        if (!btnSubmit) return;
+        const tieneArchivo = inputArchivo && inputArchivo.files && inputArchivo.files.length > 0;
+        const checkMarcado = checkPrincipalETL && checkPrincipalETL.checked;
+        const archivoValido = tieneArchivo && (inputArchivo.files[0].size <= LIMITE_MAX_BYTES);
+        btnSubmit.disabled = !(tieneArchivo && checkMarcado && archivoValido);
+    }
+
     function actualizarVistaArchivo(archivo) {
         if (!archivo) {
             dropZoneContent.classList.remove('d-none');
@@ -563,7 +571,7 @@ document.addEventListener('DOMContentLoaded', function() {
             dropZone.classList.remove('border-success', 'bg-success', 'bg-opacity-10');
             if (alertaTamano) alertaTamano.classList.add('d-none');
             if (infoValido) infoValido.classList.add('d-none');
-            if (btnSubmit) btnSubmit.disabled = false;
+            actualizarEstadoBtnSubmit();
             return;
         }
 
@@ -582,7 +590,7 @@ document.addEventListener('DOMContentLoaded', function() {
             dropZoneContent.classList.remove('d-none');
             dropZoneSelected.classList.add('d-none');
             dropZone.classList.remove('border-success', 'bg-success', 'bg-opacity-10');
-            if (btnSubmit) btnSubmit.disabled = true;
+            actualizarEstadoBtnSubmit();
             return;
         }
 
@@ -597,7 +605,7 @@ document.addEventListener('DOMContentLoaded', function() {
         dropZoneContent.classList.add('d-none');
         dropZoneSelected.classList.remove('d-none');
         dropZone.classList.add('border-success', 'bg-success', 'bg-opacity-10');
-        if (btnSubmit) btnSubmit.disabled = false;
+        actualizarEstadoBtnSubmit();
     }
 
     if (inputArchivo) {
@@ -678,7 +686,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (errorCheckTerminos) errorCheckTerminos.classList.add('d-none');
                 if (cardCheckTerminos) cardCheckTerminos.classList.remove('border', 'border-danger');
             }
+            actualizarEstadoBtnSubmit();
         });
+        actualizarEstadoBtnSubmit();
     }
 
     // Spinner y validación en submit de carga de balance
@@ -797,6 +807,7 @@ document.addEventListener('DOMContentLoaded', function() {
     chkPeriodos.forEach(chk => {
         chk.addEventListener('change', actualizarContadorPeriodos);
     });
+    actualizarContadorPeriodos();
 
     if (formPeriodosML) {
         formPeriodosML.addEventListener('submit', function(e) {

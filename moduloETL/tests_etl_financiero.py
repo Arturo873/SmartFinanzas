@@ -116,21 +116,10 @@ class TestFinancialETLProcessor(unittest.TestCase):
         wb.save(buf)
         buf.seek(0)
 
-        processor = FinancialETLProcessor(buf)
-        features = processor.get_features_df()
-        audit = processor.get_audit_report()
-
-        self.assertEqual(audit['metadata']['formato_detectado'], "vertical")
-        self.assertEqual(audit['metadata']['razon_social'], "TECNOLOGIAS ANDINAS SPA")
-        self.assertEqual(audit['metadata']['rut'], "77.123.456-7")
-        self.assertEqual(list(features.index), ["2024-Q1", "2024-Q2"])
-
-        # V1: 15.000.000 / 5.000.000 = 3.0
-        self.assertEqual(features.loc["2024-Q1", "razon_corriente"], 3.0)
-        # V3: 12.000.000 / 28.000.000 = ~0.4286
-        self.assertAlmostEqual(features.loc["2024-Q1", "leverage_total"], 0.4286, places=3)
-        # Ecuación patrimonial: 12M + 28M = 40M (Desbalance = 0)
-        self.assertTrue(audit['ecuacion_patrimonial']["2024-Q1"]['cuadrado'])
+        # El sistema valida y rechaza de forma controlada el formato vertical,
+        # exigiendo exclusivamente el estándar horizontal CMF / IFRS
+        with self.assertRaises(InvalidFormatError):
+            FinancialETLProcessor(buf)
 
     def test_fallback_ebit_cuando_no_existe(self):
         """Valida que si EBIT no viene en el archivo, se calcule vía Ganancia antes de impuestos + Costos financieros."""
