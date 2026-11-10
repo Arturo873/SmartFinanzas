@@ -222,6 +222,28 @@ class DashboardViewTests(TestCase):
         # Magic bytes de un archivo PDF (%PDF)
         self.assertTrue(response.content.startswith(b'%PDF'))
 
+    def test_generar_pdf_predictivo_view_reportlab(self):
+        """Verifica que la vista GenerarPDFPredictivoView retorne el informe predictivo a 90 días en PDF."""
+        self.client.login(username='dueno_user', password='password123')
+        session = self.client.session
+        session['usuario_rol'] = 'Dueño'
+        session.save()
+
+        # Descarga sin parámetros (usa el último período disponible)
+        response = self.client.get(reverse('dashboard:generar_pdf_predictivo'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+        self.assertIn('attachment;', response['Content-Disposition'])
+        self.assertIn('informe_predictivo_90dias', response['Content-Disposition'])
+        self.assertTrue(len(response.content) > 1000)
+        self.assertTrue(response.content.startswith(b'%PDF'))
+
+        # Descarga con parámetro de período específico
+        response_per = self.client.get(reverse('dashboard:generar_pdf_predictivo') + '?periodo=2024-Q4')
+        self.assertEqual(response_per.status_code, 200)
+        self.assertEqual(response_per['Content-Type'], 'application/pdf')
+        self.assertTrue(response_per.content.startswith(b'%PDF'))
+
     def test_rf04_filtro_y_ocultar_periodos_historicos(self):
         """
         [RF-04] Verifica que el dashboard proporcione los controles interactivos
@@ -550,7 +572,7 @@ class AlertaTempranaPredictivoTests(TestCase):
         self.assertContains(response, 'ALERTA TEMPRANA A 3 MESES')
         self.assertContains(response, 'Factores Determinantes de la Proyección')
         self.assertNotContains(response, 'Mini Simulador de Sensibilidad Proactiva')
-        self.assertContains(response, 'Matriz de Validación Histórica')
+        self.assertNotContains(response, 'Matriz de Validación Histórica')
         self.assertContains(response, 'alertaTempranaChart')
 
     def test_dashboard_predictivo_funciones_grafico(self):

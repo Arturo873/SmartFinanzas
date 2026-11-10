@@ -31,7 +31,7 @@ from moduloTransaccional.models import Venta
 from capaAnalitica.models import PrediccionRiesgo
 from capaAnalitica.services import MotorRiesgo, ejecutar_y_persistir_prediccion, VARIABLES_FINANCIERAS
 from AppWeb.viewsML import calcular_periodo_siguiente, calcular_delta_riesgo
-from .pdf_generator import construir_informe_ejecutivo_pdf
+from .pdf_generator import construir_informe_ejecutivo_pdf, construir_informe_predictivo_pdf
 
 logger = logging.getLogger(__name__)
 
@@ -396,12 +396,13 @@ class DashboardView(DashboardRolMixin, TemplateView):
         todos_periodos = sorted(ratios_por_periodo.keys())
         periodos_visibles = list(todos_periodos)
 
-        # Si no hay ratios en módulo ETL pero sí hay predicciones en capa analítica
-        if not periodos_visibles and predicciones_qs.exists():
+        # Asegurar inclusión de todas las predicciones históricas (tengan o no ratio formal asignado)
+        if predicciones_qs.exists():
             for p in predicciones_qs.order_by('fecha_prediccion', 'id'):
                 p_per = p.ratio.periodo if (p.ratio and p.ratio.periodo) else (p.fecha_prediccion.strftime('%d/%m/%Y') if p.fecha_prediccion else f"#{p.id}")
                 if p_per not in periodos_visibles:
                     periodos_visibles.append(p_per)
+                if p_per not in pred_por_periodo:
                     pred_por_periodo[p_per] = p
 
         periodos_disponibles = list(periodos_visibles)
@@ -484,6 +485,12 @@ class DashboardView(DashboardRolMixin, TemplateView):
 
         if ultima_prediccion and chart_puntos and not any(pt['es_actual'] for pt in chart_puntos):
             chart_puntos[-1]['es_actual'] = True
+
+        # En Dashboard general, si se solicita filtrar por un período por GET, recortar chart_puntos para esa consulta
+        if periodo_param and not (self.request.headers.get('x-requested-with') == 'XMLHttpRequest' or self.request.GET.get('ajax') == '1'):
+            chart_puntos_filtrados = [pt for pt in chart_puntos if pt['periodo'] == periodo_param or pt['label'] == periodo_param]
+            if chart_puntos_filtrados:
+                chart_puntos = chart_puntos_filtrados
 
         chart_scores = [pt['score'] for pt in chart_puntos]
         chart_fechas = [pt['label'] for pt in chart_puntos]
@@ -856,11 +863,12 @@ class DashboardPredictivoView(DashboardView):
         # Secuencia cronológica completa de períodos válidos (preservar toda la serie sin recortar por periodo_param)
         todos_periodos = sorted(ratios_por_periodo.keys())
         periodos_visibles = list(todos_periodos)
-        if not periodos_visibles and predicciones_qs.exists():
+        if predicciones_qs.exists():
             for p in predicciones_qs.order_by('fecha_prediccion', 'id'):
                 p_per = p.ratio.periodo if (p.ratio and p.ratio.periodo) else (p.fecha_prediccion.strftime('%d/%m/%Y') if p.fecha_prediccion else f"#{p.id}")
                 if p_per not in periodos_visibles:
                     periodos_visibles.append(p_per)
+                if p_per not in pred_por_periodo:
                     pred_por_periodo[p_per] = p
 
         timeline_puntos = []
@@ -870,12 +878,12 @@ class DashboardPredictivoView(DashboardView):
 
         for per in periodos_visibles:
             p_fut, per_norm, _ = calcular_periodo_siguiente(per)
-            r_obj = ratios_por_periodo[per]
+            r_obj = ratios_por_periodo.get(per)
             p_obj = pred_por_periodo.get(per)
             if p_obj and p_obj.score_riesgo is not None:
                 raw_ml = float(p_obj.score_riesgo)
                 pid = p_obj.id
-            else:
+            elif r_obj:
                 vars_dict = {
                     'razon_corriente': float(r_obj.v1_razon_corriente or 1.0),
                     'capital_trabajo_sobre_activos': float(r_obj.v2_capital_trabajo_activos or 0.1),
@@ -887,11 +895,19 @@ class DashboardPredictivoView(DashboardView):
                 }
                 raw_ml, _, _ = predecir_riesgo(vars_dict)
                 pid = None
+            else:
+                raw_ml = 35.0
+                pid = None
 
-            z_val = calcular_z_score_altman_1983(r_obj)
-            carga_obj = getattr(r_obj, 'carga', None)
-            pat_val = float(getattr(carga_obj, 'patrimonio', 1.0) or 1.0) if carga_obj else 1.0
-            sc_obs = calcular_score_observado(r_obj)
+            if r_obj:
+                z_val = calcular_z_score_altman_1983(r_obj)
+                carga_obj = getattr(r_obj, 'carga', None)
+                pat_val = float(getattr(carga_obj, 'patrimonio', 1.0) or 1.0) if carga_obj else 1.0
+                sc_obs = calcular_score_observado(r_obj)
+            else:
+                z_val = 2.60
+                pat_val = 1.0
+                sc_obs = raw_ml
             niv_obs = 'Verde' if sc_obs <= 35 else ('Amarillo' if sc_obs <= 70 else 'Rojo')
 
             sc_pred = calibrar_score_proyeccion(raw_ml, sc_obs)
@@ -1030,6 +1046,7 @@ class DashboardPredictivoView(DashboardView):
                 ratios_dict=vars_dict_periodo
             )
             rec_resultado['meta']['periodo_label'] = lbl_key
+            rec_resultado['meta']['periodo'] = per_key
             if pt.get('id'):
                 rec_resultado['meta']['prediccion_id'] = pt['id']
             pt['recomendaciones'] = rec_resultado
@@ -1318,6 +1335,74 @@ class GenerarPDFView(DashboardRolMixin, View):
                 "Por favor, reintente la descarga o contacte al soporte del sistema."
             )
             return redirect('dashboard:dashboard')
+
+
+class GenerarPDFPredictivoView(DashboardRolMixin, View):
+    """
+    Controlador para exportar el Informe Ejecutivo Especializado de Proyección y Plan a 90 Días
+    en PDF utilizando ReportLab.
+    Permite a los directivos y dueños de empresa descargar el diagnóstico de transición (Q_t -> Q_{t+1}),
+    el catálogo de recomendaciones preventivas macro y micro-estratégicas, la matriz de backtesting
+    y la justificación algorítmica SHAP.
+    """
+
+    def get(self, request: HttpRequest):
+        try:
+            # 1. Instanciamos DashboardPredictivoView para obtener exactamente el mismo contexto
+            # garantizando 100% de coherencia entre la pantalla interactiva y el documento PDF
+            predictivo_view = DashboardPredictivoView()
+            predictivo_view.setup(request)
+            context = predictivo_view.get_context_data()
+
+            usuario_db = resolver_usuario_bd(request.user)
+            empresa_usuario = context.get('empresa_usuario') or (usuario_db.empresa if usuario_db else None)
+            ultima_prediccion = context.get('ultima_prediccion')
+            periodo_balance = context.get('periodo_balance') or context.get('periodo_balance_raw') or '2024-Q4'
+            periodo_proyectado = context.get('periodo_proyectado') or '2025-Q1'
+            ventana_dias = context.get('ventana_preventiva_dias', 90)
+            score_proyectado = context.get('score_proyectado_float', context.get('valor_proyectado', context.get('score', 0.0)))
+            score_base = context.get('score_base_qt', context.get('score_base_dashboard', 0.0))
+            nivel_proyectado = context.get('nivel_proyectado', context.get('nivel', 'Verde'))
+            delta_info = context.get('delta_info')
+            plan_rec = context.get('plan_recomendaciones_activo')
+            matriz_bt = context.get('matriz_backtesting', [])
+            todos_los_ratios = context.get('todos_los_ratios_prediccion', [])
+            ratio_asociado = context.get('ratio_asociado_prediccion') or context.get('ultimo_ratio')
+            info_periodo = context.get('info_periodo')
+            timeline_puntos = context.get('timeline_puntos', [])
+
+            pdf_buffer = construir_informe_predictivo_pdf(
+                empresa=empresa_usuario,
+                usuario=usuario_db or request.user,
+                ultima_prediccion=ultima_prediccion,
+                periodo_balance=periodo_balance,
+                periodo_proyectado=periodo_proyectado,
+                ventana_preventiva_dias=ventana_dias,
+                score_proyectado=score_proyectado,
+                score_base=score_base,
+                nivel_proyectado=nivel_proyectado,
+                delta_info=delta_info,
+                plan_recomendaciones=plan_rec,
+                matriz_backtesting=matriz_bt,
+                todos_los_ratios=todos_los_ratios,
+                ratio_asociado=ratio_asociado,
+                info_periodo=info_periodo,
+                timeline_puntos=timeline_puntos,
+            )
+
+            per_slug = f"_{periodo_balance}" if periodo_balance else ""
+            nombre_archivo = f"informe_predictivo_90dias{per_slug}_{timezone.now().strftime('%Y%m%d_%H%M')}.pdf"
+            response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
+            return response
+        except Exception as exc:
+            logger.exception("Error al compilar el informe ejecutivo predictivo PDF: %s", exc)
+            messages.error(
+                request,
+                "No fue posible generar el informe ejecutivo predictivo en este momento debido a un problema temporal. "
+                "Por favor, reintente la descarga o contacte al soporte del sistema."
+            )
+            return redirect('dashboard:dashboard_predictivo')
 
 
 class EjecutarPrediccionDashboardView(DashboardRolMixin, View):

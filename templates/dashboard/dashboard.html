@@ -1141,13 +1141,6 @@
                             <td class="py-2 px-3 text-end font-monospace text-muted-custom">--</td>
                             <td class="py-2 px-3"><span class="badge border badge-status-neutral fs-micro">Margen: {{ info_periodo.margen_ebit_pct|floatformat:1 }}%</span></td>
                         </tr>
-                        <tr>
-                            <td class="py-2 px-3 fw-semibold text-main">Utilidad Neta</td>
-                            <td class="py-2 px-3 text-secondary">Resultado Final del Ejercicio</td>
-                            <td class="py-2 px-3 text-end font-monospace fw-bold {% if info_periodo.utilidad_neta >= 0 %}text-success{% else %}text-danger{% endif %}">${{ info_periodo.utilidad_neta|floatformat:0 }}</td>
-                            <td class="py-2 px-3 text-end font-monospace text-muted-custom">--</td>
-                            <td class="py-2 px-3"><span class="badge border {% if info_periodo.utilidad_neta >= 0 %}badge-status-solvente{% else %}badge-status-critico{% endif %} fs-micro">Margen Neto: {{ info_periodo.margen_neto_pct|floatformat:1 }}%</span></td>
-                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -2593,13 +2586,6 @@ document.addEventListener('DOMContentLoaded', function () {
                             <td class="py-2 px-3 text-end font-monospace fw-semibold ${ebit >= 0 ? 'text-success' : 'text-danger'}">${formatPesos(ebit)}</td>
                             <td class="py-2 px-3 text-end font-monospace text-muted-custom">--</td>
                             <td class="py-2 px-3"><span class="badge border badge-status-neutral fs-micro">Margen: ${Number(info.margen_ebit_pct || 0).toFixed(1)}%</span></td>
-                        </tr>
-                        <tr>
-                            <td class="py-2 px-3 fw-semibold text-main">Utilidad Neta</td>
-                            <td class="py-2 px-3 text-secondary">Resultado Final del Ejercicio</td>
-                            <td class="py-2 px-3 text-end font-monospace fw-bold ${utilNeta >= 0 ? 'text-success' : 'text-danger'}">${formatPesos(utilNeta)}</td>
-                            <td class="py-2 px-3 text-end font-monospace text-muted-custom">--</td>
-                            <td class="py-2 px-3"><span class="badge border ${utilNeta >= 0 ? 'badge-status-solvente' : 'badge-status-critico'} fs-micro">Margen Neto: ${Number(info.margen_neto_pct || 0).toFixed(1)}%</span></td>
                         </tr>
                     </tbody>
                 </table>

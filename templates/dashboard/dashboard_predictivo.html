@@ -65,20 +65,6 @@
         border-color: #cbd5e1;
         box-shadow: 0 2px 4px rgba(0,0,0,0.04);
     }
-
-    /* Matriz de Backtesting */
-    .table-backtesting th {
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
-        font-weight: 600;
-        background-color: #f8fafc;
-        color: #475569;
-    }
-    .table-backtesting td {
-        font-size: 0.8125rem;
-        vertical-align: middle;
-    }
 </style>
 {% endblock %}
 
@@ -466,7 +452,7 @@
             <div class="d-flex align-items-center gap-2 mb-1">
                 <h2 class="h6 fw-semibold text-main mb-0">Plan de Acción y Recomendaciones Estratégicas a 90 Días</h2>
                 <span class="badge border font-monospace badge-status-neutral fs-micro" id="badgeRecomendacionesPeriodo">
-                    Acciones para período: <strong id="recPeriodoTexto">{{ plan_recomendaciones_activo.meta.periodo_label|default:plan_recomendaciones_activo.meta.periodo|default:periodo_balance }}</strong>
+                    Acciones para período: <strong id="recPeriodoTexto">{{ plan_recomendaciones_activo.meta.periodo_label|default:periodo_balance }}</strong>
                 </span>
             </div>
             <p class="text-muted-custom mb-0 fs-caption" id="recSubtituloTexto">
@@ -668,102 +654,6 @@
 </div>
 
 <!-- ====================================================================== -->
-<!-- 2.C MATRIZ DE VALIDACIÓN HISTÓRICA (BACKTESTING VISUAL RETROSPECTIVO) -->
-<!-- ====================================================================== -->
-<div class="card mb-4 border-default">
-    <div class="card-header py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-2 border-default bg-white">
-        <div>
-            <div class="d-flex align-items-center gap-2 mb-0.5">
-                <h2 class="h6 fw-semibold text-main mb-0">Matriz de Validación Histórica (Backtesting a 90 Días)</h2>
-                <span class="badge border font-monospace badge-status-neutral fs-micro">
-                    Retrospectiva Trimestral (Q<sub>t</sub> &rarr; Q<sub>t+1</sub>)
-                </span>
-            </div>
-            <p class="text-muted-custom mb-0 fs-caption">
-                Contraste empírico entre la probabilidad que anticipó el modelo en trimestres pasados frente a la solvencia real observada en el trimestre siguiente.
-            </p>
-        </div>
-        <div class="d-flex align-items-center gap-2 fs-micro">
-            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 py-1 px-2">
-                <i class="bi bi-shield-check me-1"></i>Eficacia Retrospectiva: 94.2%
-            </span>
-            <span class="text-muted-custom">
-                {{ total_trimestres_backtesting|default:"1" }} trimestre(s) evaluado(s)
-            </span>
-        </div>
-    </div>
-
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover table-backtesting align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th class="ps-4">Trimestre Base (Q<sub>t</sub>)</th>
-                        <th>Horizonte Anticipado (Q<sub>t+1</sub>)</th>
-                        <th class="text-center">Score Proyectado</th>
-                        <th class="text-center">Nivel Pronosticado</th>
-                        <th>Realidad Observada en Q<sub>t+1</sub></th>
-                        <th class="text-center pe-4">Dictamen Retrospectivo</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for fila in matriz_backtesting %}
-                    <tr class="{% if fila.es_activo %}table-primary bg-opacity-10{% endif %}">
-                        <td class="ps-4 fw-semibold font-monospace text-main">
-                            {{ fila.periodo_base }}
-                            {% if fila.es_activo %}
-                                <span class="badge bg-primary text-white fs-micro ms-1">ACTUAL</span>
-                            {% endif %}
-                        </td>
-                        <td class="font-monospace text-secondary">
-                            {{ fila.periodo_proyectado }}
-                            <span class="text-muted-custom fs-micro">(+90d)</span>
-                        </td>
-                        <td class="text-center font-monospace fw-bold">
-                            {{ fila.score_proyectado|floatformat:1 }}%
-                        </td>
-                        <td class="text-center">
-                            {% if fila.color_proyectado == 'Verde' %}
-                                <span class="badge border badge-status-solvente fs-micro">{{ fila.nivel_proyectado|default:"Solvente" }}</span>
-                            {% elif fila.color_proyectado == 'Amarillo' %}
-                                <span class="badge border badge-status-alerta fs-micro">{{ fila.nivel_proyectado|default:"Alerta" }}</span>
-                            {% else %}
-                                <span class="badge border badge-status-critico fs-micro">{{ fila.nivel_proyectado|default:"Crítico" }}</span>
-                            {% endif %}
-                        </td>
-                        <td class="text-secondary fs-caption">
-                            {{ fila.estado_real }}
-                        </td>
-                        <td class="text-center pe-4">
-                            <span class="badge border {{ fila.badge_clase }} fs-micro px-2 py-1">
-                                <i class="bi {% if 'Acierto' in fila.resultado %}bi-check-circle-fill text-success{% elif 'Activo' in fila.resultado %}bi-clock-fill text-warning{% else %}bi-shield-check text-primary{% endif %} me-1"></i>{{ fila.resultado }}
-                            </span>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="6" class="text-center py-4 text-muted-custom">
-                            No se registran suficientes trimestres contables para generar la matriz de validación retrospectiva.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="card-footer py-2.5 px-4 bg-white border-top border-subtle d-flex flex-wrap align-items-center justify-content-between text-muted-custom fs-micro">
-        <div>
-            <i class="bi bi-clock-history me-1 text-primary"></i>
-            Validación continua en base a la historia de balances de la empresa (RNF-08).
-        </div>
-        <div class="font-monospace">
-            Horizonte Evaluativo: Q<sub>t</sub> &rarr; Q<sub>t+1</sub> (3 Meses)
-        </div>
-    </div>
-</div>
-
-<!-- ====================================================================== -->
 <!-- 4. TRAZABILIDAD INTEGRAL: TODOS LOS RATIOS DE LA PREDICCIÓN (X1 - X7)  -->
 <!-- ====================================================================== -->
 <div class="card mb-4 border-default">
@@ -953,7 +843,7 @@
                         Entiendo la naturaleza estadística del modelo y acepto los términos de emisión del informe oficial
                     </label>
                 </div>
-                <a href="{% url 'dashboard:generar_pdf' %}{% if ultima_prediccion %}?prediccion_id={{ ultima_prediccion.id }}{% endif %}" 
+                <a href="{% url 'dashboard:generar_pdf_predictivo' %}{% if periodo_balance %}?periodo={{ periodo_balance|urlencode }}{% elif ultima_prediccion %}?prediccion_id={{ ultima_prediccion.id }}{% endif %}" 
                    class="btn btn-dark btn-sm px-4 fw-semibold disabled" 
                    id="btnDescargarPdfModal"
                    target="_blank">
@@ -986,11 +876,28 @@ document.addEventListener('DOMContentLoaded', function () {
     const checkModalML = document.getElementById('checkModalML');
     const btnDescargarPdf = document.getElementById('btnDescargarPdfModal');
     const modalInformeEl = document.getElementById('modalTerminosInforme');
+    const urlGenerarPdfPredictivoBase = "{% url 'dashboard:generar_pdf_predictivo' %}";
+
+    function actualizarUrlDescargaPdf(periodo, predId) {
+        if (!btnDescargarPdf) return;
+        const params = new URLSearchParams();
+        if (periodo) params.set('periodo', periodo);
+        if (predId) params.set('prediccion_id', predId);
+        const queryStr = params.toString();
+        btnDescargarPdf.href = urlGenerarPdfPredictivoBase + (queryStr ? ('?' + queryStr) : '');
+    }
 
     if (modalInformeEl) {
         modalInformeEl.addEventListener('show.bs.modal', function () {
             if (checkModalML) checkModalML.checked = false;
             if (btnDescargarPdf) btnDescargarPdf.classList.add('disabled');
+
+            // Asegurar que el modal descargue el período actualmente activo
+            const activo = (typeof puntosVisiblesActuales !== 'undefined' && puntosVisiblesActuales.find(p => p.es_actual)) 
+                        || (typeof puntosOriginales !== 'undefined' && puntosOriginales.find(p => p.es_actual));
+            if (activo) {
+                actualizarUrlDescargaPdf(activo.periodo, activo.id);
+            }
         });
     }
 
@@ -1649,6 +1556,9 @@ document.addEventListener('DOMContentLoaded', function () {
             const col = punto.score_prediccion > 70 ? '#dc2626' : (punto.score_prediccion > 35 ? '#ca8a04' : '#16a34a');
             elBoxProy.style.borderLeft = `3px solid ${col}`;
         }
+
+        // Actualizar URL del botón de descarga de informe en el modal para apuntar al período activo
+        actualizarUrlDescargaPdf(punto.periodo, punto.id);
 
         // Delta respecto al trimestre anterior
         const elDeltaBadge = document.getElementById('horizonteDeltaBadge');

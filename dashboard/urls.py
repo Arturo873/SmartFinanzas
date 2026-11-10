@@ -4,7 +4,13 @@ SmartFinanzas.
 """
 
 from django.urls import path
-from .views import DashboardView, DashboardPredictivoView, GenerarPDFView, EjecutarPrediccionDashboardView
+from .views import (
+    DashboardView,
+    DashboardPredictivoView,
+    GenerarPDFView,
+    GenerarPDFPredictivoView,
+    EjecutarPrediccionDashboardView,
+)
 
 app_name = 'dashboard'
 
@@ -17,6 +23,8 @@ urlpatterns = [
     path('predictivo-resumen/', DashboardPredictivoView.as_view(), name='predictivo'),
     path('exportar-pdf/', GenerarPDFView.as_view(), name='generar_pdf'),
     path('pdf/', GenerarPDFView.as_view(), name='exportar_pdf'),
+    path('exportar-pdf-predictivo/', GenerarPDFPredictivoView.as_view(), name='generar_pdf_predictivo'),
+    path('pdf-predictivo/', GenerarPDFPredictivoView.as_view(), name='exportar_pdf_predictivo'),
     path('ejecutar-prediccion/', EjecutarPrediccionDashboardView.as_view(), name='ejecutar_prediccion'),
     path('ejecutar-analisis/', EjecutarPrediccionDashboardView.as_view(), name='ejecutar_analisis'),
 ]
