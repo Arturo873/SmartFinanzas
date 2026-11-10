@@ -18,28 +18,6 @@
         <a href="{% url 'moduloETL:carga_datos' %}" class="btn btn-outline-primary btn-sm shadow-sm">
             <i class="bi bi-cloud-arrow-up me-1"></i>Carga de Estados
         </a>
-        {% if ultimo_ratio %}
-            {% if tiene_anomalias %}
-                <button type="button" class="btn btn-primary btn-sm shadow-sm d-inline-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#modalAdvertenciaOutliersETL" title="Valores fuera de rango detectados en el balance" id="btnEjecutarAnalisisModal">
-                    <i class="bi bi-cpu"></i>
-                    <span>Ejecutar Análisis</span>
-                    <span class="badge bg-warning text-dark fs-micro py-0.5 px-1.5 rounded-pill">
-                        <i class="bi bi-exclamation-triangle-fill me-0.5"></i>{{ total_anomalias }}
-                    </span>
-                </button>
-            {% else %}
-                <form method="POST" action="{% url 'moduloETL:ejecutar_analisis' %}" class="d-inline m-0 form-ejecutar-analisis">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-primary btn-sm shadow-sm btn-ejecutar-analisis" id="btnEjecutarAnalisisHeader">
-                        <i class="bi bi-cpu me-1"></i>Ejecutar Análisis
-                    </button>
-                </form>
-            {% endif %}
-        {% else %}
-            <a href="{% url 'moduloETL:carga_datos' %}" class="btn btn-primary btn-sm shadow-sm">
-                <i class="bi bi-cloud-arrow-up me-1"></i>Carga de Estados
-            </a>
-        {% endif %}
     </div>
 </div>
 {% endblock %}

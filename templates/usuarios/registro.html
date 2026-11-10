@@ -253,18 +253,18 @@
             <div class="modal-header bg-white border-bottom py-2.5 px-4">
                 <div>
                     <h5 class="modal-title fw-bold text-dark fs-6 mb-0" id="modalTerminosRegistroLabel">
-                        Términos de Servicio, Tratamiento de Datos y Confidencialidad Empresarial
+                        Términos de Servicio, Confidencialidad y Descargo de Decisiones Financieras
                     </h5>
                     <div class="text-secondary" style="font-size: 0.72rem;">
-                        SmartFinanzas &middot; Marco Jurídico y Protección de Información (Ley N° 19.628 / Código de Comercio)
+                        SmartFinanzas &middot; Marco Jurídico, Protección de Información y Deslinde de Responsabilidad Financiera
                     </div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
 
             <div class="modal-body p-4 text-dark" style="max-height: 50vh; overflow-y: auto; font-size: 0.78rem; line-height: 1.55; color: #111;">
-                <div class="p-2.5 px-3 mb-3 bg-light border rounded text-dark" style="font-size: 0.75rem;">
-                    <strong>Aviso Legal:</strong> El acceso y uso de SmartFinanzas implica la aceptación plena de las siguientes cláusulas contractuales, diseñadas bajo los estándares de confidencialidad comercial y protección de datos vigentes en la República de Chile.
+                <div class="p-2.5 px-3 mb-3 bg-warning-subtle border border-warning rounded text-dark" style="font-size: 0.75rem;">
+                    <strong>Aviso de Responsabilidad Financiera y Recomendaciones:</strong> SmartFinanzas no se hace responsable de las decisiones financieras, de crédito, inversión o comerciales adoptadas por la empresa. Todos los diagnósticos, proyecciones, semáforos de riesgo y planes emitidos por la plataforma constituyen <strong>exclusivamente recomendaciones técnicas y herramientas analíticas de apoyo</strong>.
                 </div>
 
                 <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">1. Marco Normativo y Fuentes de Aplicación</h6>
@@ -288,8 +288,13 @@
                 </p>
 
                 <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">5. Veracidad de la Información y Buena Fe Mercantil</h6>
-                <p class="mb-0 text-dark">
+                <p class="mb-3 text-dark">
                     El solicitante declara bajo juramento mercantil que los datos suministrados durante el proceso de registro y posterior operación son veraces, completos y actualizados, eximiendo a la plataforma de cualquier daño emergente originado por información fraudulenta o ilegítima.
+                </p>
+
+                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">6. Exención de Responsabilidad sobre Decisiones Financieras y Naturaleza de las Recomendaciones</h6>
+                <p class="mb-0 text-dark">
+                    <strong>SmartFinanzas y sus operadores no se hacen responsables de las decisiones financieras, de financiamiento, mercantiles, tributarias o de inversión</strong> que adopte la administración o cualquier persona de la empresa usuaria. Se deja constancia expresa de que las métricas de solvencia, semáforos de riesgo, explicabilidad y planes de acción emitidos por el sistema constituyen <strong>exclusivamente recomendaciones técnicas y analíticas de soporte orientativo</strong> basadas en modelos matemáticos. Conforme a la <strong>Ley N° 18.046 (Art. 41 sobre deber de cuidado)</strong> y las reglas generales de comercio en Chile, la responsabilidad final, legal y fiduciaria sobre cualquier decisión de negocios recae de manera exclusiva en el Directorio, Administradores y Representantes Legales de la empresa.
                 </p>
             </div>
 
@@ -297,7 +302,7 @@
                 <div class="form-check m-0">
                     <input class="form-check-input" type="checkbox" id="checkModalRegistro">
                     <label class="form-check-label fw-semibold text-dark" for="checkModalRegistro" style="font-size: 0.78rem;">
-                        He leído íntegramente y acepto los Términos y la Política de Confidencialidad
+                        Entiendo que son recomendaciones y acepto los Términos y el Descargo de Decisiones Financieras
                     </label>
                 </div>
                 <button type="button" class="btn btn-dark btn-sm px-4 fw-semibold" id="btnAceptarModalRegistro" disabled>
@@ -338,6 +343,27 @@
         const checkModal = document.getElementById('checkModalRegistro');
         const btnAceptarModal = document.getElementById('btnAceptarModalRegistro');
         const modalEl = document.getElementById('modalTerminosRegistro');
+        let aceptadoDesdeModal = false;
+
+        // Al presionar el check principal en el formulario, desplegar automáticamente el modal
+        if (checkPrincipal && modalEl) {
+            checkPrincipal.addEventListener('click', function (e) {
+                if (!aceptadoDesdeModal) {
+                    e.preventDefault();
+                    this.checked = false;
+                    actualizarEstadoBtnRegistro();
+                    if (typeof bootstrap !== 'undefined') {
+                        const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+                        modalInstance.show();
+                    }
+                } else {
+                    // Si ya estaba aceptado y el usuario hace clic para desmarcarlo:
+                    aceptadoDesdeModal = false;
+                    this.checked = false;
+                    actualizarEstadoBtnRegistro();
+                }
+            });
+        }
 
         // Al abrir el modal, la casilla SIEMPRE debe estar desmarcada y el botón desactivado
         if (modalEl) {
@@ -349,6 +375,13 @@
                     btnAceptarModal.disabled = true;
                 }
             });
+
+            modalEl.addEventListener('hidden.bs.modal', function () {
+                if (!aceptadoDesdeModal && checkPrincipal) {
+                    checkPrincipal.checked = false;
+                    actualizarEstadoBtnRegistro();
+                }
+            });
         }
 
         if (checkModal && btnAceptarModal) {
@@ -357,9 +390,10 @@
             });
 
             btnAceptarModal.addEventListener('click', function () {
+                aceptadoDesdeModal = true;
                 if (checkPrincipal) {
                     checkPrincipal.checked = true;
-                    checkPrincipal.dispatchEvent(new Event('change'));
+                    actualizarEstadoBtnRegistro();
                 }
                 if (modalEl && typeof bootstrap !== 'undefined') {
                     const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);

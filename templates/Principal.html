@@ -67,6 +67,10 @@
             display: flex;
             flex-direction: column;
             transition: transform 0.25s ease;
+            position: sticky;
+            top: var(--topbar-height);
+            height: calc(100vh - var(--topbar-height));
+            overflow-y: auto;
         }
 
         .sidebar-heading {
@@ -367,8 +371,31 @@
                     </li>
                 </ul>
 
-                <!-- 2. MÓDULO TRANSACCIONAL (Caja, Ventas, Cierres) -->
-                <div class="sidebar-heading">Transaccional (Caja)</div>
+                <!-- 2. MÓDULO ETL (Ingesta de Balances) -->
+                <div class="sidebar-heading">Módulo ETL</div>
+                <ul class="sidebar-menu">
+                    <li>
+                        <a href="{% url 'moduloETL:carga_datos' %}" class="nav-link {% if request.resolver_match.app_name == 'moduloETL' and request.resolver_match.url_name == 'carga_datos' %}active{% endif %}">
+                            <i class="bi bi-cloud-arrow-up"></i>
+                            <span>Carga de Estados</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'moduloETL:ratios_financieros' %}" class="nav-link {% if request.resolver_match.app_name == 'moduloETL' and request.resolver_match.url_name == 'ratios_financieros' %}active{% endif %}">
+                            <i class="bi bi-calculator"></i>
+                            <span>Ratios Financieros</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'moduloETL:historial_cargas' %}" class="nav-link {% if request.resolver_match.app_name == 'moduloETL' and request.resolver_match.url_name == 'historial_cargas' %}active{% endif %}">
+                            <i class="bi bi-clock-history"></i>
+                            <span>Historial de Cargas</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- 3. MÓDULO TRANSACCIONAL (Caja, Ventas, Cierres) -->
+                <div class="sidebar-heading">Transaccional</div>
                 <ul class="sidebar-menu">
                     {% url 'moduloTransaccional:venta_crear' as url_ventas %}
                     {% url 'moduloTransaccional:cierre_caja' as url_cierre %}
@@ -393,30 +420,8 @@
                     </li>
                 </ul>
 
-                <!-- 3. MÓDULO ETL (Ingesta de Balances) -->
-                <div class="sidebar-heading">Módulo ETL</div>
-                <ul class="sidebar-menu">
-                    <li>
-                        <a href="{% url 'moduloETL:carga_datos' %}" class="nav-link {% if request.resolver_match.app_name == 'moduloETL' and request.resolver_match.url_name == 'carga_datos' %}active{% endif %}">
-                            <i class="bi bi-cloud-arrow-up"></i>
-                            <span>Carga de Estados</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{% url 'moduloETL:ratios_financieros' %}" class="nav-link {% if request.resolver_match.app_name == 'moduloETL' and request.resolver_match.url_name == 'ratios_financieros' %}active{% endif %}">
-                            <i class="bi bi-calculator"></i>
-                            <span>Ratios Financieros</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{% url 'moduloETL:historial_cargas' %}" class="nav-link {% if request.resolver_match.app_name == 'moduloETL' and request.resolver_match.url_name == 'historial_cargas' %}active{% endif %}">
-                            <i class="bi bi-clock-history"></i>
-                            <span>Historial de Cargas</span>
-                        </a>
-                    </li>
-                </ul>
-
                 <!-- 4. CAPA ANALÍTICA -->
+                <!--
                 <div class="sidebar-heading">Capa Analítica</div>
                 <ul class="sidebar-menu">
                     <li>
@@ -426,6 +431,7 @@
                         </a>
                     </li>
                 </ul>
+                -->
             </div>
         </aside>
 
