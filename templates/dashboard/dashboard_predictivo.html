@@ -189,7 +189,7 @@
         <div class="row g-3 align-items-stretch">
             
             <!-- 1. Período del Balance Analizado (Q_t) -->
-            <div class="col-12 col-sm-6 col-lg-3">
+            <div class="col-12 col-sm-12 col-lg-6">
                 <div class="horizonte-step-box h-100 d-flex flex-column justify-content-between">
                     <div>
                         <div class="d-flex align-items-center justify-content-between mb-1.5">
@@ -267,31 +267,6 @@
                                  role="progressbar"
                                  style="width: {{ score|default:0|floatformat:0 }}%;"></div>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 4. Indicador de Velocidad de Cambio (Delta Intertrimestral) -->
-            <div class="col-12 col-sm-6 col-lg-3">
-                <div class="horizonte-step-box h-100 d-flex flex-column justify-content-between">
-                    <div>
-                        <div class="d-flex align-items-center justify-content-between mb-1.5">
-                            <span class="text-muted-custom fs-micro text-uppercase fw-semibold tracking-wider">Velocidad de Cambio</span>
-                            <span class="badge border {{ delta_info.badge_clase }} fs-micro" id="horizonteDeltaBadge">
-                                {{ delta_info.direccion|upper }}
-                            </span>
-                        </div>
-                        <div class="fs-4 fw-bold {{ delta_info.color_clase }} font-monospace mb-1 d-flex align-items-center gap-1.5" id="horizonteDeltaValor">
-                            <span id="horizonteDeltaFlecha">{{ delta_info.flecha }}</span>
-                            <span id="horizonteDeltaTexto">{{ delta_info.texto }}</span>
-                        </div>
-                        <p class="text-muted-custom fs-micro mb-0" id="horizonteDeltaMensaje">
-                            {{ delta_info.mensaje }}
-                        </p>
-                    </div>
-                    <div class="pt-2 mt-2 border-top border-subtle d-flex align-items-center justify-content-between fs-micro">
-                        <span class="text-muted-custom">Respecto a trimestre previo</span>
-                        <span class="font-monospace text-secondary fs-micro">&Delta; Puntos Riesgo</span>
                     </div>
                 </div>
             </div>
@@ -685,7 +660,16 @@
                         <th>Ratio Financiero</th>
                         <th>Categoría</th>
                         <th>Fórmula Contable</th>
-                        <th class="text-end pe-4">Valor Registrado</th>
+                        <th class="text-end pe-4">
+                            <span class="d-inline-flex align-items-center gap-1"
+                                  style="cursor: help; border-bottom: 1px dotted #9ca3af;"
+                                  data-bs-toggle="tooltip"
+                                  data-bs-placement="top"
+                                  title="Significado de unidades: la 'x' representa VECES (cuántas veces el numerador cubre o equivale al denominador); '%' representa proporción sobre activos o ventas; 'ratio' representa el coeficiente de dispersión de flujos.">
+                                Valor Registrado
+                                <i class="bi bi-info-circle text-primary fs-micro"></i>
+                            </span>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -696,7 +680,14 @@
                         <td><span class="badge border badge-status-neutral fs-micro">{{ ratio.grupo }}</span></td>
                         <td class="text-muted-custom font-monospace fs-micro">{{ ratio.formula|default:"Calculado en ETL" }}</td>
                         <td class="text-end pe-4 font-monospace fw-bold text-main">
-                            {{ ratio.valor|floatformat:2 }}{{ ratio.unidad }}
+                            <span class="d-inline-flex align-items-center gap-1 badge border bg-white text-dark fs-caption px-2 py-1 shadow-xs"
+                                  style="cursor: help;"
+                                  data-bs-toggle="tooltip"
+                                  data-bs-placement="left"
+                                  title="{{ ratio.tooltip_valor|default:'Valor numérico calculado del ratio financiero en el balance base.' }}">
+                                {{ ratio.valor|floatformat:2 }}{{ ratio.unidad }}
+                                <i class="bi bi-question-circle text-primary fs-micro"></i>
+                            </span>
                         </td>
                     </tr>
                     {% empty %}
@@ -1559,42 +1550,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Actualizar URL del botón de descarga de informe en el modal para apuntar al período activo
         actualizarUrlDescargaPdf(punto.periodo, punto.id);
-
-        // Delta respecto al trimestre anterior
-        const elDeltaBadge = document.getElementById('horizonteDeltaBadge');
-        const elDeltaValor = document.getElementById('horizonteDeltaValor');
-        const elDeltaMensaje = document.getElementById('horizonteDeltaMensaje');
-
-        let prevScore = null;
-        if (activeIdx >= 1) {
-            prevScore = visibles[activeIdx - 1].score_prediccion;
-        }
-
-        if (prevScore !== null && elDeltaValor) {
-            const diff = punto.score_prediccion - prevScore;
-            const diffRound = Math.round(diff * 10) / 10;
-            if (diffRound > 0) {
-                if (elDeltaBadge) { elDeltaBadge.className = 'badge border badge-status-critico fs-micro'; elDeltaBadge.textContent = 'ACELERANDO'; }
-                elDeltaValor.className = 'fs-4 fw-bold text-danger font-monospace mb-1 d-flex align-items-center gap-1.5';
-                elDeltaValor.innerHTML = `<span>&uarr;</span><span>+${diffRound.toFixed(1)} pts</span>`;
-                if (elDeltaMensaje) elDeltaMensaje.textContent = `Aceleración de +${diffRound.toFixed(1)} pts de riesgo hacia el siguiente trimestre.`;
-            } else if (diffRound < 0) {
-                if (elDeltaBadge) { elDeltaBadge.className = 'badge border badge-status-solvente fs-micro'; elDeltaBadge.textContent = 'REDUCIENDO'; }
-                elDeltaValor.className = 'fs-4 fw-bold text-success font-monospace mb-1 d-flex align-items-center gap-1.5';
-                elDeltaValor.innerHTML = `<span>&darr;</span><span>${diffRound.toFixed(1)} pts</span>`;
-                if (elDeltaMensaje) elDeltaMensaje.textContent = `Contracción de ${Math.abs(diffRound).toFixed(1)} pts de riesgo hacia el siguiente trimestre.`;
-            } else {
-                if (elDeltaBadge) { elDeltaBadge.className = 'badge border badge-status-neutral fs-micro'; elDeltaBadge.textContent = 'ESTABLE'; }
-                elDeltaValor.className = 'fs-4 fw-bold text-secondary font-monospace mb-1 d-flex align-items-center gap-1.5';
-                elDeltaValor.innerHTML = `<span>&rarr;</span><span>0.0 pts</span>`;
-                if (elDeltaMensaje) elDeltaMensaje.textContent = 'Riesgo constante sin variación intertrimestral significativa.';
-            }
-        } else if (elDeltaValor) {
-            if (elDeltaBadge) { elDeltaBadge.className = 'badge border badge-status-neutral fs-micro'; elDeltaBadge.textContent = 'LÍNEA BASE'; }
-            elDeltaValor.className = 'fs-4 fw-bold text-secondary font-monospace mb-1 d-flex align-items-center gap-1.5';
-            elDeltaValor.innerHTML = `<span>&bull;</span><span>Primer Registro</span>`;
-            if (elDeltaMensaje) elDeltaMensaje.textContent = 'No hay trimestre precedente para contrastar aceleración.';
-        }
     }
 
     // =========================================================================

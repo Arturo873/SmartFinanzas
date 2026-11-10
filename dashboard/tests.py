@@ -573,7 +573,10 @@ class AlertaTempranaPredictivoTests(TestCase):
         self.assertContains(response, 'Factores Determinantes de la Proyección')
         self.assertNotContains(response, 'Mini Simulador de Sensibilidad Proactiva')
         self.assertNotContains(response, 'Matriz de Validación Histórica')
+        self.assertNotContains(response, 'Velocidad de Cambio')
         self.assertContains(response, 'alertaTempranaChart')
+        self.assertContains(response, 'Significado de unidades')
+        self.assertContains(response, 'VECES')
 
     def test_dashboard_predictivo_funciones_grafico(self):
         """

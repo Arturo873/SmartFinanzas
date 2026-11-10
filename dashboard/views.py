@@ -204,6 +204,140 @@ def construir_matriz_backtesting(ratios_por_periodo, pred_por_periodo, periodo_b
     return matriz_backtesting
 
 
+METADATA_ADICIONAL_RATIOS = {
+    'X1': {
+        'formula': 'Activo Corriente / Pasivo Corriente',
+        'meta': '> 1.50x',
+        'tooltip_valor': (
+            'La "x" significa VECES (múltiplo de cobertura): indica cuántas veces el Activo Corriente '
+            'cubre al Pasivo Corriente (ej. 1.50x = $1.50 disponibles por cada $1 de deuda a corto plazo). '
+            'Meta óptima: > 1.50x.'
+        ),
+    },
+    'X2': {
+        'formula': 'Capital de Trabajo / Activo Total',
+        'meta': '> 0.0%',
+        'tooltip_valor': (
+            'Proporción del Activo Total que representa el Capital de Trabajo neto (Activo Corriente - Pasivo Corriente). '
+            'Se expresa sobre el total de activos (ej. 0.20 = 20% del activo total en capital de trabajo). '
+            'Meta óptima: > 0.0%.'
+        ),
+    },
+    'X3': {
+        'formula': 'Pasivo Total / Patrimonio Neto',
+        'meta': '< 1.00x',
+        'tooltip_valor': (
+            'La "x" significa VECES (múltiplo de endeudamiento): indica cuántas veces el Pasivo Total '
+            'equivale al Patrimonio Neto (ej. 1.50x = $1.50 de deuda con terceros por cada $1 de capital propio). '
+            'Meta óptima: < 1.00x.'
+        ),
+    },
+    'X4': {
+        'formula': 'Utilidad Operacional / Activo Total',
+        'meta': '> 5.0%',
+        'tooltip_valor': (
+            'Rentabilidad operacional pura (EBIT) sobre el Activo Total. '
+            'Mide cuántos pesos operacionales produce cada peso invertido en activos (ej. 0.08 = 8% sobre activos). '
+            'Meta óptima: > 5.0% (0.05).'
+        ),
+    },
+    'X5': {
+        'formula': 'Utilidad Operacional / Ventas Netas',
+        'meta': '> 10.0%',
+        'tooltip_valor': (
+            'Margen de utilidad operacional (EBIT) obtenido por cada peso vendido antes de intereses e impuestos. '
+            'Se expresa sobre el total de ingresos netos (ej. 0.15 = 15% de margen operacional). '
+            'Meta óptima: > 10.0% (0.10).'
+        ),
+    },
+    'X6': {
+        'formula': 'Ventas Netas / Activo Total',
+        'meta': '> 1.00x',
+        'tooltip_valor': (
+            'La "x" significa VECES (múltiplo de rotación): indica cuántas veces los activos totales '
+            'se transforman en ventas durante el período (ej. 1.20x = $1.20 vendidos por cada $1 en activos). '
+            'Meta óptima: > 1.00x.'
+        ),
+    },
+    'X7': {
+        'formula': 'Desviación Flujo Diario / Flujo Medio',
+        'meta': 'Baja dispersión',
+        'tooltip_valor': (
+            'La unidad "ratio" es un coeficiente adimensional de volatilidad de caja: '
+            'mide la variación de los flujos operacionales respecto al ingreso medio o activo total (0.00 = flujo estable). '
+            'Meta óptima: baja dispersión.'
+        ),
+    },
+}
+
+
+def _construir_todos_los_ratios(ultima_prediccion, ratio_asociado_prediccion, top_3_variables):
+    """
+    Construye la lista ordenada (X1 a X7) combinando valores contables, impacto SHAP,
+    fórmula, referencia óptima y tooltip explicativo de unidad.
+    """
+    shap_dict = {}
+    if ultima_prediccion and ultima_prediccion.impacto_variables:
+        try:
+            raw_impacto = json.loads(ultima_prediccion.impacto_variables)
+            if isinstance(raw_impacto, dict):
+                shap_dict = raw_impacto
+            elif isinstance(raw_impacto, list):
+                shap_dict = {
+                    item.get('clave', item.get('codigo')): item
+                    for item in raw_impacto if isinstance(item, dict)
+                }
+        except Exception as e:
+            logger.warning("Error parseando impacto_variables: %s", e)
+
+    todos_los_ratios = []
+    for meta in VARIABLES_FINANCIERAS:
+        cod = meta['codigo']
+        clave = meta['clave']
+        extra = METADATA_ADICIONAL_RATIOS.get(cod, {})
+
+        item = shap_dict.get(clave) or shap_dict.get(cod)
+        if not item:
+            for v in shap_dict.values():
+                if isinstance(v, dict) and (v.get('codigo') == cod or v.get('clave') == clave):
+                    item = v
+                    break
+
+        if item and isinstance(item, dict):
+            item_copy = dict(item)
+            item_copy['formula'] = extra.get('formula', '')
+            item_copy['meta'] = extra.get('meta', '')
+            item_copy['tooltip_valor'] = extra.get('tooltip_valor', '')
+            item_copy['es_top_3'] = any(t.get('codigo') == cod for t in top_3_variables)
+            todos_los_ratios.append(item_copy)
+        else:
+            val = getattr(ratio_asociado_prediccion, meta['clave_etl'], None) if ratio_asociado_prediccion else None
+            val_float = float(val) if val is not None else 0.0
+            texto_desc = meta.get('desc_alza', '') if val_float > 0 else meta.get('desc_baja', '')
+            if not texto_desc:
+                texto_desc = f"{meta['nombre']}: {val_float:.2f}{meta['unidad']}"
+
+            todos_los_ratios.append({
+                'codigo': cod,
+                'clave': clave,
+                'nombre': meta['nombre'],
+                'grupo': meta['grupo'],
+                'valor': val_float,
+                'unidad': meta['unidad'],
+                'impacto_shap': 0.0,
+                'impacto_pct': 0.0,
+                'impacto_abs': 0.0,
+                'texto': texto_desc,
+                'texto_resumen': f"Ratio {meta['nombre']}",
+                'aumenta_riesgo': False,
+                'formula': extra.get('formula', ''),
+                'meta': extra.get('meta', ''),
+                'tooltip_valor': extra.get('tooltip_valor', ''),
+                'es_top_3': any(t.get('codigo') == cod for t in top_3_variables),
+            })
+
+    return todos_los_ratios
+
 
 def resolver_usuario_bd(auth_user):
     """
@@ -588,71 +722,9 @@ class DashboardView(DashboardRolMixin, TemplateView):
 
         # Ratios de la predicción activa para trazabilidad integral de los resultados (X1 a X7)
         ratio_asociado_prediccion = ultimo_ratio
-        todos_los_ratios_prediccion = []
-
-        METADATA_ADICIONAL_RATIOS = {
-            'X1': {'formula': 'Activo Corriente / Pasivo Corriente', 'meta': '> 1.50x'},
-            'X2': {'formula': 'Capital de Trabajo / Activo Total', 'meta': '> 0.0%'},
-            'X3': {'formula': 'Pasivo Total / Patrimonio Neto', 'meta': '< 1.00x'},
-            'X4': {'formula': 'Utilidad Operacional / Activo Total', 'meta': '> 5.0%'},
-            'X5': {'formula': 'Utilidad Operacional / Ventas Netas', 'meta': '> 10.0%'},
-            'X6': {'formula': 'Ventas Netas / Activo Total', 'meta': '> 1.00x'},
-            'X7': {'formula': 'Desviación Flujo Diario / Flujo Medio', 'meta': 'Baja dispersión'},
-        }
-
-        shap_dict = {}
-        if ultima_prediccion and ultima_prediccion.impacto_variables:
-            try:
-                raw_impacto = json.loads(ultima_prediccion.impacto_variables)
-                if isinstance(raw_impacto, dict):
-                    shap_dict = raw_impacto
-                elif isinstance(raw_impacto, list):
-                    shap_dict = {item.get('clave', item.get('codigo')): item for item in raw_impacto if isinstance(item, dict)}
-            except Exception as e:
-                logger.warning("Error parseando impacto_variables: %s", e)
-
-        for meta in VARIABLES_FINANCIERAS:
-            cod = meta['codigo']
-            clave = meta['clave']
-            extra = METADATA_ADICIONAL_RATIOS.get(cod, {})
-
-            item = shap_dict.get(clave) or shap_dict.get(cod)
-            if not item:
-                for v in shap_dict.values():
-                    if isinstance(v, dict) and (v.get('codigo') == cod or v.get('clave') == clave):
-                        item = v
-                        break
-
-            if item and isinstance(item, dict):
-                item_copy = dict(item)
-                item_copy['formula'] = extra.get('formula', '')
-                item_copy['meta'] = extra.get('meta', '')
-                item_copy['es_top_3'] = any(t.get('codigo') == cod for t in top_3_variables)
-                todos_los_ratios_prediccion.append(item_copy)
-            else:
-                val = getattr(ratio_asociado_prediccion, meta['clave_etl'], None) if ratio_asociado_prediccion else None
-                val_float = float(val) if val is not None else 0.0
-                texto_desc = meta.get('desc_alza', '') if val_float > 0 else meta.get('desc_baja', '')
-                if not texto_desc:
-                    texto_desc = f"{meta['nombre']}: {val_float:.2f}{meta['unidad']}"
-
-                todos_los_ratios_prediccion.append({
-                    'codigo': cod,
-                    'clave': clave,
-                    'nombre': meta['nombre'],
-                    'grupo': meta['grupo'],
-                    'valor': val_float,
-                    'unidad': meta['unidad'],
-                    'impacto_shap': 0.0,
-                    'impacto_pct': 0.0,
-                    'impacto_abs': 0.0,
-                    'texto': texto_desc,
-                    'texto_resumen': f"Ratio {meta['nombre']}",
-                    'aumenta_riesgo': False,
-                    'formula': extra.get('formula', ''),
-                    'meta': extra.get('meta', ''),
-                    'es_top_3': any(t.get('codigo') == cod for t in top_3_variables),
-                })
+        todos_los_ratios_prediccion = _construir_todos_los_ratios(
+            ultima_prediccion, ratio_asociado_prediccion, top_3_variables
+        )
 
         # Información de los estados financieros del período asociado (Activo, Pasivo, Patrimonio, etc.)
         carga_financiera = None
@@ -1155,71 +1227,9 @@ class GenerarPDFView(DashboardRolMixin, View):
             )
         )
         ratio_asociado_prediccion = ultimo_ratio
-
-        METADATA_ADICIONAL_RATIOS = {
-            'X1': {'formula': 'Activo Corriente / Pasivo Corriente', 'meta': '> 1.50x'},
-            'X2': {'formula': 'Capital de Trabajo / Activo Total', 'meta': '> 0.0%'},
-            'X3': {'formula': 'Pasivo Total / Patrimonio Neto', 'meta': '< 1.00x'},
-            'X4': {'formula': 'Utilidad Operacional / Activo Total', 'meta': '> 5.0%'},
-            'X5': {'formula': 'Utilidad Operacional / Ventas Netas', 'meta': '> 10.0%'},
-            'X6': {'formula': 'Ventas Netas / Activo Total', 'meta': '> 1.00x'},
-            'X7': {'formula': 'Desviación Flujo Diario / Flujo Medio', 'meta': 'Baja dispersión'},
-        }
-
-        shap_dict = {}
-        if ultima_prediccion and ultima_prediccion.impacto_variables:
-            try:
-                raw_impacto = json.loads(ultima_prediccion.impacto_variables)
-                if isinstance(raw_impacto, dict):
-                    shap_dict = raw_impacto
-                elif isinstance(raw_impacto, list):
-                    shap_dict = {item.get('clave', item.get('codigo')): item for item in raw_impacto if isinstance(item, dict)}
-            except Exception as e:
-                logger.warning("Error parseando impacto_variables: %s", e)
-
-        todos_los_ratios_prediccion = []
-        for meta in VARIABLES_FINANCIERAS:
-            cod = meta['codigo']
-            clave = meta['clave']
-            extra = METADATA_ADICIONAL_RATIOS.get(cod, {})
-
-            item = shap_dict.get(clave) or shap_dict.get(cod)
-            if not item:
-                for v in shap_dict.values():
-                    if isinstance(v, dict) and (v.get('codigo') == cod or v.get('clave') == clave):
-                        item = v
-                        break
-
-            if item and isinstance(item, dict):
-                item_copy = dict(item)
-                item_copy['formula'] = extra.get('formula', '')
-                item_copy['meta'] = extra.get('meta', '')
-                item_copy['es_top_3'] = any(t.get('codigo') == cod for t in top_3_variables)
-                todos_los_ratios_prediccion.append(item_copy)
-            else:
-                val = getattr(ratio_asociado_prediccion, meta['clave_etl'], None) if ratio_asociado_prediccion else None
-                val_float = float(val) if val is not None else 0.0
-                texto_desc = meta.get('desc_alza', '') if val_float > 0 else meta.get('desc_baja', '')
-                if not texto_desc:
-                    texto_desc = f"{meta['nombre']}: {val_float:.2f}{meta['unidad']}"
-
-                todos_los_ratios_prediccion.append({
-                    'codigo': cod,
-                    'clave': clave,
-                    'nombre': meta['nombre'],
-                    'grupo': meta['grupo'],
-                    'valor': val_float,
-                    'unidad': meta['unidad'],
-                    'impacto_shap': 0.0,
-                    'impacto_pct': 0.0,
-                    'impacto_abs': 0.0,
-                    'texto': texto_desc,
-                    'texto_resumen': f"Ratio {meta['nombre']}",
-                    'aumenta_riesgo': False,
-                    'formula': extra.get('formula', ''),
-                    'meta': extra.get('meta', ''),
-                    'es_top_3': any(t.get('codigo') == cod for t in top_3_variables),
-                })
+        todos_los_ratios_prediccion = _construir_todos_los_ratios(
+            ultima_prediccion, ratio_asociado_prediccion, top_3_variables
+        )
 
         # Información del balance contable del período
         carga_financiera = None
