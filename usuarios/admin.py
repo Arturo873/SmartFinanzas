@@ -1,21 +1,21 @@
 from django.contrib import admin
-from .models import Rol, Empresa, Usuario
+from .models import Role, Company, User
 
 
-@admin.register(Rol)
-class RolAdmin(admin.ModelAdmin):
-    list_display = ('id', 'nombre', 'descripcion')
-    search_fields = ('nombre',)
+@admin.register(Role)
+class RoleAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'description')
+    search_fields = ('name',)
 
 
-@admin.register(Empresa)
-class EmpresaAdmin(admin.ModelAdmin):
-    list_display = ('id', 'razon_social', 'rut', 'giro', 'comision_debito_pct', 'comision_credito_pct')
-    search_fields = ('razon_social', 'rut')
+@admin.register(Company)
+class CompanyAdmin(admin.ModelAdmin):
+    list_display = ('id', 'business_name', 'tax_id', 'business_sector', 'debit_commission_pct', 'credit_commission_pct')
+    search_fields = ('business_name', 'tax_id')
 
 
-@admin.register(Usuario)
-class UsuarioAdmin(admin.ModelAdmin):
-    list_display = ('id', 'username', 'email', 'rol', 'empresa', 'activo', 'fecha_creacion')
-    list_filter = ('activo', 'rol')
+@admin.register(User)
+class UserAdmin(admin.ModelAdmin):
+    list_display = ('id', 'username', 'email', 'role', 'company', 'is_active', 'created_at')
+    list_filter = ('is_active', 'role')
     search_fields = ('username', 'email')

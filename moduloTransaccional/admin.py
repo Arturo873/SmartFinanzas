@@ -1,35 +1,35 @@
 from django.contrib import admin
-from .models import MetodoPago, CierreCaja, DetalleCierrePorMetodo, RetiroCajaChica, Venta
+from .models import PaymentMethod, CashRegisterClosure, ClosureMethodDetail, PettyCashWithdrawal, Sale
 
 
-@admin.register(MetodoPago)
-class MetodoPagoAdmin(admin.ModelAdmin):
-    list_display = ('id', 'nombre', 'comision_porcentaje', 'activo', 'empresa')
-    list_filter = ('activo', 'empresa')
-    search_fields = ('nombre',)
+@admin.register(PaymentMethod)
+class PaymentMethodAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'commission_percentage', 'is_active', 'company')
+    list_filter = ('is_active', 'company')
+    search_fields = ('name',)
 
 
-@admin.register(CierreCaja)
-class CierreCajaAdmin(admin.ModelAdmin):
-    list_display = ('id', 'fecha', 'estado', 'total_sistema', 'total_arqueo', 'descuadre_total', 'cerrado_por_usuario', 'empresa')
-    list_filter = ('estado', 'fecha', 'empresa')
-    search_fields = ('fecha',)
+@admin.register(CashRegisterClosure)
+class CashRegisterClosureAdmin(admin.ModelAdmin):
+    list_display = ('id', 'date', 'status', 'system_total', 'counted_total', 'total_discrepancy', 'closed_by_user', 'company')
+    list_filter = ('status', 'date', 'company')
+    search_fields = ('date',)
 
 
-@admin.register(DetalleCierrePorMetodo)
-class DetalleCierrePorMetodoAdmin(admin.ModelAdmin):
-    list_display = ('id', 'cierre', 'metodo_pago', 'total_sistema', 'total_arqueo', 'descuadre')
-    list_filter = ('metodo_pago',)
+@admin.register(ClosureMethodDetail)
+class ClosureMethodDetailAdmin(admin.ModelAdmin):
+    list_display = ('id', 'closure', 'payment_method', 'system_total', 'counted_total', 'discrepancy')
+    list_filter = ('payment_method',)
 
 
-@admin.register(RetiroCajaChica)
-class RetiroCajaChicaAdmin(admin.ModelAdmin):
-    list_display = ('id', 'fecha', 'monto', 'motivo', 'responsable', 'usuario', 'cierre', 'empresa')
-    list_filter = ('empresa', 'fecha')
-    search_fields = ('motivo', 'responsable')
+@admin.register(PettyCashWithdrawal)
+class PettyCashWithdrawalAdmin(admin.ModelAdmin):
+    list_display = ('id', 'date', 'amount', 'reason', 'responsible_person', 'user', 'closure', 'company')
+    list_filter = ('company', 'date')
+    search_fields = ('reason', 'responsible_person')
 
 
-@admin.register(Venta)
-class VentaAdmin(admin.ModelAdmin):
-    list_display = ('id', 'fecha', 'metodo_pago', 'total_bruto', 'total_cobrado', 'ingreso_real', 'usuario', 'cierre', 'empresa')
-    list_filter = ('metodo_pago', 'fecha', 'empresa')
+@admin.register(Sale)
+class SaleAdmin(admin.ModelAdmin):
+    list_display = ('id', 'date', 'payment_method', 'gross_total', 'charged_total', 'net_income', 'user', 'closure', 'company')
+    list_filter = ('payment_method', 'date', 'company')

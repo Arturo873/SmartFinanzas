@@ -23,12 +23,12 @@ from django.views import View
 from django.views.generic import TemplateView
 
 # Dependencias de lectura de las otras aplicaciones del monolito
-from usuarios.models import Usuario, Empresa
-from AppWeb.models import PerfilUsuario
-from moduloETL.models import RatioFinanciero, CargaFinanciera
+from usuarios.models import User, Company
+from AppWeb.models import UserProfile
+from moduloETL.models import FinancialRatio, FinancialUpload
 from moduloETL.services import detectar_anomalias_financieras
-from moduloTransaccional.models import Venta
-from capaAnalitica.models import PrediccionRiesgo
+from moduloTransaccional.models import Sale
+from capaAnalitica.models import RiskPrediction
 from capaAnalitica.services import MotorRiesgo, ejecutar_y_persistir_prediccion, VARIABLES_FINANCIERAS
 from AppWeb.viewsML import calcular_periodo_siguiente, calcular_delta_riesgo
 from .pdf_generator import construir_informe_ejecutivo_pdf, construir_informe_predictivo_pdf
@@ -51,14 +51,14 @@ def calcular_z_score_altman_1983(r_obj) -> float:
     if not r_obj:
         return 2.60
 
-    carga = getattr(r_obj, 'carga', None)
-    if carga and carga.activo_total and float(carga.activo_total) > 0:
-        at = float(carga.activo_total)
-        ac = float(carga.activo_corriente or 0.0)
-        pc = float(carga.pasivo_corriente or 0.0)
-        pt = float(carga.pasivo_total or 0.0)
-        pat = float(carga.patrimonio or 0.0)
-        ur = float(carga.utilidades_retenidas or 0.0)
+    carga = getattr(r_obj, 'upload', None)
+    if carga and carga.total_assets and float(carga.total_assets) > 0:
+        at = float(carga.total_assets)
+        ac = float(carga.current_assets or 0.0)
+        pc = float(carga.current_liabilities or 0.0)
+        pt = float(carga.total_liabilities or 0.0)
+        pat = float(carga.equity or 0.0)
+        ur = float(carga.retained_earnings or 0.0)
         ebit = float(carga.ebit or 0.0)
 
         x1 = (ac - pc) / at
@@ -67,14 +67,14 @@ def calcular_z_score_altman_1983(r_obj) -> float:
         x4 = (pat / pt) if pt > 0 else 10.0
     else:
         # Extraer desde los ratios financieros almacenados en r_obj
-        x1 = float(getattr(r_obj, 'v2_capital_trabajo_activos', None) or 0.1)
-        x3 = float(getattr(r_obj, 'v4_roa_operacional', None) or 0.04)
-        lev = float(getattr(r_obj, 'v3_leverage_total', None) or 1.5)
+        x1 = float(getattr(r_obj, 'v2_working_capital_to_assets', None) or 0.1)
+        x3 = float(getattr(r_obj, 'v4_operating_roa', None) or 0.04)
+        lev = float(getattr(r_obj, 'v3_total_leverage', None) or 1.5)
         x4 = (1.0 / lev) if lev > 0 else 10.0
 
-        if getattr(r_obj, 'ref_z_altman', None) is not None:
+        if getattr(r_obj, 'ref_altman_z_score', None) is not None:
             # En moduloETL se calcula con la constante EMS (3.25 + 6.56*X1 + 3.26*X2 + ...)
-            val_ref = float(r_obj.ref_z_altman)
+            val_ref = float(r_obj.ref_altman_z_score)
             return round(val_ref - 3.25, 4)
         x2 = x3 * 0.5
 
@@ -98,8 +98,8 @@ def calcular_score_observado(r_obj) -> float:
         return 35.0
 
     # Si el patrimonio neto es negativo o cero, insolvencia inmediata (Riesgo Crítico 99%)
-    carga = getattr(r_obj, 'carga', None)
-    patrimonio = float(getattr(carga, 'patrimonio', None) or 1.0) if carga else 1.0
+    carga = getattr(r_obj, 'upload', None)
+    patrimonio = float(getattr(carga, 'equity', None) or 1.0) if carga else 1.0
     if patrimonio <= 0:
         return 99.0
 
@@ -147,8 +147,8 @@ def construir_matriz_backtesting(ratios_por_periodo, pred_por_periodo, periodo_b
         r_base = ratios_por_periodo[p_base]
 
         pred_asoc = pred_por_periodo.get(p_base)
-        score_bt = float(pred_asoc.score_riesgo) if pred_asoc and pred_asoc.score_riesgo is not None else 35.0
-        nivel_bt = pred_asoc.nivel_semaforo if pred_asoc else ('Verde' if score_bt <= 35 else 'Amarillo' if score_bt <= 70 else 'Rojo')
+        score_bt = float(pred_asoc.risk_score) if pred_asoc and pred_asoc.risk_score is not None else 35.0
+        nivel_bt = pred_asoc.traffic_light_level if pred_asoc else ('Verde' if score_bt <= 35 else 'Amarillo' if score_bt <= 70 else 'Rojo')
         color_bt = 'Verde' if (nivel_bt == 'Verde' or score_bt <= 35) else ('Amarillo' if score_bt <= 70 else 'Rojo')
 
         r_fut = ratios_por_periodo.get(p_fut)
@@ -277,9 +277,9 @@ def _construir_todos_los_ratios(ultima_prediccion, ratio_asociado_prediccion, to
     fórmula, referencia óptima y tooltip explicativo de unidad.
     """
     shap_dict = {}
-    if ultima_prediccion and ultima_prediccion.impacto_variables:
+    if ultima_prediccion and ultima_prediccion.variable_impacts:
         try:
-            raw_impacto = json.loads(ultima_prediccion.impacto_variables)
+            raw_impacto = json.loads(ultima_prediccion.variable_impacts)
             if isinstance(raw_impacto, dict):
                 shap_dict = raw_impacto
             elif isinstance(raw_impacto, list):
@@ -341,20 +341,20 @@ def _construir_todos_los_ratios(ultima_prediccion, ratio_asociado_prediccion, to
 
 def resolver_usuario_bd(auth_user):
     """
-    Obtiene la entidad Usuario del sistema a partir del usuario Django en sesión con caché en memoria.
+    Obtiene la entidad User del sistema a partir del usuario Django en sesión con caché en memoria.
     """
     if not auth_user:
         return None
-    if isinstance(auth_user, Usuario):
+    if isinstance(auth_user, User):
         return auth_user
     if not getattr(auth_user, 'is_authenticated', False):
         return None
     if hasattr(auth_user, '_cached_usuario_db'):
         return auth_user._cached_usuario_db
 
-    usuario_db = Usuario.objects.select_related('empresa', 'rol').filter(username=auth_user.username).first()
+    usuario_db = User.objects.select_related('company', 'role').filter(username=auth_user.username).first()
     if not usuario_db and hasattr(auth_user, 'email'):
-        usuario_db = Usuario.objects.select_related('empresa', 'rol').filter(email=auth_user.email).first()
+        usuario_db = User.objects.select_related('company', 'role').filter(email=auth_user.email).first()
 
     auth_user._cached_usuario_db = usuario_db
     return usuario_db
@@ -373,14 +373,14 @@ class DashboardRolMixin(LoginRequiredMixin, UserPassesTestMixin):
         if not user or not getattr(user, 'is_authenticated', True):
             return None
 
-        # 1. PerfilUsuario en AppWeb
-        if hasattr(user, 'perfil') and user.perfil and hasattr(user.perfil, 'rol'):
-            return user.perfil.rol
+        # 1. UserProfile en AppWeb
+        if hasattr(user, 'profile') and user.profile and hasattr(user.profile, 'role'):
+            return user.profile.role
 
-        # 2. Modelo Usuario en usuarios
+        # 2. Modelo User en usuarios
         usuario_db = resolver_usuario_bd(user)
-        if usuario_db and usuario_db.rol:
-            return usuario_db.rol.nombre
+        if usuario_db and usuario_db.role:
+            return usuario_db.role.name
 
         # 3. Sesión HTTP
         return self.request.session.get('usuario_rol')
@@ -434,12 +434,12 @@ class DashboardView(DashboardRolMixin, TemplateView):
             fecha_pred_str = fecha_pred.strftime('%d/%m/%Y %H:%M') if (fecha_pred and hasattr(fecha_pred, 'strftime')) else 'Pendiente'
 
             ratio_obj = context.get('ratio_asociado_prediccion')
-            ratio_per = ratio_obj.periodo if ratio_obj else context.get('periodo_filtro')
+            ratio_per = ratio_obj.period if ratio_obj else context.get('periodo_filtro')
 
             data = {
                 'status': 'ok',
                 'prediccion_id': ultima.id if ultima else None,
-                'periodo': context.get('periodo_filtro') or (ultima.ratio.periodo if (ultima and ultima.ratio) else ''),
+                'periodo': context.get('periodo_filtro') or (ultima.ratio.period if (ultima and ultima.ratio) else ''),
                 'score': context.get('score'),
                 'nivel': context.get('nivel'),
                 'fecha_prediccion': fecha_pred_str,
@@ -456,12 +456,12 @@ class DashboardView(DashboardRolMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
         usuario_db = resolver_usuario_bd(user)
-        empresa_usuario = usuario_db.empresa if usuario_db else None
+        empresa_usuario = usuario_db.company if usuario_db else None
 
-        # 1. Filtrado Multi-tenant para PrediccionRiesgo (capaAnalitica)
-        predicciones_qs = PrediccionRiesgo.objects.select_related('ratio', 'empresa', 'ejecutada_por_usuario')
+        # 1. Filtrado Multi-tenant para RiskPrediction (capaAnalitica)
+        predicciones_qs = RiskPrediction.objects.select_related('ratio', 'company', 'executed_by_user')
         if empresa_usuario:
-            predicciones_qs = predicciones_qs.filter(empresa=empresa_usuario)
+            predicciones_qs = predicciones_qs.filter(company=empresa_usuario)
         elif not user.is_superuser:
             predicciones_qs = predicciones_qs.none()
 
@@ -476,53 +476,53 @@ class DashboardView(DashboardRolMixin, TemplateView):
 
         if not prediccion_seleccionada and periodo_param:
             prediccion_seleccionada = predicciones_qs.filter(
-                Q(ratio__periodo=periodo_param) | Q(ratio__periodo__icontains=periodo_param)
-            ).order_by('-fecha_prediccion', '-id').first()
+                Q(ratio__period=periodo_param) | Q(ratio__period__icontains=periodo_param)
+            ).order_by('-prediction_date', '-id').first()
 
-        mas_reciente_db = predicciones_qs.order_by('-fecha_prediccion', '-id').first()
+        mas_reciente_db = predicciones_qs.order_by('-prediction_date', '-id').first()
         ultima_prediccion = prediccion_seleccionada or mas_reciente_db
         es_prediccion_mas_reciente = bool(
             ultima_prediccion and mas_reciente_db and ultima_prediccion.id == mas_reciente_db.id
         )
 
-        score = float(ultima_prediccion.score_riesgo) if (ultima_prediccion and ultima_prediccion.score_riesgo is not None) else None
-        nivel = ultima_prediccion.nivel_semaforo if ultima_prediccion else 'Sin Datos'
-        fecha_prediccion = ultima_prediccion.fecha_prediccion if ultima_prediccion else None
+        score = float(ultima_prediccion.risk_score) if (ultima_prediccion and ultima_prediccion.risk_score is not None) else None
+        nivel = ultima_prediccion.traffic_light_level if ultima_prediccion else 'Sin Datos'
+        fecha_prediccion = ultima_prediccion.prediction_date if ultima_prediccion else None
 
         # 2. Extracción de variables SHAP almacenadas en la predicción
         top_3_variables = []
-        if ultima_prediccion and ultima_prediccion.variables_influyentes:
+        if ultima_prediccion and ultima_prediccion.influential_variables:
             try:
-                top_3_variables = json.loads(ultima_prediccion.variables_influyentes)
+                top_3_variables = json.loads(ultima_prediccion.influential_variables)
             except Exception:
                 top_3_variables = []
 
         # 3. Consulta de predicciones históricas para la curva de tendencia (RF-04)
         # Ratios disponibles para identificar balance activo y asociar formulación de Altman (1983)
-        ratios_qs = RatioFinanciero.objects.all()
+        ratios_qs = FinancialRatio.objects.all()
         if empresa_usuario:
-            ratios_qs = ratios_qs.filter(empresa=empresa_usuario)
+            ratios_qs = ratios_qs.filter(company=empresa_usuario)
         elif not user.is_superuser:
             ratios_qs = ratios_qs.none()
 
         # 3. Consulta y construcción completa de períodos para el Monitor de Solvencia Contable (RF-04)
         periodos_unicos = list(
-            ratios_qs.exclude(periodo__isnull=True)
-                     .exclude(periodo='')
-                     .values_list('periodo', flat=True)
+            ratios_qs.exclude(period__isnull=True)
+                     .exclude(period='')
+                     .values_list('period', flat=True)
                      .distinct()
         )
 
         ratios_por_periodo = {}
         for per in periodos_unicos:
-            r = ratios_qs.filter(periodo=per).order_by('-id').first()
+            r = ratios_qs.filter(period=per).order_by('-id').first()
             if r:
                 ratios_por_periodo[per] = r
 
         pred_por_periodo = {}
-        for p in predicciones_qs.order_by('-fecha_prediccion', '-id'):
-            if p.ratio and p.ratio.periodo and p.ratio.periodo not in pred_por_periodo:
-                pred_por_periodo[p.ratio.periodo] = p
+        for p in predicciones_qs.order_by('-prediction_date', '-id'):
+            if p.ratio and p.ratio.period and p.ratio.period not in pred_por_periodo:
+                pred_por_periodo[p.ratio.period] = p
 
         from AppWeb.viewsML import predecir_riesgo
 
@@ -532,8 +532,8 @@ class DashboardView(DashboardRolMixin, TemplateView):
 
         # Asegurar inclusión de todas las predicciones históricas (tengan o no ratio formal asignado)
         if predicciones_qs.exists():
-            for p in predicciones_qs.order_by('fecha_prediccion', 'id'):
-                p_per = p.ratio.periodo if (p.ratio and p.ratio.periodo) else (p.fecha_prediccion.strftime('%d/%m/%Y') if p.fecha_prediccion else f"#{p.id}")
+            for p in predicciones_qs.order_by('prediction_date', 'id'):
+                p_per = p.ratio.period if (p.ratio and p.ratio.period) else (p.prediction_date.strftime('%d/%m/%Y') if p.prediction_date else f"#{p.id}")
                 if p_per not in periodos_visibles:
                     periodos_visibles.append(p_per)
                 if p_per not in pred_por_periodo:
@@ -551,23 +551,23 @@ class DashboardView(DashboardRolMixin, TemplateView):
             r_obj = ratios_por_periodo.get(per)
             p_obj = pred_por_periodo.get(per)
 
-            if p_obj and p_obj.score_riesgo is not None:
-                raw_ml = float(p_obj.score_riesgo)
+            if p_obj and p_obj.risk_score is not None:
+                raw_ml = float(p_obj.risk_score)
                 pid = p_obj.id
-                fecha_pred = p_obj.fecha_prediccion
+                fecha_pred = p_obj.prediction_date
             elif r_obj:
                 vars_dict = {
-                    'razon_corriente': float(r_obj.v1_razon_corriente or 1.0),
-                    'capital_trabajo_sobre_activos': float(r_obj.v2_capital_trabajo_activos or 0.1),
-                    'leverage_total': float(r_obj.v3_leverage_total or 1.0),
-                    'roa_operacional': float(r_obj.v4_roa_operacional or 0.05),
-                    'margen_operacional': float(r_obj.v5_margen_operacional or 0.08),
-                    'rotacion_activos': float(r_obj.v6_rotacion_activos or 1.0),
-                    'volatilidad_flujo_caja': float(r_obj.v7_volatilidad_flujo or 0.5),
+                    'razon_corriente': float(r_obj.v1_current_ratio or 1.0),
+                    'capital_trabajo_sobre_activos': float(r_obj.v2_working_capital_to_assets or 0.1),
+                    'leverage_total': float(r_obj.v3_total_leverage or 1.0),
+                    'roa_operacional': float(r_obj.v4_operating_roa or 0.05),
+                    'margen_operacional': float(r_obj.v5_operating_margin or 0.08),
+                    'rotacion_activos': float(r_obj.v6_asset_turnover or 1.0),
+                    'volatilidad_flujo_caja': float(r_obj.v7_cash_flow_volatility or 0.5),
                 }
                 raw_ml, _, _ = predecir_riesgo(vars_dict)
                 pid = None
-                fecha_pred = r_obj.fecha_calculo
+                fecha_pred = r_obj.calculation_date
             else:
                 raw_ml = 35.0
                 pid = None
@@ -576,8 +576,8 @@ class DashboardView(DashboardRolMixin, TemplateView):
             if r_obj:
                 sc_obs = calcular_score_observado(r_obj)
                 z_val = calcular_z_score_altman_1983(r_obj)
-                carga_obj = getattr(r_obj, 'carga', None)
-                pat_val = float(getattr(carga_obj, 'patrimonio', 1.0) or 1.0) if carga_obj else 1.0
+                carga_obj = getattr(r_obj, 'upload', None)
+                pat_val = float(getattr(carga_obj, 'equity', 1.0) or 1.0) if carga_obj else 1.0
             else:
                 sc_obs = raw_ml
                 z_val = 2.60
@@ -635,18 +635,18 @@ class DashboardView(DashboardRolMixin, TemplateView):
             ultima_prediccion.ratio
             if (ultima_prediccion and ultima_prediccion.ratio)
             else (
-                ratios_qs.filter(Q(periodo=periodo_param) | Q(periodo__icontains=periodo_param)).order_by('-id').first()
+                ratios_qs.filter(Q(period=periodo_param) | Q(period__icontains=periodo_param)).order_by('-id').first()
                 if periodo_param
-                else ratios_qs.order_by('-fecha_calculo', '-id').first()
+                else ratios_qs.order_by('-calculation_date', '-id').first()
             )
         )
 
         # Proyección futura a 90 días (Q_{t+1}) para la curva de tendencia con alternador/ocultador
         periodo_base_dashboard = ''
-        if ultima_prediccion and ultima_prediccion.ratio and ultima_prediccion.ratio.periodo:
-            periodo_base_dashboard = ultima_prediccion.ratio.periodo
-        elif ultimo_ratio and ultimo_ratio.periodo:
-            periodo_base_dashboard = ultimo_ratio.periodo
+        if ultima_prediccion and ultima_prediccion.ratio and ultima_prediccion.ratio.period:
+            periodo_base_dashboard = ultima_prediccion.ratio.period
+        elif ultimo_ratio and ultimo_ratio.period:
+            periodo_base_dashboard = ultimo_ratio.period
         elif chart_puntos:
             periodo_base_dashboard = chart_puntos[-1]['periodo']
         else:
@@ -687,13 +687,13 @@ class DashboardView(DashboardRolMixin, TemplateView):
 
         # Construcción de la Matriz de Validación Histórica (Backtesting a 90 Días: Q_t -> Q_{t+1})
         ratios_por_periodo_dict = {}
-        for r in ratios_qs.exclude(periodo__isnull=True).exclude(periodo='').order_by('id'):
-            ratios_por_periodo_dict[r.periodo] = r
+        for r in ratios_qs.exclude(period__isnull=True).exclude(period='').order_by('id'):
+            ratios_por_periodo_dict[r.period] = r
 
         pred_por_periodo_dict = {}
-        for p in predicciones_qs.order_by('-fecha_prediccion', '-id'):
-            if p.ratio and p.ratio.periodo and p.ratio.periodo not in pred_por_periodo_dict:
-                pred_por_periodo_dict[p.ratio.periodo] = p
+        for p in predicciones_qs.order_by('-prediction_date', '-id'):
+            if p.ratio and p.ratio.period and p.ratio.period not in pred_por_periodo_dict:
+                pred_por_periodo_dict[p.ratio.period] = p
 
         matriz_backtesting_dashboard = construir_matriz_backtesting(
             ratios_por_periodo=ratios_por_periodo_dict,
@@ -705,15 +705,15 @@ class DashboardView(DashboardRolMixin, TemplateView):
             nivel=nivel_proyectado_dashboard,
         )
 
-        # 4. Total Ingreso_Real del día actual sumando transacciones de Venta (moduloTransaccional / app_caja)
+        # 4. Total net_income del día actual sumando transacciones de Sale (moduloTransaccional / app_caja)
         hoy = timezone.localdate()
-        ventas_hoy_qs = Venta.objects.filter(fecha__date=hoy)
+        ventas_hoy_qs = Sale.objects.filter(date__date=hoy)
         if empresa_usuario:
-            ventas_hoy_qs = ventas_hoy_qs.filter(empresa=empresa_usuario)
+            ventas_hoy_qs = ventas_hoy_qs.filter(company=empresa_usuario)
         elif not user.is_superuser:
             ventas_hoy_qs = ventas_hoy_qs.none()
 
-        ingreso_real_hoy = ventas_hoy_qs.aggregate(total=Sum('ingreso_real'))['total'] or Decimal('0.00')
+        ingreso_real_hoy = ventas_hoy_qs.aggregate(total=Sum('net_income'))['total'] or Decimal('0.00')
         total_ventas_hoy = ventas_hoy_qs.count()
 
         # Detección de valores anómalos (outliers) en el balance activo (RF-10)
@@ -728,42 +728,42 @@ class DashboardView(DashboardRolMixin, TemplateView):
 
         # Información de los estados financieros del período asociado (Activo, Pasivo, Patrimonio, etc.)
         carga_financiera = None
-        if ratio_asociado_prediccion and ratio_asociado_prediccion.carga:
-            carga_financiera = ratio_asociado_prediccion.carga
-        elif ratio_asociado_prediccion and ratio_asociado_prediccion.periodo:
-            carga_qs = CargaFinanciera.objects.filter(periodo=ratio_asociado_prediccion.periodo)
+        if ratio_asociado_prediccion and ratio_asociado_prediccion.upload:
+            carga_financiera = ratio_asociado_prediccion.upload
+        elif ratio_asociado_prediccion and ratio_asociado_prediccion.period:
+            carga_qs = FinancialUpload.objects.filter(period=ratio_asociado_prediccion.period)
             if empresa_usuario:
-                carga_qs = carga_qs.filter(empresa=empresa_usuario)
-            carga_financiera = carga_qs.order_by('-fecha_carga', '-id').first()
+                carga_qs = carga_qs.filter(company=empresa_usuario)
+            carga_financiera = carga_qs.order_by('-upload_date', '-id').first()
 
         if not carga_financiera and empresa_usuario:
-            carga_financiera = CargaFinanciera.objects.filter(empresa=empresa_usuario).order_by('-fecha_carga', '-id').first()
+            carga_financiera = FinancialUpload.objects.filter(company=empresa_usuario).order_by('-upload_date', '-id').first()
 
         info_periodo = None
         if carga_financiera:
-            act_total = float(carga_financiera.activo_total or 0)
-            pas_total = float(carga_financiera.pasivo_total or 0)
-            patrimonio = float(carga_financiera.patrimonio or 0)
-            act_cte = float(carga_financiera.activo_corriente or 0)
-            pas_cte = float(carga_financiera.pasivo_corriente or 0)
+            act_total = float(carga_financiera.total_assets or 0)
+            pas_total = float(carga_financiera.total_liabilities or 0)
+            patrimonio = float(carga_financiera.equity or 0)
+            act_cte = float(carga_financiera.current_assets or 0)
+            pas_cte = float(carga_financiera.current_liabilities or 0)
             act_no_cte = max(0.0, act_total - act_cte)
             pas_no_cte = max(0.0, pas_total - pas_cte)
             cap_trabajo = act_cte - pas_cte
-            ingresos = float(carga_financiera.ingresos_netos or 0)
+            ingresos = float(carga_financiera.net_revenue or 0)
             ebit = float(carga_financiera.ebit or 0)
-            util_neta = float(carga_financiera.utilidad_neta or 0)
-            efectivo = float(carga_financiera.efectivo_equivalentes or 0)
-            inventarios = float(carga_financiera.inventarios or 0)
-            util_retenidas = float(carga_financiera.utilidades_retenidas or 0)
+            util_neta = float(carga_financiera.net_income or 0)
+            efectivo = float(carga_financiera.cash_and_equivalents or 0)
+            inventarios = float(carga_financiera.inventories or 0)
+            util_retenidas = float(carga_financiera.retained_earnings or 0)
 
             dif_cuadre = abs(act_total - (pas_total + patrimonio))
             cuadrado = dif_cuadre < 2.0
 
             info_periodo = {
-                'periodo': carga_financiera.periodo,
-                'fecha_carga': carga_financiera.fecha_carga,
-                'archivo_origen': carga_financiera.archivo_origen,
-                'tipo_carga': carga_financiera.tipo_carga,
+                'periodo': carga_financiera.period,
+                'fecha_carga': carga_financiera.upload_date,
+                'archivo_origen': carga_financiera.source_file,
+                'tipo_carga': carga_financiera.upload_type,
                 'activo_total': act_total,
                 'pasivo_total': pas_total,
                 'patrimonio': patrimonio,
@@ -787,12 +787,12 @@ class DashboardView(DashboardRolMixin, TemplateView):
 
         # 5. Definición de variables de período, filtros y comprobación de datos existentes
         periodo_activo = ''
-        if ultima_prediccion and ultima_prediccion.ratio and ultima_prediccion.ratio.periodo:
-            periodo_activo = ultima_prediccion.ratio.periodo
-        elif ultimo_ratio and ultimo_ratio.periodo:
-            periodo_activo = ultimo_ratio.periodo
-        elif carga_financiera and carga_financiera.periodo:
-            periodo_activo = carga_financiera.periodo
+        if ultima_prediccion and ultima_prediccion.ratio and ultima_prediccion.ratio.period:
+            periodo_activo = ultima_prediccion.ratio.period
+        elif ultimo_ratio and ultimo_ratio.period:
+            periodo_activo = ultimo_ratio.period
+        elif carga_financiera and carga_financiera.period:
+            periodo_activo = carga_financiera.period
 
         periodo_filtro = periodo_param or periodo_activo
         rango_filtro = (self.request.GET.get('rango') or '').strip()
@@ -887,10 +887,10 @@ class DashboardPredictivoView(DashboardView):
         periodo_balance_raw = ''
         if periodo_param:
             periodo_balance_raw = periodo_param
-        elif ultima_prediccion and ultima_prediccion.ratio and ultima_prediccion.ratio.periodo:
-            periodo_balance_raw = ultima_prediccion.ratio.periodo
-        elif ultimo_ratio and ultimo_ratio.periodo:
-            periodo_balance_raw = ultimo_ratio.periodo
+        elif ultima_prediccion and ultima_prediccion.ratio and ultima_prediccion.ratio.period:
+            periodo_balance_raw = ultima_prediccion.ratio.period
+        elif ultimo_ratio and ultimo_ratio.period:
+            periodo_balance_raw = ultimo_ratio.period
         elif context.get('info_periodo') and context['info_periodo'].get('periodo'):
             periodo_balance_raw = context['info_periodo']['periodo']
         else:
@@ -900,35 +900,35 @@ class DashboardPredictivoView(DashboardView):
         periodo_proyectado, periodo_balance_norm, dias_horizonte = calcular_periodo_siguiente(periodo_balance_raw)
 
         # 3. Consulta optimizada de períodos, ratios y predicciones (evita iterar 15.000+ registros)
-        ratios_qs = RatioFinanciero.objects.all()
+        ratios_qs = FinancialRatio.objects.all()
         if empresa_usuario:
-            ratios_qs = ratios_qs.filter(empresa=empresa_usuario)
+            ratios_qs = ratios_qs.filter(company=empresa_usuario)
         elif not user.is_superuser:
             ratios_qs = ratios_qs.none()
 
         periodos_unicos = list(
-            ratios_qs.exclude(periodo__isnull=True)
-                     .exclude(periodo='')
-                     .values_list('periodo', flat=True)
+            ratios_qs.exclude(period__isnull=True)
+                     .exclude(period='')
+                     .values_list('period', flat=True)
                      .distinct()
         )
 
         ratios_por_periodo = {}
         for per in periodos_unicos:
-            r = ratios_qs.filter(periodo=per).order_by('-id').first()
+            r = ratios_qs.filter(period=per).order_by('-id').first()
             if r:
                 ratios_por_periodo[per] = r
 
-        predicciones_qs = PrediccionRiesgo.objects.select_related('ratio', 'empresa')
+        predicciones_qs = RiskPrediction.objects.select_related('ratio', 'company')
         if empresa_usuario:
-            predicciones_qs = predicciones_qs.filter(empresa=empresa_usuario)
+            predicciones_qs = predicciones_qs.filter(company=empresa_usuario)
         elif not user.is_superuser:
             predicciones_qs = predicciones_qs.none()
 
         pred_por_periodo = {}
-        for p in predicciones_qs.order_by('-fecha_prediccion', '-id'):
-            if p.ratio and p.ratio.periodo and p.ratio.periodo not in pred_por_periodo:
-                pred_por_periodo[p.ratio.periodo] = p
+        for p in predicciones_qs.order_by('-prediction_date', '-id'):
+            if p.ratio and p.ratio.period and p.ratio.period not in pred_por_periodo:
+                pred_por_periodo[p.ratio.period] = p
 
         from AppWeb.viewsML import predecir_riesgo
 
@@ -936,8 +936,8 @@ class DashboardPredictivoView(DashboardView):
         todos_periodos = sorted(ratios_por_periodo.keys())
         periodos_visibles = list(todos_periodos)
         if predicciones_qs.exists():
-            for p in predicciones_qs.order_by('fecha_prediccion', 'id'):
-                p_per = p.ratio.periodo if (p.ratio and p.ratio.periodo) else (p.fecha_prediccion.strftime('%d/%m/%Y') if p.fecha_prediccion else f"#{p.id}")
+            for p in predicciones_qs.order_by('prediction_date', 'id'):
+                p_per = p.ratio.period if (p.ratio and p.ratio.period) else (p.prediction_date.strftime('%d/%m/%Y') if p.prediction_date else f"#{p.id}")
                 if p_per not in periodos_visibles:
                     periodos_visibles.append(p_per)
                 if p_per not in pred_por_periodo:
@@ -952,18 +952,18 @@ class DashboardPredictivoView(DashboardView):
             p_fut, per_norm, _ = calcular_periodo_siguiente(per)
             r_obj = ratios_por_periodo.get(per)
             p_obj = pred_por_periodo.get(per)
-            if p_obj and p_obj.score_riesgo is not None:
-                raw_ml = float(p_obj.score_riesgo)
+            if p_obj and p_obj.risk_score is not None:
+                raw_ml = float(p_obj.risk_score)
                 pid = p_obj.id
             elif r_obj:
                 vars_dict = {
-                    'razon_corriente': float(r_obj.v1_razon_corriente or 1.0),
-                    'capital_trabajo_sobre_activos': float(r_obj.v2_capital_trabajo_activos or 0.1),
-                    'leverage_total': float(r_obj.v3_leverage_total or 1.0),
-                    'roa_operacional': float(r_obj.v4_roa_operacional or 0.05),
-                    'margen_operacional': float(r_obj.v5_margen_operacional or 0.08),
-                    'rotacion_activos': float(r_obj.v6_rotacion_activos or 1.0),
-                    'volatilidad_flujo_caja': float(r_obj.v7_volatilidad_flujo or 0.5),
+                    'razon_corriente': float(r_obj.v1_current_ratio or 1.0),
+                    'capital_trabajo_sobre_activos': float(r_obj.v2_working_capital_to_assets or 0.1),
+                    'leverage_total': float(r_obj.v3_total_leverage or 1.0),
+                    'roa_operacional': float(r_obj.v4_operating_roa or 0.05),
+                    'margen_operacional': float(r_obj.v5_operating_margin or 0.08),
+                    'rotacion_activos': float(r_obj.v6_asset_turnover or 1.0),
+                    'volatilidad_flujo_caja': float(r_obj.v7_cash_flow_volatility or 0.5),
                 }
                 raw_ml, _, _ = predecir_riesgo(vars_dict)
                 pid = None
@@ -973,8 +973,8 @@ class DashboardPredictivoView(DashboardView):
 
             if r_obj:
                 z_val = calcular_z_score_altman_1983(r_obj)
-                carga_obj = getattr(r_obj, 'carga', None)
-                pat_val = float(getattr(carga_obj, 'patrimonio', 1.0) or 1.0) if carga_obj else 1.0
+                carga_obj = getattr(r_obj, 'upload', None)
+                pat_val = float(getattr(carga_obj, 'equity', 1.0) or 1.0) if carga_obj else 1.0
                 sc_obs = calcular_score_observado(r_obj)
             else:
                 z_val = 2.60
@@ -1103,13 +1103,13 @@ class DashboardPredictivoView(DashboardView):
             vars_dict_periodo = None
             if r_obj:
                 vars_dict_periodo = {
-                    'razon_corriente': float(r_obj.v1_razon_corriente or 1.0),
-                    'capital_trabajo_sobre_activos': float(r_obj.v2_capital_trabajo_activos or 0.1),
-                    'leverage_total': float(r_obj.v3_leverage_total or 1.0),
-                    'roa_operacional': float(r_obj.v4_roa_operacional or 0.05),
-                    'margen_operacional': float(r_obj.v5_margen_operacional or 0.08),
-                    'rotacion_activos': float(r_obj.v6_rotacion_activos or 1.0),
-                    'volatilidad_flujo_caja': float(r_obj.v7_volatilidad_flujo or 0.5),
+                    'razon_corriente': float(r_obj.v1_current_ratio or 1.0),
+                    'capital_trabajo_sobre_activos': float(r_obj.v2_working_capital_to_assets or 0.1),
+                    'leverage_total': float(r_obj.v3_total_leverage or 1.0),
+                    'roa_operacional': float(r_obj.v4_operating_roa or 0.05),
+                    'margen_operacional': float(r_obj.v5_operating_margin or 0.08),
+                    'rotacion_activos': float(r_obj.v6_asset_turnover or 1.0),
+                    'volatilidad_flujo_caja': float(r_obj.v7_cash_flow_volatility or 0.5),
                 }
 
             rec_resultado = generar_o_recuperar_recomendaciones_prediccion(
@@ -1181,11 +1181,11 @@ class GenerarPDFView(DashboardRolMixin, View):
 
     def get(self, request: HttpRequest):
         usuario_db = resolver_usuario_bd(request.user)
-        empresa_usuario = usuario_db.empresa if usuario_db else None
+        empresa_usuario = usuario_db.company if usuario_db else None
 
-        predicciones_qs = PrediccionRiesgo.objects.select_related('empresa', 'ratio', 'ejecutada_por_usuario')
+        predicciones_qs = RiskPrediction.objects.select_related('company', 'ratio', 'executed_by_user')
         if empresa_usuario:
-            predicciones_qs = predicciones_qs.filter(empresa=empresa_usuario)
+            predicciones_qs = predicciones_qs.filter(company=empresa_usuario)
         elif not request.user.is_superuser:
             predicciones_qs = predicciones_qs.none()
 
@@ -1197,23 +1197,23 @@ class GenerarPDFView(DashboardRolMixin, View):
             ultima_prediccion = predicciones_qs.filter(id=int(prediccion_id_param)).first()
         if not ultima_prediccion and periodo_param:
             ultima_prediccion = predicciones_qs.filter(
-                Q(ratio__periodo=periodo_param) | Q(ratio__periodo__icontains=periodo_param)
-            ).order_by('-fecha_prediccion', '-id').first()
+                Q(ratio__period=periodo_param) | Q(ratio__period__icontains=periodo_param)
+            ).order_by('-prediction_date', '-id').first()
         if not ultima_prediccion:
-            ultima_prediccion = predicciones_qs.order_by('-fecha_prediccion', '-id').first()
+            ultima_prediccion = predicciones_qs.order_by('-prediction_date', '-id').first()
 
         # Variables influyentes SHAP
         top_3_variables = []
-        if ultima_prediccion and ultima_prediccion.variables_influyentes:
+        if ultima_prediccion and ultima_prediccion.influential_variables:
             try:
-                top_3_variables = json.loads(ultima_prediccion.variables_influyentes)
+                top_3_variables = json.loads(ultima_prediccion.influential_variables)
             except Exception:
                 top_3_variables = []
 
         # Ratios de la predicción activa (X1 a X7, Z Altman, Prueba Ácida)
-        ratios_qs = RatioFinanciero.objects.all()
+        ratios_qs = FinancialRatio.objects.all()
         if empresa_usuario:
-            ratios_qs = ratios_qs.filter(empresa=empresa_usuario)
+            ratios_qs = ratios_qs.filter(company=empresa_usuario)
         elif not request.user.is_superuser:
             ratios_qs = ratios_qs.none()
 
@@ -1221,9 +1221,9 @@ class GenerarPDFView(DashboardRolMixin, View):
             ultima_prediccion.ratio
             if (ultima_prediccion and ultima_prediccion.ratio)
             else (
-                ratios_qs.filter(Q(periodo=periodo_param) | Q(periodo__icontains=periodo_param)).order_by('-id').first()
+                ratios_qs.filter(Q(period=periodo_param) | Q(period__icontains=periodo_param)).order_by('-id').first()
                 if periodo_param
-                else ratios_qs.order_by('-fecha_calculo', '-id').first()
+                else ratios_qs.order_by('-calculation_date', '-id').first()
             )
         )
         ratio_asociado_prediccion = ultimo_ratio
@@ -1233,42 +1233,42 @@ class GenerarPDFView(DashboardRolMixin, View):
 
         # Información del balance contable del período
         carga_financiera = None
-        if ratio_asociado_prediccion and ratio_asociado_prediccion.carga:
-            carga_financiera = ratio_asociado_prediccion.carga
-        elif ratio_asociado_prediccion and ratio_asociado_prediccion.periodo:
-            carga_qs = CargaFinanciera.objects.filter(periodo=ratio_asociado_prediccion.periodo)
+        if ratio_asociado_prediccion and ratio_asociado_prediccion.upload:
+            carga_financiera = ratio_asociado_prediccion.upload
+        elif ratio_asociado_prediccion and ratio_asociado_prediccion.period:
+            carga_qs = FinancialUpload.objects.filter(period=ratio_asociado_prediccion.period)
             if empresa_usuario:
-                carga_qs = carga_qs.filter(empresa=empresa_usuario)
-            carga_financiera = carga_qs.order_by('-fecha_carga', '-id').first()
+                carga_qs = carga_qs.filter(company=empresa_usuario)
+            carga_financiera = carga_qs.order_by('-upload_date', '-id').first()
 
         if not carga_financiera and empresa_usuario:
-            carga_financiera = CargaFinanciera.objects.filter(empresa=empresa_usuario).order_by('-fecha_carga', '-id').first()
+            carga_financiera = FinancialUpload.objects.filter(company=empresa_usuario).order_by('-upload_date', '-id').first()
 
         info_periodo = None
         if carga_financiera:
-            act_total = float(carga_financiera.activo_total or 0)
-            pas_total = float(carga_financiera.pasivo_total or 0)
-            patrimonio = float(carga_financiera.patrimonio or 0)
-            act_cte = float(carga_financiera.activo_corriente or 0)
-            pas_cte = float(carga_financiera.pasivo_corriente or 0)
+            act_total = float(carga_financiera.total_assets or 0)
+            pas_total = float(carga_financiera.total_liabilities or 0)
+            patrimonio = float(carga_financiera.equity or 0)
+            act_cte = float(carga_financiera.current_assets or 0)
+            pas_cte = float(carga_financiera.current_liabilities or 0)
             act_no_cte = max(0.0, act_total - act_cte)
             pas_no_cte = max(0.0, pas_total - pas_cte)
             cap_trabajo = act_cte - pas_cte
-            ingresos = float(carga_financiera.ingresos_netos or 0)
+            ingresos = float(carga_financiera.net_revenue or 0)
             ebit = float(carga_financiera.ebit or 0)
-            util_neta = float(carga_financiera.utilidad_neta or 0)
-            efectivo = float(carga_financiera.efectivo_equivalentes or 0)
-            inventarios = float(carga_financiera.inventarios or 0)
-            util_retenidas = float(carga_financiera.utilidades_retenidas or 0)
+            util_neta = float(carga_financiera.net_income or 0)
+            efectivo = float(carga_financiera.cash_and_equivalents or 0)
+            inventarios = float(carga_financiera.inventories or 0)
+            util_retenidas = float(carga_financiera.retained_earnings or 0)
 
             dif_cuadre = abs(act_total - (pas_total + patrimonio))
             cuadrado = dif_cuadre < 2.0
 
             info_periodo = {
-                'periodo': carga_financiera.periodo,
-                'fecha_carga': carga_financiera.fecha_carga,
-                'archivo_origen': carga_financiera.archivo_origen,
-                'tipo_carga': carga_financiera.tipo_carga,
+                'periodo': carga_financiera.period,
+                'fecha_carga': carga_financiera.upload_date,
+                'archivo_origen': carga_financiera.source_file,
+                'tipo_carga': carga_financiera.upload_type,
                 'activo_total': act_total,
                 'pasivo_total': pas_total,
                 'patrimonio': patrimonio,
@@ -1291,15 +1291,15 @@ class GenerarPDFView(DashboardRolMixin, View):
             }
 
         # Evaluaciones históricas (para mostrar la curva / tendencia de solvencia en tabla)
-        ultimas_predicciones = list(predicciones_qs.order_by('-fecha_prediccion', '-id')[:10])
+        ultimas_predicciones = list(predicciones_qs.order_by('-prediction_date', '-id')[:10])
         predicciones_cronologicas = list(reversed(ultimas_predicciones))
         historico_puntos = [
             {
                 'id': p.id,
-                'periodo': p.ratio.periodo if (p.ratio and p.ratio.periodo) else (p.fecha_prediccion.strftime('%d/%m/%Y') if p.fecha_prediccion else f"#{p.id}"),
-                'fecha': p.fecha_prediccion.strftime('%d/%m/%Y %H:%M') if p.fecha_prediccion else 'N/A',
-                'score': float(p.score_riesgo or 0.0),
-                'nivel': p.nivel_semaforo or ('Rojo' if (p.score_riesgo or 0) > 70 else 'Amarillo' if (p.score_riesgo or 0) > 35 else 'Verde'),
+                'periodo': p.ratio.period if (p.ratio and p.ratio.period) else (p.prediction_date.strftime('%d/%m/%Y') if p.prediction_date else f"#{p.id}"),
+                'fecha': p.prediction_date.strftime('%d/%m/%Y %H:%M') if p.prediction_date else 'N/A',
+                'score': float(p.risk_score or 0.0),
+                'nivel': p.traffic_light_level or ('Rojo' if (p.risk_score or 0) > 70 else 'Amarillo' if (p.risk_score or 0) > 35 else 'Verde'),
                 'es_actual': bool(ultima_prediccion and p.id == ultima_prediccion.id),
             }
             for p in predicciones_cronologicas
@@ -1307,13 +1307,13 @@ class GenerarPDFView(DashboardRolMixin, View):
 
         # Operaciones de caja y ventas de hoy
         hoy = timezone.localdate()
-        ventas_hoy_qs = Venta.objects.filter(fecha__date=hoy)
+        ventas_hoy_qs = Sale.objects.filter(date__date=hoy)
         if empresa_usuario:
-            ventas_hoy_qs = ventas_hoy_qs.filter(empresa=empresa_usuario)
+            ventas_hoy_qs = ventas_hoy_qs.filter(company=empresa_usuario)
         elif not request.user.is_superuser:
             ventas_hoy_qs = ventas_hoy_qs.none()
 
-        ingreso_real_hoy = ventas_hoy_qs.aggregate(total=Sum('ingreso_real'))['total'] or Decimal('0.00')
+        ingreso_real_hoy = ventas_hoy_qs.aggregate(total=Sum('net_income'))['total'] or Decimal('0.00')
         total_ventas_hoy = ventas_hoy_qs.count()
 
         try:
@@ -1331,8 +1331,8 @@ class GenerarPDFView(DashboardRolMixin, View):
             )
 
             per_slug = ""
-            if ultima_prediccion and ultima_prediccion.ratio and ultima_prediccion.ratio.periodo:
-                per_slug = f"_{ultima_prediccion.ratio.periodo}"
+            if ultima_prediccion and ultima_prediccion.ratio and ultima_prediccion.ratio.period:
+                per_slug = f"_{ultima_prediccion.ratio.period}"
             nombre_archivo = f"informe_ejecutivo_riesgo{per_slug}_{timezone.now().strftime('%Y%m%d_%H%M')}.pdf"
             response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
@@ -1365,7 +1365,7 @@ class GenerarPDFPredictivoView(DashboardRolMixin, View):
             context = predictivo_view.get_context_data()
 
             usuario_db = resolver_usuario_bd(request.user)
-            empresa_usuario = context.get('empresa_usuario') or (usuario_db.empresa if usuario_db else None)
+            empresa_usuario = context.get('empresa_usuario') or (usuario_db.company if usuario_db else None)
             ultima_prediccion = context.get('ultima_prediccion')
             periodo_balance = context.get('periodo_balance') or context.get('periodo_balance_raw') or '2024-Q4'
             periodo_proyectado = context.get('periodo_proyectado') or '2025-Q1'
@@ -1418,16 +1418,16 @@ class GenerarPDFPredictivoView(DashboardRolMixin, View):
 class EjecutarPrediccionDashboardView(DashboardRolMixin, View):
     """
     Acción rápida para invocar el MotorRiesgo desde el Dashboard
-    sobre el último RatioFinanciero disponible.
+    sobre el último FinancialRatio disponible.
     """
 
     def post(self, request: HttpRequest):
         usuario_db = resolver_usuario_bd(request.user)
-        empresa_usuario = usuario_db.empresa if usuario_db else None
+        empresa_usuario = usuario_db.company if usuario_db else None
 
-        ratios_qs = RatioFinanciero.objects.all()
+        ratios_qs = FinancialRatio.objects.all()
         if empresa_usuario:
-            ratios_qs = ratios_qs.filter(empresa=empresa_usuario)
+            ratios_qs = ratios_qs.filter(company=empresa_usuario)
         elif not request.user.is_superuser:
             ratios_qs = ratios_qs.none()
 
@@ -1441,7 +1441,7 @@ class EjecutarPrediccionDashboardView(DashboardRolMixin, View):
                 )
                 return redirect('dashboard:dashboard')
         else:
-            ratio_a_ejecutar = ratios_qs.order_by('-fecha_calculo', '-id').first()
+            ratio_a_ejecutar = ratios_qs.order_by('-calculation_date', '-id').first()
 
         if not ratio_a_ejecutar:
             messages.warning(
@@ -1468,7 +1468,7 @@ class EjecutarPrediccionDashboardView(DashboardRolMixin, View):
                 usuario=usuario_db,
                 empresa=empresa_usuario
             )
-            periodo_txt = f" para el período '{ratio_a_ejecutar.periodo}'" if ratio_a_ejecutar.periodo else ""
+            periodo_txt = f" para el período '{ratio_a_ejecutar.period}'" if ratio_a_ejecutar.period else ""
             msg_exito = f"¡Ejecución de Análisis completada exitosamente{periodo_txt}! Score: {resultado['score']}% - Nivel: {resultado['nivel']}."
             if anomalias and forzar_ejecucion:
                 msg_exito += f" (Se forzó la ejecución aceptando {len(anomalias)} valor(es) anómalo(s) / outlier(s) detectados)."

@@ -21,9 +21,9 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
-from .models import CargaFinanciera, RatioFinanciero
-from usuarios.models import Usuario, Empresa
-from AppWeb.models import EstadoCarga
+from .models import FinancialUpload, FinancialRatio
+from usuarios.models import User, Company
+from AppWeb.models import UploadState
 
 logger = logging.getLogger(__name__)
 
@@ -99,10 +99,10 @@ def calcular_zem_altman(fila: Dict[str, Any]) -> float:
     return round(3.25 + 6.56 * x1 + 3.26 * x2 + 6.72 * x3 + 1.05 * x4, 4)
 
 
-def calcular_volatilidad_desde_cierres(empresa: Optional[Empresa]) -> Tuple[Optional[float], int, bool]:
+def calcular_volatilidad_desde_cierres(empresa: Optional[Company]) -> Tuple[Optional[float], int, bool]:
     """
     Calcula V7 (Volatilidad del Flujo de Caja) a partir de los cierres confirmados
-    registrados en el módulo transaccional (CierreCaja).
+    registrados en el módulo transaccional (CashRegisterClosure).
 
     Devuelve: (volatilidad_valor, cantidad_cierres, usa_volatilidad_neutra)
     """
@@ -110,10 +110,10 @@ def calcular_volatilidad_desde_cierres(empresa: Optional[Empresa]) -> Tuple[Opti
         return None, 0, True
 
     try:
-        from moduloTransaccional.models import CierreCaja
-        cierres = CierreCaja.objects.filter(
-            empresa=empresa
-        ).exclude(estado__in=['ANULADO', 'Anulado', 'CANCELADO']).order_by('fecha')
+        from moduloTransaccional.models import CashRegisterClosure
+        cierres = CashRegisterClosure.objects.filter(
+            company=empresa
+        ).exclude(status__in=['ANULADO', 'Anulado', 'CANCELADO']).order_by('date')
 
         count = cierres.count()
         if count < MINIMO_CIERRES_VOLATILIDAD:
@@ -122,8 +122,8 @@ def calcular_volatilidad_desde_cierres(empresa: Optional[Empresa]) -> Tuple[Opti
         flujos = []
         ingresos = []
         for c in cierres:
-            flujo_diario = float(c.total_arqueo or c.total_sistema or 0)
-            ventas_brutas = float(c.total_sistema or 0)
+            flujo_diario = float(c.counted_total or c.system_total or 0)
+            ventas_brutas = float(c.system_total or 0)
             flujos.append(flujo_diario)
             if ventas_brutas > 0:
                 ingresos.append(ventas_brutas)
@@ -139,7 +139,7 @@ def calcular_volatilidad_desde_cierres(empresa: Optional[Empresa]) -> Tuple[Opti
         return None, 0, True
 
 
-def calcular_indicadores_completos(fila: Dict[str, Any], empresa: Optional[Empresa] = None) -> Dict[str, Any]:
+def calcular_indicadores_completos(fila: Dict[str, Any], empresa: Optional[Company] = None) -> Dict[str, Any]:
     """
     Calcula los 7 ratios del modelo ML y todos los ratios de referencia contable
     para una fila de balance financiero.
@@ -238,18 +238,18 @@ def detectar_anomalias_financieras(objeto_financiero) -> List[Dict[str, Any]]:
     if not objeto_financiero:
         return anomalias
 
-    carga = getattr(objeto_financiero, 'carga', None) or (objeto_financiero if hasattr(objeto_financiero, 'activo_total') else None)
-    ratio = objeto_financiero if hasattr(objeto_financiero, 'v1_razon_corriente') else getattr(objeto_financiero, 'ratios', None)
+    carga = getattr(objeto_financiero, 'upload', None) or (objeto_financiero if hasattr(objeto_financiero, 'total_assets') else None)
+    ratio = objeto_financiero if hasattr(objeto_financiero, 'v1_current_ratio') else getattr(objeto_financiero, 'ratios', None)
 
-    # 1. Validación de cuentas contables primarias (CargaFinanciera)
+    # 1. Validación de cuentas contables primarias (FinancialUpload)
     if carga:
         cuentas_no_negativas = [
-            ('Efectivo y Equivalentes', getattr(carga, 'efectivo_equivalentes', None), 'Caja y bancos no admiten saldo negativo; los descubiertos deben clasificarse en el pasivo corriente.'),
-            ('Inventarios', getattr(carga, 'inventarios', None), 'El saldo de existencias no puede ser negativo.'),
-            ('Activo Circulante', getattr(carga, 'activo_corriente', None), 'El activo circulante no puede ser negativo.'),
-            ('Pasivo Circulante', getattr(carga, 'pasivo_corriente', None), 'El pasivo circulante no puede ser negativo.'),
-            ('Pasivo Total', getattr(carga, 'pasivo_total', None), 'El pasivo total exigible no puede ser negativo.'),
-            ('Ingresos Netos (Ventas)', getattr(carga, 'ingresos_netos', None), 'Las ventas o ingresos de la operación no pueden ser negativos.'),
+            ('Efectivo y Equivalentes', getattr(carga, 'cash_and_equivalents', None), 'Caja y bancos no admiten saldo negativo; los descubiertos deben clasificarse en el pasivo corriente.'),
+            ('Inventarios', getattr(carga, 'inventories', None), 'El saldo de existencias no puede ser negativo.'),
+            ('Activo Circulante', getattr(carga, 'current_assets', None), 'El activo circulante no puede ser negativo.'),
+            ('Pasivo Circulante', getattr(carga, 'current_liabilities', None), 'El pasivo circulante no puede ser negativo.'),
+            ('Pasivo Total', getattr(carga, 'total_liabilities', None), 'El pasivo total exigible no puede ser negativo.'),
+            ('Ingresos Netos (Ventas)', getattr(carga, 'net_revenue', None), 'Las ventas o ingresos de la operación no pueden ser negativos.'),
         ]
 
         for nombre_cuenta, val, motivo_neg in cuentas_no_negativas:
@@ -266,7 +266,7 @@ def detectar_anomalias_financieras(objeto_financiero) -> List[Dict[str, Any]]:
                     })
 
         # Activo total no puede ser cero ni negativo
-        act_total = getattr(carga, 'activo_total', None)
+        act_total = getattr(carga, 'total_assets', None)
         if act_total is not None and float(act_total) <= 0:
             anomalias.append({
                 'campo': 'Activo Total',
@@ -279,7 +279,7 @@ def detectar_anomalias_financieras(objeto_financiero) -> List[Dict[str, Any]]:
 
         # Margen EBITDA / Operacional desde cuentas brutas (EBIT vs Ingresos)
         ebit = getattr(carga, 'ebit', None)
-        ingresos = getattr(carga, 'ingresos_netos', None)
+        ingresos = getattr(carga, 'net_revenue', None)
         if ebit is not None and ingresos is not None:
             ebit_f = float(ebit)
             ing_f = float(ingresos)
@@ -304,10 +304,10 @@ def detectar_anomalias_financieras(objeto_financiero) -> List[Dict[str, Any]]:
                         'severidad': 'warning',
                     })
 
-    # 2. Validación de Ratios Financieros calculados (RatioFinanciero)
-    if ratio and hasattr(ratio, 'v1_razon_corriente'):
+    # 2. Validación de Ratios Financieros calculados (FinancialRatio)
+    if ratio and hasattr(ratio, 'v1_current_ratio'):
         # V1: Razón Corriente (rango normal típico: 0.20x a 8.00x)
-        v1 = getattr(ratio, 'v1_razon_corriente', None)
+        v1 = getattr(ratio, 'v1_current_ratio', None)
         if v1 is not None:
             v1_f = float(v1)
             if v1_f >= 8.0:
@@ -330,7 +330,7 @@ def detectar_anomalias_financieras(objeto_financiero) -> List[Dict[str, Any]]:
                 })
 
         # V3: Leverage Total (Pasivo Total / Patrimonio) (normal 0.0x a 7.0x)
-        v3 = getattr(ratio, 'v3_leverage_total', None)
+        v3 = getattr(ratio, 'v3_total_leverage', None)
         if v3 is not None:
             v3_f = float(v3)
             if v3_f >= 7.0:
@@ -344,7 +344,7 @@ def detectar_anomalias_financieras(objeto_financiero) -> List[Dict[str, Any]]:
                 })
 
         # V4: ROA Operacional (EBIT / Activo Total) (normal -50% a 50%)
-        v4 = getattr(ratio, 'v4_roa_operacional', None)
+        v4 = getattr(ratio, 'v4_operating_roa', None)
         if v4 is not None:
             v4_f = float(v4)
             if v4_f > 0.60 or v4_f < -0.60:
@@ -358,7 +358,7 @@ def detectar_anomalias_financieras(objeto_financiero) -> List[Dict[str, Any]]:
                 })
 
         # V5: Margen Operacional si no se detectó en carga
-        v5 = getattr(ratio, 'v5_margen_operacional', None)
+        v5 = getattr(ratio, 'v5_operating_margin', None)
         if v5 is not None and not any(a['campo'].startswith('Margen Operacional') for a in anomalias):
             v5_f = float(v5)
             if v5_f >= 1.0 or v5_f <= -1.0:
@@ -372,7 +372,7 @@ def detectar_anomalias_financieras(objeto_financiero) -> List[Dict[str, Any]]:
                 })
 
         # V6: Rotación de Activos (normal 0.05x a 6.00x)
-        v6 = getattr(ratio, 'v6_rotacion_activos', None)
+        v6 = getattr(ratio, 'v6_asset_turnover', None)
         if v6 is not None:
             v6_f = float(v6)
             if v6_f > 6.0:
@@ -519,15 +519,15 @@ def validar_estructura_y_consistencia(df: pd.DataFrame) -> Tuple[bool, List[str]
 def procesar_e_ingestar_balance(
     archivo,
     tipo_documento: str = 'Balance General',
-    usuario_db: Optional[Usuario] = None,
-    empresa_default: Optional[Empresa] = None
+    usuario_db: Optional[User] = None,
+    empresa_default: Optional[Company] = None
 ) -> Tuple[bool, List[str], Dict[str, Any]]:
     """
     Ejecuta el pipeline completo de ETL:
     1. Extrae el archivo subido.
     2. Aplica validaciones contables y sintácticas.
-    3. Persiste en CargaFinanciera y RatioFinanciero en una transacción atómica.
-    4. Sincroniza el archivo CSV con EstadoCarga para retrocompatibilidad con AppWeb.
+    3. Persiste en FinancialUpload y FinancialRatio en una transacción atómica.
+    4. Sincroniza el archivo CSV con UploadState para retrocompatibilidad con AppWeb.
     """
     # 1. Extracción
     df_raw, errores_lectura = extraer_dataframe_desde_archivo(archivo)
@@ -551,71 +551,71 @@ def procesar_e_ingestar_balance(
                 id_empresa_raw = str(fila_dict.get('Id_Empresa', '')).strip()
 
                 # Resolver la Empresa asignada (prioridad absoluta a la empresa del usuario)
-                empresa_obj = empresa_default or (usuario_db.empresa if usuario_db else None)
+                empresa_obj = empresa_default or (usuario_db.company if usuario_db else None)
                 if not empresa_obj and id_empresa_raw:
-                    empresa_obj, _ = Empresa.objects.get_or_create(
-                        rut=id_empresa_raw,
-                        defaults={'razon_social': f"Empresa {id_empresa_raw}"}
+                    empresa_obj, _ = Company.objects.get_or_create(
+                        tax_id=id_empresa_raw,
+                        defaults={'business_name': f"Empresa {id_empresa_raw}"}
                     )
 
-                # 3. Crear registro en CargaFinanciera
-                carga = CargaFinanciera.objects.create(
-                    fecha_carga=fecha_ahora,
-                    periodo=str(fila_dict.get('Periodo', 'N/A')).strip(),
-                    archivo_origen=nombre_archivo,
-                    tipo_carga=tipo_documento,
-                    activo_corriente=Decimal(str(round(float(fila_dict['Activo_Circulante']), 2))),
-                    pasivo_corriente=Decimal(str(round(float(fila_dict['Pasivo_Circulante']), 2))),
-                    activo_total=Decimal(str(round(float(fila_dict['Activo_Total']), 2))),
-                    pasivo_total=Decimal(str(round(float(fila_dict['Pasivo_Total']), 2))),
-                    patrimonio=Decimal(str(round(float(fila_dict['Patrimonio_Neto']), 2))),
-                    ingresos_netos=Decimal(str(round(float(fila_dict['Ingresos_Netos']), 2))),
+                # 3. Crear registro en FinancialUpload
+                carga = FinancialUpload.objects.create(
+                    upload_date=fecha_ahora,
+                    period=str(fila_dict.get('Periodo', 'N/A')).strip(),
+                    source_file=nombre_archivo,
+                    upload_type=tipo_documento,
+                    current_assets=Decimal(str(round(float(fila_dict['Activo_Circulante']), 2))),
+                    current_liabilities=Decimal(str(round(float(fila_dict['Pasivo_Circulante']), 2))),
+                    total_assets=Decimal(str(round(float(fila_dict['Activo_Total']), 2))),
+                    total_liabilities=Decimal(str(round(float(fila_dict['Pasivo_Total']), 2))),
+                    equity=Decimal(str(round(float(fila_dict['Patrimonio_Neto']), 2))),
+                    net_revenue=Decimal(str(round(float(fila_dict['Ingresos_Netos']), 2))),
                     ebit=Decimal(str(round(float(fila_dict['EBIT']), 2))),
-                    utilidades_retenidas=Decimal(str(round(float(fila_dict['Utilidades_Retenidas']), 2))),
-                    utilidad_neta=Decimal(str(round(float(fila_dict['Utilidad_Neta']), 2))),
-                    inventarios=Decimal(str(round(float(fila_dict['Inventarios']), 2))),
-                    efectivo_equivalentes=Decimal(str(round(float(fila_dict['Efectivo_Equivalentes']), 2))),
-                    estado='PROCESADO',
-                    errores_detectados=None,
-                    usuario=usuario_db,
-                    empresa=empresa_obj,
+                    retained_earnings=Decimal(str(round(float(fila_dict['Utilidades_Retenidas']), 2))),
+                    net_income=Decimal(str(round(float(fila_dict['Utilidad_Neta']), 2))),
+                    inventories=Decimal(str(round(float(fila_dict['Inventarios']), 2))),
+                    cash_and_equivalents=Decimal(str(round(float(fila_dict['Efectivo_Equivalentes']), 2))),
+                    status='PROCESADO',
+                    detected_errors=None,
+                    user=usuario_db,
+                    company=empresa_obj,
                 )
                 cargas_creadas.append(carga)
 
-                # 4. Calcular ratios completos y crear registro en RatioFinanciero
+                # 4. Calcular ratios completos y crear registro en FinancialRatio
                 ratios_data = calcular_indicadores_completos(fila_dict, empresa=empresa_obj)
 
-                ratio = RatioFinanciero.objects.create(
-                    carga=carga,
-                    periodo=carga.periodo,
-                    fecha_calculo=fecha_ahora,
-                    v1_razon_corriente=Decimal(str(ratios_data['v1_razon_corriente'])),
-                    v2_capital_trabajo_activos=Decimal(str(ratios_data['v2_capital_trabajo_activos'])),
-                    v3_leverage_total=Decimal(str(ratios_data['v3_leverage_total'])),
-                    v4_roa_operacional=Decimal(str(ratios_data['v4_roa_operacional'])),
-                    v5_margen_operacional=Decimal(str(ratios_data['v5_margen_operacional'])),
-                    v6_rotacion_activos=Decimal(str(ratios_data['v6_rotacion_activos'])),
-                    v7_volatilidad_flujo=Decimal(str(ratios_data['v7_volatilidad_flujo'])) if ratios_data['v7_volatilidad_flujo'] is not None else None,
-                    cierres_confirmados_count=ratios_data['cierres_confirmados_count'],
-                    usa_volatilidad_neutra=ratios_data['usa_volatilidad_neutra'],
-                    ref_prueba_acida=Decimal(str(ratios_data['ref_prueba_acida'])),
-                    ref_razon_caja=Decimal(str(ratios_data['ref_razon_caja'])),
-                    ref_cobertura_operacional=Decimal(str(ratios_data['ref_cobertura_operacional'])),
-                    ref_z_altman=Decimal(str(ratios_data['ref_z_altman'])),
-                    validado=True,
-                    validado_por_usuario=usuario_db,
-                    fecha_validacion=fecha_ahora,
-                    empresa=empresa_obj,
+                ratio = FinancialRatio.objects.create(
+                    upload=carga,
+                    period=carga.period,
+                    calculation_date=fecha_ahora,
+                    v1_current_ratio=Decimal(str(ratios_data['v1_razon_corriente'])),
+                    v2_working_capital_to_assets=Decimal(str(ratios_data['v2_capital_trabajo_activos'])),
+                    v3_total_leverage=Decimal(str(ratios_data['v3_leverage_total'])),
+                    v4_operating_roa=Decimal(str(ratios_data['v4_roa_operacional'])),
+                    v5_operating_margin=Decimal(str(ratios_data['v5_margen_operacional'])),
+                    v6_asset_turnover=Decimal(str(ratios_data['v6_rotacion_activos'])),
+                    v7_cash_flow_volatility=Decimal(str(ratios_data['v7_volatilidad_flujo'])) if ratios_data['v7_volatilidad_flujo'] is not None else None,
+                    confirmed_closures_count=ratios_data['cierres_confirmados_count'],
+                    uses_neutral_volatility=ratios_data['usa_volatilidad_neutra'],
+                    ref_quick_ratio=Decimal(str(ratios_data['ref_prueba_acida'])),
+                    ref_cash_ratio=Decimal(str(ratios_data['ref_razon_caja'])),
+                    ref_operating_coverage=Decimal(str(ratios_data['ref_cobertura_operacional'])),
+                    ref_altman_z_score=Decimal(str(ratios_data['ref_z_altman'])),
+                    is_validated=True,
+                    validated_by_user=usuario_db,
+                    validation_date=fecha_ahora,
+                    company=empresa_obj,
                 )
                 ratios_creados.append(ratio)
 
-            # 5. Guardar copia en CSV sincronizada con EstadoCarga (Retrocompatibilidad AppWeb)
+            # 5. Guardar copia en CSV sincronizada con UploadState (Retrocompatibilidad AppWeb)
             archivo_id = str(uuid.uuid4())
             ruta_csv = os.path.join(DATA_DIR, f"{archivo_id}.csv")
             df.to_csv(ruta_csv, index=False)
 
-            estado = EstadoCarga.actual()
-            estado.ruta_csv = ruta_csv
+            estado = UploadState.current()
+            estado.csv_path = ruta_csv
             estado.save()
 
         # Conteo de anomalías u outliers detectados en los ratios procesados (RF-10)
@@ -643,16 +643,16 @@ def procesar_e_ingestar_balance(
 
 def limpiar_archivos_y_estado() -> bool:
     """
-    Elimina los archivos CSV temporales de la carpeta data/ y reinicia el EstadoCarga.
+    Elimina los archivos CSV temporales de la carpeta data/ y reinicia el UploadState.
     """
     try:
-        estado = EstadoCarga.actual()
-        if estado.ruta_csv and os.path.exists(estado.ruta_csv):
+        estado = UploadState.current()
+        if estado.csv_path and os.path.exists(estado.csv_path):
             try:
-                os.remove(estado.ruta_csv)
+                os.remove(estado.csv_path)
             except OSError:
                 pass
-        estado.ruta_csv = None
+        estado.csv_path = None
         estado.save()
         return True
     except Exception:

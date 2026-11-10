@@ -304,9 +304,9 @@
             {% if user.is_authenticated %}
                 <div class="d-none d-sm-flex align-items-center gap-2 text-secondary">
                     <span class="text-dark fw-medium" style="font-size: 0.8125rem;">{{ user.username }}</span>
-                    {% if user.perfil.rol %}
+                    {% if user.profile.role %}
                         <span class="badge border font-monospace" style="font-size: 0.6875rem; background-color: #f3f4f6; color: #4b5563; border-color: #e5e7eb !important;">
-                            {{ user.perfil.rol }}
+                            {{ user.profile.role }}
                         </span>
                     {% endif %}
                 </div>
@@ -347,7 +347,7 @@
                     </div>
                     <div class="overflow-hidden flex-grow-1">
                         <div class="text-dark fw-medium text-truncate" style="font-size: 0.75rem;">{{ user.username }}</div>
-                        <div class="text-muted text-truncate" style="font-size: 0.6875rem;">{{ user.perfil.rol|default:"Colaborador" }}</div>
+                        <div class="text-muted text-truncate" style="font-size: 0.6875rem;">{{ user.profile.role|default:"Colaborador" }}</div>
                     </div>
                 </div>
             </div>

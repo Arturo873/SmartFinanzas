@@ -9,28 +9,28 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views.generic import CreateView, ListView
 
-from .models import Venta, MetodoPago, RetiroCajaChica, CierreCaja, DetalleCierrePorMetodo
+from .models import Sale, PaymentMethod, PettyCashWithdrawal, CashRegisterClosure, ClosureMethodDetail
 from .forms import VentaForm, CierreCajaForm
-from usuarios.models import Usuario
+from usuarios.models import User
 
 logger = logging.getLogger(__name__)
 
 
 def resolver_usuario_bd(auth_user):
     """
-    Obtiene la instancia de 'Usuario' (tabla usuario) correspondiente
+    Obtiene la instancia de 'User' (tabla user) correspondiente
     al usuario autenticado en la sesión de Django con caché en memoria.
     """
     if not auth_user or not auth_user.is_authenticated:
         return None
-    if isinstance(auth_user, Usuario):
+    if isinstance(auth_user, User):
         return auth_user
     if hasattr(auth_user, '_cached_usuario_db'):
         return auth_user._cached_usuario_db
 
-    usuario_db = Usuario.objects.select_related('empresa', 'rol').filter(username=auth_user.username).first()
+    usuario_db = User.objects.select_related('company', 'role').filter(username=auth_user.username).first()
     if not usuario_db and hasattr(auth_user, 'email'):
-        usuario_db = Usuario.objects.select_related('empresa', 'rol').filter(email=auth_user.email).first()
+        usuario_db = User.objects.select_related('company', 'role').filter(email=auth_user.email).first()
 
     auth_user._cached_usuario_db = usuario_db
     return usuario_db
@@ -48,15 +48,15 @@ class RolRequeridoMixin(LoginRequiredMixin, UserPassesTestMixin):
         user = self.request.user
         if not user.is_authenticated:
             return None
-        # 1. Verifica relación OneToOne PerfilUsuario (AppWeb)
-        if hasattr(user, 'perfil') and user.perfil and hasattr(user.perfil, 'rol'):
-            return user.perfil.rol
-        # 2. Verifica modelo custom Usuario (usuarios.models)
-        if hasattr(user, 'rol') and user.rol:
-            return user.rol.nombre if hasattr(user.rol, 'nombre') else str(user.rol)
+        # 1. Verifica relación OneToOne UserProfile (AppWeb)
+        if hasattr(user, 'profile') and user.profile and hasattr(user.profile, 'role'):
+            return user.profile.role
+        # 2. Verifica modelo custom User (usuarios.models)
+        if hasattr(user, 'role') and user.role:
+            return user.role.name if hasattr(user.role, 'name') else str(user.role)
         usuario_db = resolver_usuario_bd(user)
-        if usuario_db and usuario_db.rol:
-            return usuario_db.rol.nombre
+        if usuario_db and usuario_db.role:
+            return usuario_db.role.name
         return None
 
     def test_func(self):
@@ -89,7 +89,7 @@ class VentaCreateView(RolRequeridoMixin, CreateView):
     - Aislamiento en transacciones ACID con manejo de excepciones y rollback automático.
     - Generación de alertas claras y accionables (problema, causa y solución).
     """
-    model = Venta
+    model = Sale
     form_class = VentaForm
     template_name = 'moduloTransaccional/venta_form.html'
     success_url = reverse_lazy('moduloTransaccional:venta_crear')
@@ -99,11 +99,11 @@ class VentaCreateView(RolRequeridoMixin, CreateView):
         # Verificación defensiva previa: comprobar si la caja de hoy ya fue cerrada para la empresa
         fecha_hoy = timezone.localdate()
         usuario_db = resolver_usuario_bd(request.user)
-        empresa_usuario = usuario_db.empresa if usuario_db else None
+        empresa_usuario = usuario_db.company if usuario_db else None
 
-        cierre_hoy_qs = CierreCaja.objects.filter(fecha=fecha_hoy)
+        cierre_hoy_qs = CashRegisterClosure.objects.filter(date=fecha_hoy)
         if empresa_usuario:
-            cierre_hoy_qs = cierre_hoy_qs.filter(empresa=empresa_usuario)
+            cierre_hoy_qs = cierre_hoy_qs.filter(company=empresa_usuario)
         elif not request.user.is_superuser:
             cierre_hoy_qs = cierre_hoy_qs.none()
 
@@ -112,7 +112,7 @@ class VentaCreateView(RolRequeridoMixin, CreateView):
             messages.error(
                 request,
                 f"Operación bloqueada: La caja del día ({fecha_hoy.strftime('%d/%m/%Y')}) ya fue cerrada "
-                f"(ID #{cierre_hoy.pk} - Estado: {cierre_hoy.estado}). "
+                f"(ID #{cierre_hoy.pk} - Estado: {cierre_hoy.status}). "
                 f"Motivo: No se pueden añadir ventas a una caja con arqueo cerrado. "
                 f"Solución: Para registrar ventas rezagadas o ajustes extraordinarios, contacta al Administrador o Dueño del turno."
             )
@@ -122,25 +122,25 @@ class VentaCreateView(RolRequeridoMixin, CreateView):
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         usuario_db = resolver_usuario_bd(self.request.user)
-        if usuario_db and usuario_db.empresa:
-            kwargs['empresa'] = usuario_db.empresa
+        if usuario_db and usuario_db.company:
+            kwargs['empresa'] = usuario_db.company
         return kwargs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         fecha_hoy = timezone.localdate()
         usuario_db = resolver_usuario_bd(self.request.user)
-        empresa_usuario = usuario_db.empresa if usuario_db else None
+        empresa_usuario = usuario_db.company if usuario_db else None
 
         try:
             # Consulta segura con límite defensivo y aislamiento multi-tenant
-            ventas_qs = Venta.objects.filter(fecha__date=fecha_hoy)
+            ventas_qs = Sale.objects.filter(date__date=fecha_hoy)
             if empresa_usuario:
-                ventas_qs = ventas_qs.filter(empresa=empresa_usuario)
+                ventas_qs = ventas_qs.filter(company=empresa_usuario)
             elif not self.request.user.is_superuser:
                 ventas_qs = ventas_qs.none()
 
-            context['ventas_hoy'] = ventas_qs.select_related('metodo_pago').order_by('-fecha')[:10]
+            context['ventas_hoy'] = ventas_qs.select_related('payment_method').order_by('-date')[:10]
         except Exception as e:
             logger.error(f"Error al consultar historial de ventas del día: {e}", exc_info=True)
             context['ventas_hoy'] = []
@@ -151,9 +151,9 @@ class VentaCreateView(RolRequeridoMixin, CreateView):
             )
 
         context['fecha_hoy'] = fecha_hoy
-        cierre_hoy_qs = CierreCaja.objects.filter(fecha=fecha_hoy)
+        cierre_hoy_qs = CashRegisterClosure.objects.filter(date=fecha_hoy)
         if empresa_usuario:
-            cierre_hoy_qs = cierre_hoy_qs.filter(empresa=empresa_usuario)
+            cierre_hoy_qs = cierre_hoy_qs.filter(company=empresa_usuario)
         elif not self.request.user.is_superuser:
             cierre_hoy_qs = cierre_hoy_qs.none()
         context['cierre_hoy'] = cierre_hoy_qs.first()
@@ -185,21 +185,21 @@ class VentaCreateView(RolRequeridoMixin, CreateView):
         fecha_hoy = timezone.localdate()
 
         # A. Bloqueo de seguridad: No procesar ventas en turnos cerrados
-        cierre_existente = CierreCaja.objects.filter(fecha=fecha_hoy).first()
+        cierre_existente = CashRegisterClosure.objects.filter(date=fecha_hoy).first()
         if cierre_existente:
             messages.error(
                 self.request,
                 f"Operación rechazada: La caja del día ({fecha_hoy.strftime('%d/%m/%Y')}) ya se encuentra cerrada "
-                f"(Cierre #{cierre_existente.pk} - Estado: {cierre_existente.estado}). "
+                f"(Cierre #{cierre_existente.pk} - Estado: {cierre_existente.status}). "
                 f"Motivo: Registrar nuevas transacciones corrompería la auditoría del arqueo de hoy. "
                 f"Solución: Si se trata de una venta fuera de horario o turno cerrado, solicite autorización al Administrador."
             )
             return self.form_invalid(form)
 
         # B. Validación de variables críticas nulas o vacías
-        total_bruto = form.cleaned_data.get('total_bruto')
+        total_bruto = form.cleaned_data.get('gross_total')
         if total_bruto is None:
-            form.add_error('total_bruto', "El total bruto de la venta no puede estar vacío.")
+            form.add_error('gross_total', "El total bruto de la venta no puede estar vacío.")
             messages.error(
                 self.request,
                 "Validación de datos fallida: El campo 'Total Bruto' no contiene ningún valor. "
@@ -207,9 +207,9 @@ class VentaCreateView(RolRequeridoMixin, CreateView):
             )
             return self.form_invalid(form)
 
-        metodo_pago = form.cleaned_data.get('metodo_pago')
+        metodo_pago = form.cleaned_data.get('payment_method')
         if not metodo_pago:
-            form.add_error('metodo_pago', "Debe seleccionar un método de pago activo.")
+            form.add_error('payment_method', "Debe seleccionar un método de pago activo.")
             messages.error(
                 self.request,
                 "Validación de datos fallida: No se seleccionó un medio de pago para la transacción. "
@@ -217,18 +217,18 @@ class VentaCreateView(RolRequeridoMixin, CreateView):
             )
             return self.form_invalid(form)
 
-        if not metodo_pago.activo:
-            form.add_error('metodo_pago', f"El método de pago '{metodo_pago.nombre}' no se encuentra habilitado.")
+        if not metodo_pago.is_active:
+            form.add_error('payment_method', f"El método de pago '{metodo_pago.name}' no se encuentra habilitado.")
             messages.error(
                 self.request,
-                f"Operación rechazada: El método '{metodo_pago.nombre}' fue deshabilitado en el sistema. "
+                f"Operación rechazada: El método '{metodo_pago.name}' fue deshabilitado en el sistema. "
                 f"Solución: Seleccione un método de pago activo o solicite su activación al Administrador."
             )
             return self.form_invalid(form)
 
         # C. Validación de negocio: No procesar ventas con valor 0 o negativo
         if total_bruto <= Decimal('0.00'):
-            form.add_error('total_bruto', "El total bruto de la venta debe ser estrictamente mayor a 0.")
+            form.add_error('gross_total', "El total bruto de la venta debe ser estrictamente mayor a 0.")
             messages.error(
                 self.request,
                 f"Operación ilógica rechazada: No se pueden registrar ventas por un valor de ${total_bruto:,.2f}. "
@@ -240,7 +240,7 @@ class VentaCreateView(RolRequeridoMixin, CreateView):
         # Límite superior razonable para evitar desbordamiento numérico o digitación accidental
         max_venta_permitida = Decimal('99999999.99')
         if total_bruto > max_venta_permitida:
-            form.add_error('total_bruto', f"El importe excede el límite máximo por transacción (${max_venta_permitida:,.0f}).")
+            form.add_error('gross_total', f"El importe excede el límite máximo por transacción (${max_venta_permitida:,.0f}).")
             messages.error(
                 self.request,
                 f"Alerta de seguridad: El total bruto (${total_bruto:,.2f}) supera el tope por transacción del sistema. "
@@ -249,12 +249,12 @@ class VentaCreateView(RolRequeridoMixin, CreateView):
             return self.form_invalid(form)
 
         # D. Validación defensiva de descuentos
-        descuento_monto = form.cleaned_data.get('descuento_monto')
+        descuento_monto = form.cleaned_data.get('discount_amount')
         if descuento_monto is None:
             descuento_monto = Decimal('0.00')
 
         if descuento_monto < Decimal('0.00'):
-            form.add_error('descuento_monto', "El descuento no puede ser un valor negativo.")
+            form.add_error('discount_amount', "El descuento no puede ser un valor negativo.")
             messages.error(
                 self.request,
                 "Operación ilógica rechazada: El descuento ingresado es negativo. "
@@ -265,7 +265,7 @@ class VentaCreateView(RolRequeridoMixin, CreateView):
         # E. Validación de coherencia comercial: el valor a cobrar debe ser positivo
         total_cobrado = total_bruto - descuento_monto
         if total_cobrado <= Decimal('0.00'):
-            form.add_error('descuento_monto', "El descuento no puede igualar o exceder el total bruto.")
+            form.add_error('discount_amount', "El descuento no puede igualar o exceder el total bruto.")
             messages.error(
                 self.request,
                 f"Operación ilógica rechazada: El descuento (${descuento_monto:,.2f}) cubre o supera el 100% de la venta (${total_bruto:,.2f}), "
@@ -285,7 +285,7 @@ class VentaCreateView(RolRequeridoMixin, CreateView):
             )
             return self.form_invalid(form)
 
-        if not usuario_db.empresa and not self.request.user.is_superuser:
+        if not usuario_db.company and not self.request.user.is_superuser:
             messages.error(
                 self.request,
                 "Error de configuración empresarial: Tu perfil de usuario no está vinculado a ninguna empresa activa. "
@@ -299,7 +299,7 @@ class VentaCreateView(RolRequeridoMixin, CreateView):
         # -------------------------------------------------------------
         try:
             # Control defensivo de comisión: rango 0% a 100%
-            comision_pct = metodo_pago.comision_porcentaje or Decimal('0.00')
+            comision_pct = metodo_pago.commission_percentage or Decimal('0.00')
             if comision_pct < Decimal('0.00') or comision_pct > Decimal('100.00'):
                 raise ValueError(
                     f"El porcentaje de comisión configurado ({comision_pct}%) está fuera del rango admitido (0% a 100%)."
@@ -321,7 +321,7 @@ class VentaCreateView(RolRequeridoMixin, CreateView):
             messages.error(
                 self.request,
                 f"Error en el cálculo financiero: {calc_err}. "
-                f"Motivo: Falló la fórmula de deducción de comisiones para '{metodo_pago.nombre}'. "
+                f"Motivo: Falló la fórmula de deducción de comisiones para '{metodo_pago.name}'. "
                 f"Solución: Verifique los valores ingresados y confirme con administración la comisión del método de pago."
             )
             return self.form_invalid(form)
@@ -332,18 +332,18 @@ class VentaCreateView(RolRequeridoMixin, CreateView):
         try:
             with transaction.atomic():
                 venta = form.save(commit=False)
-                venta.total_bruto = total_bruto
-                venta.descuento_tipo = 'Monto' if descuento_monto > Decimal('0.00') else 'Sin Desc'
-                venta.descuento_monto = descuento_monto
-                venta.total_cobrado = total_cobrado
-                venta.comision_aplicada = comision_aplicada
-                venta.ingreso_real = ingreso_real
-                venta.usuario = usuario_db
-                if usuario_db and usuario_db.empresa:
-                    venta.empresa = usuario_db.empresa
-                venta.cierre = None
-                if not venta.fecha:
-                    venta.fecha = timezone.now()
+                venta.gross_total = total_bruto
+                venta.discount_type = 'Monto' if descuento_monto > Decimal('0.00') else 'Sin Desc'
+                venta.discount_amount = descuento_monto
+                venta.charged_total = total_cobrado
+                venta.applied_commission = comision_aplicada
+                venta.net_income = ingreso_real
+                venta.user = usuario_db
+                if usuario_db and usuario_db.company:
+                    venta.company = usuario_db.company
+                venta.closure = None
+                if not venta.date:
+                    venta.date = timezone.now()
 
                 venta.save()
 
@@ -380,7 +380,7 @@ class CierreCajaCreateView(RolRequeridoMixin, CreateView):
     Exclusiva para el rol 'Dueño' (y Administrador).
     Garantiza consistencia ACID y previene el doble cierre en la misma fecha.
     """
-    model = CierreCaja
+    model = CashRegisterClosure
     form_class = CierreCajaForm
     template_name = 'moduloTransaccional/cierre_caja_form.html'
     success_url = reverse_lazy('moduloTransaccional:historial_cierres')
@@ -390,11 +390,11 @@ class CierreCajaCreateView(RolRequeridoMixin, CreateView):
         # Bloqueo de Doble Cierre: Si ya existe un cierre de la empresa con la fecha de hoy, bloquear
         fecha_hoy = timezone.localdate()
         usuario_db = resolver_usuario_bd(request.user)
-        empresa_usuario = usuario_db.empresa if usuario_db else None
+        empresa_usuario = usuario_db.company if usuario_db else None
 
-        cierre_existente_qs = CierreCaja.objects.filter(fecha=fecha_hoy)
+        cierre_existente_qs = CashRegisterClosure.objects.filter(date=fecha_hoy)
         if empresa_usuario:
-            cierre_existente_qs = cierre_existente_qs.filter(empresa=empresa_usuario)
+            cierre_existente_qs = cierre_existente_qs.filter(company=empresa_usuario)
         elif not request.user.is_superuser:
             cierre_existente_qs = cierre_existente_qs.none()
 
@@ -403,7 +403,7 @@ class CierreCajaCreateView(RolRequeridoMixin, CreateView):
             messages.error(
                 request,
                 f"El Cierre de Caja del día de hoy ({fecha_hoy.strftime('%d/%m/%Y')}) ya fue registrado "
-                f"(ID #{cierre_existente.pk} - Estado: {cierre_existente.estado}). "
+                f"(ID #{cierre_existente.pk} - Estado: {cierre_existente.status}). "
                 f"No está permitido realizar múltiples cierres en una misma fecha para tu empresa."
             )
             return redirect('moduloTransaccional:historial_cierres')
@@ -415,37 +415,37 @@ class CierreCajaCreateView(RolRequeridoMixin, CreateView):
         """
         fecha_hoy = timezone.localdate()
         usuario_db = resolver_usuario_bd(self.request.user)
-        empresa_usuario = usuario_db.empresa if usuario_db else None
+        empresa_usuario = usuario_db.company if usuario_db else None
 
-        ventas_huerfanas = Venta.objects.filter(
-            cierre__isnull=True,
-            fecha__date=fecha_hoy
+        ventas_huerfanas = Sale.objects.filter(
+            closure__isnull=True,
+            date__date=fecha_hoy
         )
-        retiros_huerfanos = RetiroCajaChica.objects.filter(
-            cierre__isnull=True,
-            fecha__date=fecha_hoy
+        retiros_huerfanos = PettyCashWithdrawal.objects.filter(
+            closure__isnull=True,
+            date__date=fecha_hoy
         )
         if empresa_usuario:
-            ventas_huerfanas = ventas_huerfanas.filter(empresa=empresa_usuario)
-            retiros_huerfanos = retiros_huerfanos.filter(empresa=empresa_usuario)
+            ventas_huerfanas = ventas_huerfanas.filter(company=empresa_usuario)
+            retiros_huerfanos = retiros_huerfanos.filter(company=empresa_usuario)
         elif not self.request.user.is_superuser:
             ventas_huerfanas = ventas_huerfanas.none()
             retiros_huerfanos = retiros_huerfanos.none()
 
-        total_ventas_bruto = ventas_huerfanas.aggregate(tot=Sum('total_bruto'))['tot'] or Decimal('0.00')
-        total_ingreso_real = ventas_huerfanas.aggregate(tot=Sum('ingreso_real'))['tot'] or Decimal('0.00')
-        total_retiros = retiros_huerfanos.aggregate(tot=Sum('monto'))['tot'] or Decimal('0.00')
+        total_ventas_bruto = ventas_huerfanas.aggregate(tot=Sum('gross_total'))['tot'] or Decimal('0.00')
+        total_ingreso_real = ventas_huerfanas.aggregate(tot=Sum('net_income'))['tot'] or Decimal('0.00')
+        total_retiros = retiros_huerfanos.aggregate(tot=Sum('amount'))['tot'] or Decimal('0.00')
         total_sistema = total_ingreso_real - total_retiros
 
         # 1. Separación de Efectivo Físico en Gaveta (Base de Arqueo)
-        ventas_efectivo = ventas_huerfanas.filter(metodo_pago__nombre__iexact='Efectivo')
-        total_efectivo_ventas = ventas_efectivo.aggregate(tot=Sum('ingreso_real'))['tot'] or Decimal('0.00')
+        ventas_efectivo = ventas_huerfanas.filter(payment_method__name__iexact='Efectivo')
+        total_efectivo_ventas = ventas_efectivo.aggregate(tot=Sum('net_income'))['tot'] or Decimal('0.00')
         cantidad_ventas_efectivo = ventas_efectivo.count()
         efectivo_esperado = total_efectivo_ventas - total_retiros
 
         # 2. Separación de Ventas Electrónicas (Tarjetas Débito / Crédito / Transferencia)
-        ventas_electronicas = ventas_huerfanas.exclude(metodo_pago__nombre__iexact='Efectivo')
-        total_electronico_ventas = ventas_electronicas.aggregate(tot=Sum('ingreso_real'))['tot'] or Decimal('0.00')
+        ventas_electronicas = ventas_huerfanas.exclude(payment_method__name__iexact='Efectivo')
+        total_electronico_ventas = ventas_electronicas.aggregate(tot=Sum('net_income'))['tot'] or Decimal('0.00')
         cantidad_ventas_electronicas = ventas_electronicas.count()
 
         return {
@@ -479,21 +479,21 @@ class CierreCajaCreateView(RolRequeridoMixin, CreateView):
         context.update(datos)
 
         usuario_db = resolver_usuario_bd(self.request.user)
-        empresa_usuario = usuario_db.empresa if usuario_db else None
+        empresa_usuario = usuario_db.company if usuario_db else None
 
         # Desglose de ventas por método de pago para el resumen del arqueo
         resumen_metodos_efectivo = []
         resumen_metodos_electronicos = []
         resumen_metodos = []
-        metodos_qs = MetodoPago.objects.filter(activo=True)
+        metodos_qs = PaymentMethod.objects.filter(is_active=True)
         if empresa_usuario:
-            metodos_qs = metodos_qs.filter(Q(empresa=empresa_usuario) | Q(empresa__isnull=True))
+            metodos_qs = metodos_qs.filter(Q(company=empresa_usuario) | Q(company__isnull=True))
 
         for mp in metodos_qs:
-            ventas_mp = datos['ventas_huerfanas'].filter(metodo_pago=mp)
-            tot_mp = ventas_mp.aggregate(tot=Sum('ingreso_real'))['tot'] or Decimal('0.00')
+            ventas_mp = datos['ventas_huerfanas'].filter(payment_method=mp)
+            tot_mp = ventas_mp.aggregate(tot=Sum('net_income'))['tot'] or Decimal('0.00')
             cant_mp = ventas_mp.count()
-            es_efectivo = (mp.nombre.strip().lower() == 'efectivo')
+            es_efectivo = (mp.name.strip().lower() == 'efectivo')
             item = {
                 'metodo': mp,
                 'cantidad': cant_mp,
@@ -557,16 +557,16 @@ class CierreCajaCreateView(RolRequeridoMixin, CreateView):
         efectivo_esperado = datos['efectivo_esperado']
         total_electronico_ventas = datos['total_electronico_ventas']
 
-        total_arqueo = form.cleaned_data.get('total_arqueo')
+        total_arqueo = form.cleaned_data.get('counted_total')
         if total_arqueo is None:
-            form.add_error('total_arqueo', "El efectivo físico en gaveta es obligatorio.")
+            form.add_error('counted_total', "El efectivo físico en gaveta es obligatorio.")
             return self.form_invalid(form)
 
         if total_arqueo < Decimal('0.00'):
-            form.add_error('total_arqueo', "El efectivo físico no puede ser un monto negativo.")
+            form.add_error('counted_total', "El efectivo físico no puede ser un monto negativo.")
             return self.form_invalid(form)
 
-        justificacion = (form.cleaned_data.get('justificacion') or '').strip()
+        justificacion = (form.cleaned_data.get('justification') or '').strip()
         # Cuadratura física estricta sobre el dinero en gaveta (Opción A)
         descuadre = total_arqueo - efectivo_esperado
         # Tolerancia contable: diferencias menores a $1 peso se consideran exactamente cuadradas
@@ -575,61 +575,61 @@ class CierreCajaCreateView(RolRequeridoMixin, CreateView):
 
         if descuadre != Decimal('0.00') and not justificacion:
             signo = "+" if descuadre > Decimal('0.00') else "-"
-            form.add_error('justificacion', f"Debe justificar obligatoriamente el descuadre detectado en gaveta ({signo}${abs(descuadre):,.0f}).")
+            form.add_error('justification', f"Debe justificar obligatoriamente el descuadre detectado en gaveta ({signo}${abs(descuadre):,.0f}).")
             return self.form_invalid(form)
 
         # 2. Transaccionalidad ACID y persistencia segura
         try:
             with transaction.atomic():
                 cierre = form.save(commit=False)
-                cierre.fecha = fecha_hoy
-                cierre.estado = 'Cuadrado' if descuadre == Decimal('0.00') else 'Descuadrado'
-                cierre.total_sistema = total_sistema
-                cierre.total_retiros = total_retiros
+                cierre.date = fecha_hoy
+                cierre.status = 'Cuadrado' if descuadre == Decimal('0.00') else 'Descuadrado'
+                cierre.system_total = total_sistema
+                cierre.withdrawals_total = total_retiros
                 # El total arqueo consolidado del negocio suma el dinero físico contado más los pagos electrónicos validados
-                cierre.total_arqueo = total_arqueo + total_electronico_ventas
-                cierre.descuadre_total = descuadre
+                cierre.counted_total = total_arqueo + total_electronico_ventas
+                cierre.total_discrepancy = descuadre
                 usuario_db = resolver_usuario_bd(self.request.user)
-                cierre.cerrado_por_usuario = usuario_db
-                if usuario_db and usuario_db.empresa:
-                    cierre.empresa = usuario_db.empresa
-                cierre.fecha_confirmacion = timezone.now()
+                cierre.closed_by_user = usuario_db
+                if usuario_db and usuario_db.company:
+                    cierre.company = usuario_db.company
+                cierre.confirmation_date = timezone.now()
                 cierre.save()
 
                 # 1. Asociar únicamente las Ventas huérfanas de la empresa del usuario
                 ventas_ids = list(datos['ventas_huerfanas'].values_list('id', flat=True))
-                ventas_actualizadas = Venta.objects.filter(id__in=ventas_ids).update(cierre=cierre)
+                ventas_actualizadas = Sale.objects.filter(id__in=ventas_ids).update(closure=cierre)
 
                 # 2. Asociar únicamente los Retiros huérfanos de la empresa del usuario
                 retiros_ids = list(datos['retiros_huerfanos'].values_list('id', flat=True))
-                retiros_actualizados = RetiroCajaChica.objects.filter(id__in=retiros_ids).update(cierre=cierre)
+                retiros_actualizados = PettyCashWithdrawal.objects.filter(id__in=retiros_ids).update(closure=cierre)
 
                 # 3. Crear detalles por cada método de pago para auditoría
-                metodos_qs = MetodoPago.objects.filter(activo=True)
-                if usuario_db and usuario_db.empresa:
-                    metodos_qs = metodos_qs.filter(Q(empresa=usuario_db.empresa) | Q(empresa__isnull=True))
+                metodos_qs = PaymentMethod.objects.filter(is_active=True)
+                if usuario_db and usuario_db.company:
+                    metodos_qs = metodos_qs.filter(Q(company=usuario_db.company) | Q(company__isnull=True))
 
                 for mp in metodos_qs:
-                    ventas_mp = Venta.objects.filter(cierre=cierre, metodo_pago=mp)
-                    tot_mp = ventas_mp.aggregate(tot=Sum('ingreso_real'))['tot'] or Decimal('0.00')
-                    es_efectivo = (mp.nombre.strip().lower() == 'efectivo')
+                    ventas_mp = Sale.objects.filter(closure=cierre, payment_method=mp)
+                    tot_mp = ventas_mp.aggregate(tot=Sum('net_income'))['tot'] or Decimal('0.00')
+                    es_efectivo = (mp.name.strip().lower() == 'efectivo')
 
                     # Generar detalle si tuvo movimiento o para registrar la cuadratura
                     if tot_mp > Decimal('0.00') or es_efectivo:
-                        DetalleCierrePorMetodo.objects.create(
-                            cierre=cierre,
-                            metodo_pago=mp,
-                            total_sistema=efectivo_esperado if es_efectivo else tot_mp,
-                            total_arqueo=total_arqueo if es_efectivo else tot_mp,
-                            descuadre=descuadre if es_efectivo else Decimal('0.00'),
-                            justificacion=justificacion if (es_efectivo and descuadre != Decimal('0.00')) else None
+                        ClosureMethodDetail.objects.create(
+                            closure=cierre,
+                            payment_method=mp,
+                            system_total=efectivo_esperado if es_efectivo else tot_mp,
+                            counted_total=total_arqueo if es_efectivo else tot_mp,
+                            discrepancy=descuadre if es_efectivo else Decimal('0.00'),
+                            justification=justificacion if (es_efectivo and descuadre != Decimal('0.00')) else None
                         )
 
             messages.success(
                 self.request,
                 f"✓ Cierre de caja #{cierre.pk} completado con éxito. "
                 f"Ventas consolidadas: {ventas_actualizadas} | Retiros consolidados: {retiros_actualizados} | "
-                f"Estado: {cierre.estado} (Descuadre en Gaveta: ${descuadre:,.0f})."
+                f"Estado: {cierre.status} (Descuadre en Gaveta: ${descuadre:,.0f})."
             )
             return redirect(self.success_url)
 
@@ -661,7 +661,7 @@ class HistorialCierresListView(RolRequeridoMixin, ListView):
     Permite búsqueda automática por texto o selección por calendario (día),
     además de ordenamiento ascendente/descendente por fecha.
     """
-    model = CierreCaja
+    model = CashRegisterClosure
     template_name = 'moduloTransaccional/cierrecaja_list.html'
     context_object_name = 'cierres'
     paginate_by = 15
@@ -669,12 +669,12 @@ class HistorialCierresListView(RolRequeridoMixin, ListView):
 
     def get_queryset(self):
         usuario_db = resolver_usuario_bd(self.request.user)
-        empresa_usuario = usuario_db.empresa if usuario_db else None
+        empresa_usuario = usuario_db.company if usuario_db else None
 
-        # Solo se enlaza con 'cerrado_por_usuario' que es el único mostrado en la vista tabular
-        qs = CierreCaja.objects.select_related('cerrado_por_usuario')
+        # Solo se enlaza con 'closed_by_user' que es el único mostrado en la vista tabular
+        qs = CashRegisterClosure.objects.select_related('closed_by_user')
         if empresa_usuario:
-            qs = qs.filter(empresa=empresa_usuario)
+            qs = qs.filter(company=empresa_usuario)
         elif not self.request.user.is_superuser:
             qs = qs.none()
 
@@ -684,7 +684,7 @@ class HistorialCierresListView(RolRequeridoMixin, ListView):
             try:
                 from datetime import datetime
                 fecha_obj = datetime.strptime(fecha_filtro, '%Y-%m-%d').date()
-                qs = qs.filter(fecha=fecha_obj)
+                qs = qs.filter(date=fecha_obj)
             except (ValueError, TypeError):
                 pass
 
@@ -692,18 +692,18 @@ class HistorialCierresListView(RolRequeridoMixin, ListView):
         q = (self.request.GET.get('q') or '').strip()
         if q:
             filtro_q = (
-                Q(estado__icontains=q) |
-                Q(cerrado_por_usuario__username__icontains=q) |
-                Q(cerrado_por_usuario__email__icontains=q)
+                Q(status__icontains=q) |
+                Q(closed_by_user__username__icontains=q) |
+                Q(closed_by_user__email__icontains=q)
             )
             try:
                 from datetime import datetime
                 if '/' in q:
                     fecha_p = datetime.strptime(q, '%d/%m/%Y').date()
-                    filtro_q |= Q(fecha=fecha_p)
+                    filtro_q |= Q(date=fecha_p)
                 elif '-' in q and len(q.split('-')[0]) == 4:
                     fecha_p = datetime.strptime(q, '%Y-%m-%d').date()
-                    filtro_q |= Q(fecha=fecha_p)
+                    filtro_q |= Q(date=fecha_p)
             except Exception:
                 pass
             qs = qs.filter(filtro_q)
@@ -711,9 +711,9 @@ class HistorialCierresListView(RolRequeridoMixin, ListView):
         # Ordenamiento por fecha (descendente por defecto)
         orden = (self.request.GET.get('orden') or 'desc').strip().lower()
         if orden == 'asc':
-            qs = qs.order_by('fecha', 'id')
+            qs = qs.order_by('date', 'id')
         else:
-            qs = qs.order_by('-fecha', '-id')
+            qs = qs.order_by('-date', '-id')
 
         return qs
 
@@ -721,11 +721,11 @@ class HistorialCierresListView(RolRequeridoMixin, ListView):
         context = super().get_context_data(**kwargs)
         fecha_hoy = timezone.localdate()
         usuario_db = resolver_usuario_bd(self.request.user)
-        empresa_usuario = usuario_db.empresa if usuario_db else None
+        empresa_usuario = usuario_db.company if usuario_db else None
 
-        cierre_hoy_qs = CierreCaja.objects.filter(fecha=fecha_hoy)
+        cierre_hoy_qs = CashRegisterClosure.objects.filter(date=fecha_hoy)
         if empresa_usuario:
-            cierre_hoy_qs = cierre_hoy_qs.filter(empresa=empresa_usuario)
+            cierre_hoy_qs = cierre_hoy_qs.filter(company=empresa_usuario)
 
         q = (self.request.GET.get('q') or '').strip()
         fecha_filtro = (self.request.GET.get('fecha') or '').strip()

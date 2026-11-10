@@ -180,14 +180,18 @@ def construir_informe_ejecutivo_pdf(
     # ENCABEZADO FORMAL Y PORTADA
     # =========================================================================
     fecha_emision = timezone.localtime().strftime('%d/%m/%Y %H:%M')
-    nombre_empresa = empresa.razon_social if empresa else "Empresa Sin Asignar"
-    rut_empresa = empresa.rut if (empresa and empresa.rut) else "Sin RUT"
+    nombre_empresa = empresa.business_name if empresa else "Empresa Sin Asignar"
+    rut_empresa = empresa.tax_id if (empresa and empresa.tax_id) else "Sin RUT"
     usuario_nombre = usuario.username if usuario else "Auditoría Financiera"
-    rol_nombre = getattr(getattr(usuario, 'perfil', None), 'rol', None) or "Usuario Operador"
+    rol_nombre = (
+        getattr(getattr(usuario, 'profile', None), 'role', None)
+        or getattr(getattr(usuario, 'role', None), 'name', None)
+        or "Usuario Operador"
+    )
 
     periodo_texto = "Período Vigente"
-    if ultima_prediccion and ultima_prediccion.ratio and ultima_prediccion.ratio.periodo:
-        periodo_texto = ultima_prediccion.ratio.periodo
+    if ultima_prediccion and ultima_prediccion.ratio and ultima_prediccion.ratio.period:
+        periodo_texto = ultima_prediccion.ratio.period
     elif info_periodo and info_periodo.get('periodo'):
         periodo_texto = info_periodo.get('periodo')
 
@@ -218,7 +222,7 @@ def construir_informe_ejecutivo_pdf(
     elementos.append(HRFlowable(width="100%", thickness=1.5, color=C_PRIMARIO, spaceAfter=8))
 
     # Cuadro de Metadatos de la Empresa y del Modelo
-    fecha_pred_str = ultima_prediccion.fecha_prediccion.strftime('%d/%m/%Y %H:%M') if (ultima_prediccion and ultima_prediccion.fecha_prediccion) else "N/A"
+    fecha_pred_str = ultima_prediccion.prediction_date.strftime('%d/%m/%Y %H:%M') if (ultima_prediccion and ultima_prediccion.prediction_date) else "N/A"
     pred_id_str = f"#{ultima_prediccion.id}" if ultima_prediccion else "N/A"
 
     meta_table_data = [
@@ -251,8 +255,8 @@ def construir_informe_ejecutivo_pdf(
     # =========================================================================
     # SECCIÓN 1: DIAGNÓSTICO DEL SEMÁFORO DE RIESGO
     # =========================================================================
-    score_val = float(ultima_prediccion.score_riesgo) if (ultima_prediccion and ultima_prediccion.score_riesgo is not None) else 0.0
-    nivel_val = ultima_prediccion.nivel_semaforo if ultima_prediccion else "Sin Datos"
+    score_val = float(ultima_prediccion.risk_score) if (ultima_prediccion and ultima_prediccion.risk_score is not None) else 0.0
+    nivel_val = ultima_prediccion.traffic_light_level if ultima_prediccion else "Sin Datos"
     prob_insolvencia = score_val
     prob_solvencia = max(0.0, 100.0 - score_val)
 
@@ -416,10 +420,10 @@ def construir_informe_ejecutivo_pdf(
     elementos.append(Spacer(1, 5))
 
     # Ratios de referencia Z-Altman y Prueba Ácida
-    val_z = getattr(ratio_asociado, 'ref_z_altman', None)
+    val_z = getattr(ratio_asociado, 'ref_altman_z_score', None)
     val_z_float = float(val_z) if val_z is not None else None
 
-    val_pa = getattr(ratio_asociado, 'ref_prueba_acida', None)
+    val_pa = getattr(ratio_asociado, 'ref_quick_ratio', None)
     val_pa_float = float(val_pa) if val_pa is not None else None
 
     # Mapeo de reglas para evaluar el estado cualitativo de cada ratio
@@ -940,10 +944,14 @@ def construir_informe_predictivo_pdf(
     # ENCABEZADO FORMAL Y PORTADA EJECUTIVA
     # =========================================================================
     fecha_emision = timezone.localtime().strftime('%d/%m/%Y %H:%M')
-    nombre_empresa = empresa.razon_social if empresa else "Empresa Sin Asignar"
-    rut_empresa = empresa.rut if (empresa and empresa.rut) else "Sin RUT"
+    nombre_empresa = empresa.business_name if empresa else "Empresa Sin Asignar"
+    rut_empresa = empresa.tax_id if (empresa and empresa.tax_id) else "Sin RUT"
     usuario_nombre = usuario.username if usuario else "Auditoría Financiera"
-    rol_nombre = getattr(getattr(usuario, 'perfil', None), 'rol', None) or "Usuario Operador"
+    rol_nombre = (
+        getattr(getattr(usuario, 'profile', None), 'role', None)
+        or getattr(getattr(usuario, 'role', None), 'name', None)
+        or "Usuario Operador"
+    )
 
     periodo_base_txt = str(periodo_balance or '2024-Q4')
     periodo_proy_txt = str(periodo_proyectado or '2025-Q1')
@@ -976,7 +984,7 @@ def construir_informe_predictivo_pdf(
 
     # Cuadro de Metadatos de Gobernanza y Modelo Predictivo
     pred_id_str = f"#{ultima_prediccion.id}" if ultima_prediccion else "Automática"
-    fecha_pred_str = ultima_prediccion.fecha_prediccion.strftime('%d/%m/%Y %H:%M') if (ultima_prediccion and ultima_prediccion.fecha_prediccion) else fecha_emision
+    fecha_pred_str = ultima_prediccion.prediction_date.strftime('%d/%m/%Y %H:%M') if (ultima_prediccion and ultima_prediccion.prediction_date) else fecha_emision
 
     meta_table_data = [
         [

@@ -23,7 +23,7 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'home' %}">Inicio</a>
                     </li>
-                    {% if user.perfil.rol == 'Contador' %}
+                    {% if user.profile.role == 'Contador' %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'carga_datos' %}">Cargar Datos</a>
                     </li>
@@ -31,7 +31,7 @@
                     {% if user.is_authenticated %}
                     <li class="nav-item">
                         <span class="nav-link text-white-50">
-                            {{ user.username }} <span class="badge bg-secondary">{{ user.perfil.rol }}</span>
+                            {{ user.username }} <span class="badge bg-secondary">{{ user.profile.role }}</span>
                         </span>
                     </li>
                     <li class="nav-item">

@@ -65,13 +65,13 @@
 
                     <!-- Rol en el sistema -->
                     <div class="mb-3">
-                        <label for="{{ form.rol.id_for_label }}" class="form-label fw-semibold">
-                            <i class="bi bi-shield-check me-1 text-primary"></i>{{ form.rol.label }} <span class="text-danger">*</span>
+                        <label for="{{ form.role.id_for_label }}" class="form-label fw-semibold">
+                            <i class="bi bi-shield-check me-1 text-primary"></i>{{ form.role.label }} <span class="text-danger">*</span>
                         </label>
-                        {{ form.rol }}
-                        {% if form.rol.errors %}
+                        {{ form.role }}
+                        {% if form.role.errors %}
                             <div class="text-danger small mt-1">
-                                {{ form.rol.errors|striptags }}
+                                {{ form.role.errors|striptags }}
                             </div>
                         {% endif %}
                         <div class="form-text small">
@@ -145,7 +145,7 @@
 
                             <!-- Select Sincronizado para Django POST (Oculto) -->
                             <div class="d-none">
-                                {{ form.empresa }}
+                                {{ form.company }}
                             </div>
 
                             <!-- Datos de empresas serializados en JSON seguro -->
@@ -154,19 +154,19 @@
                                 {% for emp in empresas %}
                                 {
                                     "id": {{ emp.id }},
-                                    "nombre": "{{ emp.razon_social|escapejs }}",
-                                    "rut": "{{ emp.rut|default:''|escapejs }}"
+                                    "nombre": "{{ emp.business_name|escapejs }}",
+                                    "rut": "{{ emp.tax_id|default:''|escapejs }}"
                                 }{% if not forloop.last %},{% endif %}
                                 {% endfor %}
                             ]
                             </script>
                         {% else %}
-                            {{ form.empresa }}
+                            {{ form.company }}
                         {% endif %}
 
-                        {% if form.empresa.errors %}
+                        {% if form.company.errors %}
                             <div class="text-danger small mt-1">
-                                {{ form.empresa.errors|striptags }}
+                                {{ form.company.errors|striptags }}
                             </div>
                         {% endif %}
                         <div class="form-text small">
@@ -451,7 +451,7 @@
         const progressBar = document.getElementById('empresaProgressBar');
         const deslizadorHint = document.getElementById('deslizadorHint');
         const empresaContainer = document.getElementById('empresaDisplayContainer');
-        const selectEmpresa = document.getElementById('id_empresa');
+        const selectEmpresa = document.getElementById('id_company');
 
         if (empresasDataEl && deslizador && selectEmpresa) {
             let empresas = [];

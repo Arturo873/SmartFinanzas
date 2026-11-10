@@ -2,7 +2,7 @@ from django import forms
 from django.db.models import Q
 from django.contrib.auth.hashers import make_password
 from django.utils import timezone
-from .models import Usuario, Rol, Empresa, ConfiguracionEmpresa
+from .models import User, Role, Company
 
 
 class LoginForm(forms.Form):
@@ -34,15 +34,15 @@ class LoginForm(forms.Form):
 
         if email and password:
             # Autenticación exclusiva por correo electrónico
-            usuario = Usuario.objects.filter(
+            usuario = User.objects.filter(
                 email__iexact=email
-            ).select_related('rol', 'empresa').first()
+            ).select_related('role', 'company').first()
 
             # Mensaje de error general para no revelar si falló el correo o la contraseña
             if not usuario or not usuario.check_password(password):
                 raise forms.ValidationError("Correo electrónico o contraseña incorrectos. Por favor verifique sus datos.")
 
-            if not usuario.activo:
+            if not usuario.is_active:
                 raise forms.ValidationError("Esta cuenta de usuario se encuentra inactiva. Contacte al Administrador.")
 
             cleaned_data['usuario_db'] = usuario
@@ -70,14 +70,14 @@ class RegistroForm(forms.ModelForm):
             'required': True
         })
     )
-    rol = forms.ModelChoiceField(
-        queryset=Rol.objects.all(),
+    role = forms.ModelChoiceField(
+        queryset=Role.objects.all(),
         empty_label="-- Selecciona tu Rol --",
         widget=forms.Select(attrs={'class': 'form-select', 'required': True}),
         label="Rol en la Empresa"
     )
-    empresa = forms.ModelChoiceField(
-        queryset=Empresa.objects.all(),
+    company = forms.ModelChoiceField(
+        queryset=Company.objects.all(),
         required=False,
         empty_label="-- Selecciona Empresa (Opcional) --",
         widget=forms.Select(attrs={'class': 'form-select'}),
@@ -85,8 +85,8 @@ class RegistroForm(forms.ModelForm):
     )
 
     class Meta:
-        model = Usuario
-        fields = ['username', 'email', 'rol', 'empresa']
+        model = User
+        fields = ['username', 'email', 'role', 'company']
         widgets = {
             'username': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -104,7 +104,7 @@ class RegistroForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Si no existen roles configurados, asegurar los roles por defecto
-        if Rol.objects.count() == 0:
+        if Role.objects.count() == 0:
             roles_base = [
                 ('Dueño', 'Gerencia, visualización de dashboard y arqueos de caja'),
                 ('Contador', 'Carga de planillas ETL, predicciones y revisión contable'),
@@ -112,18 +112,18 @@ class RegistroForm(forms.ModelForm):
                 ('Administrador', 'Gestión técnica y permisos')
             ]
             for nombre, desc in roles_base:
-                Rol.objects.get_or_create(nombre=nombre, defaults={'descripcion': desc})
-            self.fields['rol'].queryset = Rol.objects.all()
+                Role.objects.get_or_create(name=nombre, defaults={'description': desc})
+            self.fields['role'].queryset = Role.objects.all()
 
     def clean_username(self):
         username = (self.cleaned_data.get('username') or '').strip()
-        if Usuario.objects.filter(username=username).exists():
+        if User.objects.filter(username=username).exists():
             raise forms.ValidationError("Este nombre de usuario ya se encuentra registrado. Por favor elija otro.")
         return username
 
     def clean_email(self):
         email = (self.cleaned_data.get('email') or '').strip().lower()
-        if email and Usuario.objects.filter(email=email).exists():
+        if email and User.objects.filter(email=email).exists():
             raise forms.ValidationError("Este correo electrónico ya está asociado a otra cuenta.")
         return email
 
@@ -144,13 +144,13 @@ class RegistroForm(forms.ModelForm):
         usuario = super().save(commit=False)
         password = self.cleaned_data['password']
         usuario.set_password(password)
-        usuario.activo = True
-        if not usuario.fecha_creacion:
-            usuario.fecha_creacion = timezone.now()
+        usuario.is_active = True
+        if not usuario.created_at:
+            usuario.created_at = timezone.now()
 
         # Asignar primera empresa por defecto si no seleccionó ninguna
-        if not usuario.empresa:
-            usuario.empresa = Empresa.objects.first()
+        if not usuario.company:
+            usuario.company = Company.objects.first()
 
         if commit:
             usuario.save()

@@ -9,8 +9,8 @@
             <i class="bi bi-calculator text-primary me-2"></i>Ratios Financieros y Variables ML (V1 - V7)
         </h1>
         <p class="text-muted mb-0 small">
-            Empresa: <strong class="text-dark">{{ empresa_usuario.razon_social|default:"Tu Empresa" }}</strong>
-            {% if empresa_usuario.rut %}<span class="badge bg-secondary-subtle text-secondary font-monospace ms-1">{{ empresa_usuario.rut }}</span>{% endif %}
+            Empresa: <strong class="text-dark">{{ empresa_usuario.business_name|default:"Tu Empresa" }}</strong>
+            {% if empresa_usuario.tax_id %}<span class="badge bg-secondary-subtle text-secondary font-monospace ms-1">{{ empresa_usuario.tax_id }}</span>{% endif %}
             &middot; Vector de indicadores calculados a partir de los balances contables ingestados.
         </p>
     </div>
@@ -115,34 +115,34 @@
                     {% for r in ratios %}
                     <tr>
                         <td class="ps-3 text-muted font-sans-serif" style="font-size: 0.75rem;">
-                            <i class="bi bi-calendar3 me-1"></i>{{ r.fecha_calculo|date:"d/m/Y H:i" }}
+                            <i class="bi bi-calendar3 me-1"></i>{{ r.calculation_date|date:"d/m/Y H:i" }}
                         </td>
                         <td class="font-sans-serif">
-                            <span class="fw-bold text-dark">{{ r.periodo }}</span>
+                            <span class="fw-bold text-dark">{{ r.period }}</span>
                         </td>
                         <td class="text-end">
-                            <span class="badge {% if r.v1_razon_corriente and r.v1_razon_corriente >= 1.5 %}bg-success-subtle text-success{% elif r.v1_razon_corriente and r.v1_razon_corriente >= 1.0 %}bg-warning-subtle text-warning{% else %}bg-danger-subtle text-danger{% endif %} border">
-                                {{ r.v1_razon_corriente|floatformat:2 }}
+                            <span class="badge {% if r.v1_current_ratio and r.v1_current_ratio >= 1.5 %}bg-success-subtle text-success{% elif r.v1_current_ratio and r.v1_current_ratio >= 1.0 %}bg-warning-subtle text-warning{% else %}bg-danger-subtle text-danger{% endif %} border">
+                                {{ r.v1_current_ratio|floatformat:2 }}
                             </span>
                         </td>
-                        <td class="text-end">{{ r.v2_capital_trabajo_activos|floatformat:2 }}</td>
+                        <td class="text-end">{{ r.v2_working_capital_to_assets|floatformat:2 }}</td>
                         <td class="text-end">
-                            <span class="{% if r.v3_leverage_total and r.v3_leverage_total > 5.0 %}text-danger fw-bold{% endif %}">
-                                {{ r.v3_leverage_total|floatformat:2 }}
+                            <span class="{% if r.v3_total_leverage and r.v3_total_leverage > 5.0 %}text-danger fw-bold{% endif %}">
+                                {{ r.v3_total_leverage|floatformat:2 }}
                             </span>
                         </td>
-                        <td class="text-end">{{ r.v4_roa_operacional|floatformat:2 }}</td>
-                        <td class="text-end">{{ r.v5_margen_operacional|floatformat:2 }}</td>
-                        <td class="text-end">{{ r.v6_rotacion_activos|floatformat:2 }}</td>
+                        <td class="text-end">{{ r.v4_operating_roa|floatformat:2 }}</td>
+                        <td class="text-end">{{ r.v5_operating_margin|floatformat:2 }}</td>
+                        <td class="text-end">{{ r.v6_asset_turnover|floatformat:2 }}</td>
                         <td class="text-end">
-                            {% if r.usa_volatilidad_neutra %}
+                            {% if r.uses_neutral_volatility %}
                                 <span class="badge bg-secondary-subtle text-secondary" title="Sin cierres suficientes (&lt;20); se usa volatilidad neutra">Neutra</span>
                             {% else %}
-                                {{ r.v7_volatilidad_flujo|floatformat:2|default:"Neutra" }}
+                                {{ r.v7_cash_flow_volatility|floatformat:2|default:"Neutra" }}
                             {% endif %}
                         </td>
                         <td class="pe-3 text-center font-sans-serif">
-                            <a href="{% url 'dashboard:dashboard' %}?periodo={{ r.periodo|urlencode }}" class="btn btn-primary btn-sm py-1 px-3 shadow-sm d-inline-flex align-items-center gap-1" title="Ver análisis en el Dashboard para el período {{ r.periodo }}">
+                            <a href="{% url 'dashboard:dashboard' %}?periodo={{ r.period|urlencode }}" class="btn btn-primary btn-sm py-1 px-3 shadow-sm d-inline-flex align-items-center gap-1" title="Ver análisis en el Dashboard para el período {{ r.period }}">
                                 <i class="bi bi-eye"></i>
                                 <span>Ver</span>
                             </a>
@@ -203,7 +203,7 @@
                             Advertencia: Valores Anómalos (Outliers) Detectados
                         </h5>
                         <span class="text-muted fs-micro">
-                            Período Contable: <strong>{{ ultimo_ratio.periodo|default:"Balance Activo" }}</strong> &middot; Validación Previa a Inferencia (RF-10)
+                            Período Contable: <strong>{{ ultimo_ratio.period|default:"Balance Activo" }}</strong> &middot; Validación Previa a Inferencia (RF-10)
                         </span>
                     </div>
                 </div>

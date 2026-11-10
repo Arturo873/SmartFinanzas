@@ -6,7 +6,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import EstadoCarga, PerfilUsuario
+from .models import UploadState, UserProfile
 from .variables_modelo import (
     CLAVES_MODELO,
     LEVERAGE_MAXIMO,
@@ -101,12 +101,12 @@ class ModeloV10Tests(TestCase):
 class CargaYPrediccionTests(TestCase):
     def setUp(self):
         self.contador = User.objects.create_user('contador', password='x')
-        PerfilUsuario.objects.create(user=self.contador, rol=PerfilUsuario.ROL_CONTADOR)
+        UserProfile.objects.create(user=self.contador, role=UserProfile.ACCOUNTANT_ROLE)
         self.dueno = User.objects.create_user('dueno', password='x')
-        PerfilUsuario.objects.create(user=self.dueno, rol=PerfilUsuario.ROL_DUENO)
+        UserProfile.objects.create(user=self.dueno, role=UserProfile.OWNER_ROLE)
 
     def tearDown(self):
-        ruta = EstadoCarga.actual().ruta_csv
+        ruta = UploadState.current().csv_path
         if ruta and os.path.exists(ruta):
             os.remove(ruta)
 
@@ -121,11 +121,11 @@ class CargaYPrediccionTests(TestCase):
     def test_rechaza_plantilla_sin_columnas_v8(self):
         fila = {k: v for k, v in FILA_SANA.items() if k not in ('EBIT', 'Ingresos_Netos', 'Utilidades_Retenidas')}
         self._subir([fila])
-        self.assertIsNone(EstadoCarga.actual().ruta_csv)
+        self.assertIsNone(UploadState.current().csv_path)
 
     def test_rechaza_activo_corriente_mayor_que_activo_total(self):
         self._subir([{**FILA_SANA, 'Activo_Circulante': 1500.0}])
-        self.assertIsNone(EstadoCarga.actual().ruta_csv)
+        self.assertIsNone(UploadState.current().csv_path)
 
     def test_rechaza_archivo_mayor_a_25mb(self):
         """[RNF-10] Verifica rechazo de archivos > 25 MB en la vista de carga de AppWeb."""
@@ -135,11 +135,11 @@ class CargaYPrediccionTests(TestCase):
         resp = self.client.post(reverse('carga_datos'), {'tipo_documento': 'balance', 'archivo_datos': archivo_grande})
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, '25 MB')
-        self.assertIsNone(EstadoCarga.actual().ruta_csv)
+        self.assertIsNone(UploadState.current().csv_path)
 
     def test_carga_y_prediccion_con_plantilla_v8(self):
         self._subir([FILA_SANA])
-        self.assertIsNotNone(EstadoCarga.actual().ruta_csv)
+        self.assertIsNotNone(UploadState.current().csv_path)
         self.assertEqual(set(COLUMNAS_PLANTILLA), set(FILA_SANA))
 
         self.client.force_login(self.dueno)

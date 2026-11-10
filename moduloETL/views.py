@@ -19,7 +19,7 @@ from django.utils import timezone
 from django.views import View
 from django.views.generic import ListView, FormView
 
-from .models import CargaFinanciera, RatioFinanciero
+from .models import FinancialUpload, FinancialRatio
 from .forms import CargaArchivoForm
 from .services import (
     procesar_e_ingestar_balance,
@@ -28,8 +28,8 @@ from .services import (
     detectar_anomalias_financieras,
     COLUMNAS_PLANTILLA,
 )
-from usuarios.models import Usuario, Empresa
-from AppWeb.models import EstadoCarga
+from usuarios.models import User, Company
+from AppWeb.models import UploadState
 from capaAnalitica.services import ejecutar_y_persistir_prediccion
 from .etl_financiero import FinancialETLProcessor, ETLError
 
@@ -38,19 +38,19 @@ logger = logging.getLogger(__name__)
 
 def resolver_usuario_bd(auth_user):
     """
-    Obtiene la instancia de 'Usuario' (tabla usuario) correspondiente
+    Obtiene la instancia de 'User' (tabla user) correspondiente
     al usuario autenticado en la sesión de Django con caché en memoria.
     """
     if not auth_user or not auth_user.is_authenticated:
         return None
-    if isinstance(auth_user, Usuario):
+    if isinstance(auth_user, User):
         return auth_user
     if hasattr(auth_user, '_cached_usuario_db'):
         return auth_user._cached_usuario_db
 
-    usuario_db = Usuario.objects.select_related('empresa', 'rol').filter(username=auth_user.username).first()
+    usuario_db = User.objects.select_related('company', 'role').filter(username=auth_user.username).first()
     if not usuario_db and hasattr(auth_user, 'email'):
-        usuario_db = Usuario.objects.select_related('empresa', 'rol').filter(email=auth_user.email).first()
+        usuario_db = User.objects.select_related('company', 'role').filter(email=auth_user.email).first()
 
     auth_user._cached_usuario_db = usuario_db
     return usuario_db
@@ -68,13 +68,13 @@ class RolRequeridoMixin(LoginRequiredMixin, UserPassesTestMixin):
         user = self.request.user
         if not user.is_authenticated:
             return None
-        # 1. PerfilUsuario en AppWeb
-        if hasattr(user, 'perfil') and user.perfil and hasattr(user.perfil, 'rol'):
-            return user.perfil.rol
-        # 2. Modelo Usuario en usuarios
+        # 1. UserProfile en AppWeb
+        if hasattr(user, 'profile') and user.profile and hasattr(user.profile, 'role'):
+            return user.profile.role
+        # 2. Modelo User en usuarios
         usuario_db = resolver_usuario_bd(user)
-        if usuario_db and usuario_db.rol:
-            return usuario_db.rol.nombre
+        if usuario_db and usuario_db.role:
+            return usuario_db.role.name
         return None
 
     def test_func(self):
@@ -92,17 +92,17 @@ class CargaArchivoView(RolRequeridoMixin, View):
     template_name = 'moduloETL/carga_datos.html'
 
     def get_context_data(self, **kwargs):
-        estado = EstadoCarga.actual()
-        archivo_activo = bool(estado.ruta_csv and os.path.exists(estado.ruta_csv))
+        estado = UploadState.current()
+        archivo_activo = bool(estado.csv_path and os.path.exists(estado.csv_path))
 
         usuario_db = resolver_usuario_bd(self.request.user)
-        empresa_usuario = usuario_db.empresa if usuario_db else None
+        empresa_usuario = usuario_db.company if usuario_db else None
 
-        cargas_qs = CargaFinanciera.objects.all()
-        ratios_qs = RatioFinanciero.objects.all()
+        cargas_qs = FinancialUpload.objects.all()
+        ratios_qs = FinancialRatio.objects.all()
         if empresa_usuario:
-            cargas_qs = cargas_qs.filter(empresa=empresa_usuario)
-            ratios_qs = ratios_qs.filter(empresa=empresa_usuario)
+            cargas_qs = cargas_qs.filter(company=empresa_usuario)
+            ratios_qs = ratios_qs.filter(company=empresa_usuario)
         elif not self.request.user.is_superuser:
             cargas_qs = cargas_qs.none()
             ratios_qs = ratios_qs.none()
@@ -111,8 +111,8 @@ class CargaArchivoView(RolRequeridoMixin, View):
             'empresa_usuario': empresa_usuario,
             'columnas_plantilla': COLUMNAS_PLANTILLA,
             'archivo_activo': archivo_activo,
-            'ruta_archivo_activo': estado.ruta_csv if archivo_activo else None,
-            'ultimas_cargas': cargas_qs.select_related('empresa', 'usuario').order_by('-fecha_carga')[:5],
+            'ruta_archivo_activo': estado.csv_path if archivo_activo else None,
+            'ultimas_cargas': cargas_qs.select_related('company', 'user').order_by('-upload_date')[:5],
             'total_cargas_historicas': cargas_qs.count(),
             'total_ratios_calculados': ratios_qs.count(),
             'etl_resultado': None,
@@ -146,7 +146,7 @@ class CargaArchivoView(RolRequeridoMixin, View):
         modo_layout = 'horizontal'
 
         usuario_db = resolver_usuario_bd(request.user)
-        empresa_usuario = usuario_db.empresa if usuario_db else None
+        empresa_usuario = usuario_db.company if usuario_db else None
 
         # 1. Procesamiento desacoplado en memoria con FinancialETLProcessor
         try:
@@ -203,29 +203,29 @@ class CargaArchivoView(RolRequeridoMixin, View):
                     empresa_default=empresa_usuario
                 )
                 if exito:
-                    cargas_qs = CargaFinanciera.objects.all()
-                    ratios_qs = RatioFinanciero.objects.all()
+                    cargas_qs = FinancialUpload.objects.all()
+                    ratios_qs = FinancialRatio.objects.all()
                     if empresa_usuario:
-                        cargas_qs = cargas_qs.filter(empresa=empresa_usuario)
-                        ratios_qs = ratios_qs.filter(empresa=empresa_usuario)
-                    context['ultimas_cargas'] = cargas_qs.select_related('empresa', 'usuario').order_by('-fecha_carga')[:5]
+                        cargas_qs = cargas_qs.filter(company=empresa_usuario)
+                        ratios_qs = ratios_qs.filter(company=empresa_usuario)
+                    context['ultimas_cargas'] = cargas_qs.select_related('company', 'user').order_by('-upload_date')[:5]
                     context['total_cargas_historicas'] = cargas_qs.count()
                     context['total_ratios_calculados'] = ratios_qs.count()
             except Exception:
                 pass
 
-            # Guardar el CSV generado en el EstadoCarga
+            # Guardar el CSV generado en el UploadState
             try:
                 ruta_csv_generada = os.path.join('data', f"etl_features_{usuario_db.id if usuario_db else 'anon'}.csv")
                 os.makedirs('data', exist_ok=True)
                 features_df.to_csv(ruta_csv_generada)
-                estado = EstadoCarga.actual()
-                estado.ruta_csv = ruta_csv_generada
+                estado = UploadState.current()
+                estado.csv_path = ruta_csv_generada
                 estado.save()
                 context['archivo_activo'] = True
                 context['ruta_archivo_activo'] = ruta_csv_generada
             except Exception as e:
-                logger.warning(f"No se pudo actualizar EstadoCarga: {e}")
+                logger.warning(f"No se pudo actualizar UploadState: {e}")
 
             context['etl_resultado'] = etl_resultado
             request.session['etl_resultado'] = etl_resultado
@@ -250,34 +250,34 @@ class RatiosFinancierosListView(RolRequeridoMixin, ListView):
     Vista de visualización y auditoría de Ratios Financieros calculados.
     Aislada para mostrar únicamente los ratios pertenecientes a la empresa del usuario.
     """
-    model = RatioFinanciero
+    model = FinancialRatio
     template_name = 'moduloETL/ratios_financieros.html'
     context_object_name = 'ratios'
     paginate_by = 20
 
     def get_queryset(self):
         usuario_db = resolver_usuario_bd(self.request.user)
-        empresa_usuario = usuario_db.empresa if usuario_db else None
+        empresa_usuario = usuario_db.company if usuario_db else None
 
-        qs = RatioFinanciero.objects.all()
+        qs = FinancialRatio.objects.all()
         if empresa_usuario:
-            qs = qs.filter(empresa=empresa_usuario)
+            qs = qs.filter(company=empresa_usuario)
         elif not self.request.user.is_superuser:
             qs = qs.none()
 
         periodo = (self.request.GET.get('periodo') or self.request.GET.get('q') or '').strip()
         if periodo:
             qs = qs.filter(
-                Q(periodo__icontains=periodo) |
-                Q(carga__archivo_origen__icontains=periodo)
+                Q(period__icontains=periodo) |
+                Q(upload__source_file__icontains=periodo)
             )
 
         # Ordenamiento por fecha de cálculo (descendente por defecto)
         orden = (self.request.GET.get('orden') or 'desc').strip().lower()
         if orden == 'asc':
-            qs = qs.order_by('fecha_calculo', 'id')
+            qs = qs.order_by('calculation_date', 'id')
         else:
-            qs = qs.order_by('-fecha_calculo', '-id')
+            qs = qs.order_by('-calculation_date', '-id')
 
         return qs
 
@@ -286,7 +286,7 @@ class RatiosFinancierosListView(RolRequeridoMixin, ListView):
         ratios_qs = self.get_queryset()
 
         usuario_db = resolver_usuario_bd(self.request.user)
-        empresa_usuario = usuario_db.empresa if usuario_db else None
+        empresa_usuario = usuario_db.company if usuario_db else None
 
         # Paginador: aprovechamos el conteo que Django ya realizó para no duplicar consultas
         paginator = context.get('paginator')
@@ -299,9 +299,9 @@ class RatiosFinancierosListView(RolRequeridoMixin, ListView):
         if total > 0:
             # Agregación SQL directa en base de datos: sin cargar objetos a memoria ni bucles Python
             aggs = ratios_qs.aggregate(
-                avg_v1=Avg('v1_razon_corriente'),
-                avg_v3=Avg('v3_leverage_total'),
-                avg_alt=Avg('ref_z_altman')
+                avg_v1=Avg('v1_current_ratio'),
+                avg_v3=Avg('v3_total_leverage'),
+                avg_alt=Avg('ref_altman_z_score')
             )
             avg_liquidez = round(float(aggs['avg_v1']), 2) if aggs['avg_v1'] is not None else None
             avg_leverage = round(float(aggs['avg_v3']), 2) if aggs['avg_v3'] is not None else None
@@ -315,7 +315,7 @@ class RatiosFinancierosListView(RolRequeridoMixin, ListView):
         if page_obj and page_obj.number == 1 and orden != 'asc' and page_obj.object_list:
             ultimo_ratio = page_obj.object_list[0]
         else:
-            ultimo_ratio = ratios_qs.order_by('-fecha_calculo', '-id').first()
+            ultimo_ratio = ratios_qs.order_by('-calculation_date', '-id').first()
 
         anomalias = detectar_anomalias_financieras(ultimo_ratio) if ultimo_ratio else []
 
@@ -350,7 +350,7 @@ class EjecutarAnalisisView(RolRequeridoMixin, View):
 
     def post(self, request: HttpRequest):
         usuario_db = resolver_usuario_bd(request.user)
-        empresa_usuario = usuario_db.empresa if usuario_db else None
+        empresa_usuario = usuario_db.company if usuario_db else None
 
         # 1. Comprobar si se enviaron características ETL (in-memory) con períodos seleccionados
         features_json_raw = request.POST.get('features_json')
@@ -402,12 +402,12 @@ class EjecutarAnalisisView(RolRequeridoMixin, View):
                     messages.warning(request, "No se seleccionó ningún período válido para ejecutar la predicción.")
                     return redirect('moduloETL:carga_datos')
 
-                if not empresa_usuario and usuario_db and usuario_db.empresa:
-                    empresa_usuario = usuario_db.empresa
-                if not empresa_usuario and hasattr(request.user, 'empresa'):
-                    empresa_usuario = request.user.empresa
+                if not empresa_usuario and usuario_db and usuario_db.company:
+                    empresa_usuario = usuario_db.company
+                if not empresa_usuario and hasattr(request.user, 'company'):
+                    empresa_usuario = request.user.company
                 if not empresa_usuario:
-                    empresa_usuario = Empresa.objects.first()
+                    empresa_usuario = Company.objects.first()
 
                 predicciones_exitosas = []
                 hora_base = timezone.now()
@@ -427,41 +427,41 @@ class EjecutarAnalisisView(RolRequeridoMixin, View):
                     ing_net = Decimal(str(round(float(cta['Ingresos_Netos']), 2))) if ('Ingresos_Netos' in cta and cta['Ingresos_Netos'] is not None) else None
                     ebit_val = Decimal(str(round(float(cta['EBIT']), 2))) if ('EBIT' in cta and cta['EBIT'] is not None) else None
 
-                    carga_obj, _ = CargaFinanciera.objects.update_or_create(
-                        empresa=empresa_usuario,
-                        periodo=str(per),
+                    carga_obj, _ = FinancialUpload.objects.update_or_create(
+                        company=empresa_usuario,
+                        period=str(per),
                         defaults={
-                            'fecha_carga': fecha_periodo,
-                            'archivo_origen': archivo_nombre,
-                            'tipo_carga': 'Balance General',
-                            'activo_corriente': act_circ,
-                            'pasivo_corriente': pas_circ,
-                            'activo_total': act_tot,
-                            'pasivo_total': pas_tot,
-                            'patrimonio': patrim,
-                            'ingresos_netos': ing_net,
+                            'upload_date': fecha_periodo,
+                            'source_file': archivo_nombre,
+                            'upload_type': 'Balance General',
+                            'current_assets': act_circ,
+                            'current_liabilities': pas_circ,
+                            'total_assets': act_tot,
+                            'total_liabilities': pas_tot,
+                            'equity': patrim,
+                            'net_revenue': ing_net,
                             'ebit': ebit_val,
-                            'estado': 'PROCESADO',
-                            'usuario': usuario_db,
+                            'status': 'PROCESADO',
+                            'user': usuario_db,
                         }
                     )
 
-                    ratio_obj, _ = RatioFinanciero.objects.update_or_create(
-                        empresa=empresa_usuario,
-                        periodo=str(per),
+                    ratio_obj, _ = FinancialRatio.objects.update_or_create(
+                        company=empresa_usuario,
+                        period=str(per),
                         defaults={
-                            'carga': carga_obj,
-                            'fecha_calculo': fecha_periodo,
-                            'v1_razon_corriente': Decimal(str(round(float(ratios_data.get('razon_corriente', 1.0)), 4))),
-                            'v2_capital_trabajo_activos': Decimal(str(round(float(ratios_data.get('capital_trabajo_sobre_activos', 0.0)), 4))),
-                            'v3_leverage_total': Decimal(str(round(float(ratios_data.get('leverage_total', 1.0)), 4))),
-                            'v4_roa_operacional': Decimal(str(round(float(ratios_data.get('roa_operacional', 0.0)), 4))),
-                            'v5_margen_operacional': Decimal(str(round(float(ratios_data.get('margen_operacional', 0.0)), 4))),
-                            'v6_rotacion_activos': Decimal(str(round(float(ratios_data.get('rotacion_activos', 1.0)), 4))),
-                            'v7_volatilidad_flujo': Decimal(str(round(float(ratios_data.get('volatilidad_flujo_caja', 0.0)), 4))),
-                            'validado': True,
-                            'validado_por_usuario': usuario_db,
-                            'fecha_validacion': fecha_periodo,
+                            'upload': carga_obj,
+                            'calculation_date': fecha_periodo,
+                            'v1_current_ratio': Decimal(str(round(float(ratios_data.get('razon_corriente', 1.0)), 4))),
+                            'v2_working_capital_to_assets': Decimal(str(round(float(ratios_data.get('capital_trabajo_sobre_activos', 0.0)), 4))),
+                            'v3_total_leverage': Decimal(str(round(float(ratios_data.get('leverage_total', 1.0)), 4))),
+                            'v4_operating_roa': Decimal(str(round(float(ratios_data.get('roa_operacional', 0.0)), 4))),
+                            'v5_operating_margin': Decimal(str(round(float(ratios_data.get('margen_operacional', 0.0)), 4))),
+                            'v6_asset_turnover': Decimal(str(round(float(ratios_data.get('rotacion_activos', 1.0)), 4))),
+                            'v7_cash_flow_volatility': Decimal(str(round(float(ratios_data.get('volatilidad_flujo_caja', 0.0)), 4))),
+                            'is_validated': True,
+                            'validated_by_user': usuario_db,
+                            'validation_date': fecha_periodo,
                         }
                     )
 
@@ -501,9 +501,9 @@ class EjecutarAnalisisView(RolRequeridoMixin, View):
                 )
                 return redirect('moduloETL:carga_datos')
 
-        ratios_qs = RatioFinanciero.objects.all()
+        ratios_qs = FinancialRatio.objects.all()
         if empresa_usuario:
-            ratios_qs = ratios_qs.filter(empresa=empresa_usuario)
+            ratios_qs = ratios_qs.filter(company=empresa_usuario)
         elif not request.user.is_superuser:
             ratios_qs = ratios_qs.none()
 
@@ -517,7 +517,7 @@ class EjecutarAnalisisView(RolRequeridoMixin, View):
                 )
                 return redirect('moduloETL:ratios_financieros')
         else:
-            ratio_a_ejecutar = ratios_qs.order_by('-fecha_calculo', '-id').first()
+            ratio_a_ejecutar = ratios_qs.order_by('-calculation_date', '-id').first()
 
         if not ratio_a_ejecutar:
             messages.warning(
@@ -544,7 +544,7 @@ class EjecutarAnalisisView(RolRequeridoMixin, View):
                 usuario=usuario_db,
                 empresa=empresa_usuario
             )
-            periodo_txt = f" para el período '{ratio_a_ejecutar.periodo}'" if ratio_a_ejecutar.periodo else ""
+            periodo_txt = f" para el período '{ratio_a_ejecutar.period}'" if ratio_a_ejecutar.period else ""
             msg_exito = (
                 f"¡Ejecución de Análisis completada exitosamente{periodo_txt}! "
                 f"Score de Riesgo: {resultado['score']}% - Nivel: {resultado['nivel']}."
@@ -575,19 +575,19 @@ class HistorialCargasListView(RolRequeridoMixin, ListView):
     por o para la empresa del usuario en sesión.
     Soporta búsqueda por texto y ordenamiento por fecha de carga.
     """
-    model = CargaFinanciera
+    model = FinancialUpload
     template_name = 'moduloETL/historial_cargas.html'
     context_object_name = 'cargas'
     paginate_by = 25
 
     def get_queryset(self):
         usuario_db = resolver_usuario_bd(self.request.user)
-        empresa_usuario = usuario_db.empresa if usuario_db else None
+        empresa_usuario = usuario_db.company if usuario_db else None
 
-        # Se enlaza únicamente con 'usuario' que es el dato renderizado en la grilla
-        qs = CargaFinanciera.objects.select_related('usuario')
+        # Se enlaza únicamente con 'user' que es el dato renderizado en la grilla
+        qs = FinancialUpload.objects.select_related('user')
         if empresa_usuario:
-            qs = qs.filter(empresa=empresa_usuario)
+            qs = qs.filter(company=empresa_usuario)
         elif not self.request.user.is_superuser:
             qs = qs.none()
 
@@ -595,26 +595,26 @@ class HistorialCargasListView(RolRequeridoMixin, ListView):
         q = (self.request.GET.get('q') or '').strip()
         if q:
             qs = qs.filter(
-                Q(periodo__icontains=q) |
-                Q(archivo_origen__icontains=q) |
-                Q(estado__icontains=q) |
-                Q(tipo_carga__icontains=q) |
-                Q(usuario__username__icontains=q)
+                Q(period__icontains=q) |
+                Q(source_file__icontains=q) |
+                Q(status__icontains=q) |
+                Q(upload_type__icontains=q) |
+                Q(user__username__icontains=q)
             )
 
         # Ordenamiento por fecha de carga (descendente por defecto)
         orden = (self.request.GET.get('orden') or 'desc').strip().lower()
         if orden == 'asc':
-            qs = qs.order_by('fecha_carga', 'id')
+            qs = qs.order_by('upload_date', 'id')
         else:
-            qs = qs.order_by('-fecha_carga', '-id')
+            qs = qs.order_by('-upload_date', '-id')
 
         return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         usuario_db = resolver_usuario_bd(self.request.user)
-        context['empresa_usuario'] = usuario_db.empresa if usuario_db else None
+        context['empresa_usuario'] = usuario_db.company if usuario_db else None
         context['q'] = (self.request.GET.get('q') or '').strip()
         context['orden'] = (self.request.GET.get('orden') or 'desc').strip().lower()
         return context

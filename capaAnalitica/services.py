@@ -26,7 +26,7 @@ VARIABLES_FINANCIERAS = [
     {
         'codigo': 'X1',
         'clave': 'razon_corriente',
-        'clave_etl': 'v1_razon_corriente',
+        'clave_etl': 'v1_current_ratio',
         'nombre': 'Razón Corriente',
         'grupo': 'Liquidez',
         'unidad': 'x',
@@ -36,7 +36,7 @@ VARIABLES_FINANCIERAS = [
     {
         'codigo': 'X2',
         'clave': 'capital_trabajo_sobre_activos',
-        'clave_etl': 'v2_capital_trabajo_activos',
+        'clave_etl': 'v2_working_capital_to_assets',
         'nombre': 'Capital de Trabajo sobre Activos',
         'grupo': 'Liquidez',
         'unidad': '%',
@@ -46,7 +46,7 @@ VARIABLES_FINANCIERAS = [
     {
         'codigo': 'X3',
         'clave': 'leverage_total',
-        'clave_etl': 'v3_leverage_total',
+        'clave_etl': 'v3_total_leverage',
         'nombre': 'Leverage Total',
         'grupo': 'Endeudamiento',
         'unidad': 'x',
@@ -56,7 +56,7 @@ VARIABLES_FINANCIERAS = [
     {
         'codigo': 'X4',
         'clave': 'roa_operacional',
-        'clave_etl': 'v4_roa_operacional',
+        'clave_etl': 'v4_operating_roa',
         'nombre': 'ROA Operacional',
         'grupo': 'Rentabilidad',
         'unidad': '%',
@@ -66,7 +66,7 @@ VARIABLES_FINANCIERAS = [
     {
         'codigo': 'X5',
         'clave': 'margen_operacional',
-        'clave_etl': 'v5_margen_operacional',
+        'clave_etl': 'v5_operating_margin',
         'nombre': 'Margen Operacional',
         'grupo': 'Rentabilidad',
         'unidad': '%',
@@ -76,7 +76,7 @@ VARIABLES_FINANCIERAS = [
     {
         'codigo': 'X6',
         'clave': 'rotacion_activos',
-        'clave_etl': 'v6_rotacion_activos',
+        'clave_etl': 'v6_asset_turnover',
         'nombre': 'Rotación de Activos',
         'grupo': 'Eficiencia',
         'unidad': 'x',
@@ -86,7 +86,7 @@ VARIABLES_FINANCIERAS = [
     {
         'codigo': 'X7',
         'clave': 'volatilidad_flujo_caja',
-        'clave_etl': 'v7_volatilidad_flujo',
+        'clave_etl': 'v7_cash_flow_volatility',
         'nombre': 'Volatilidad del Flujo de Caja',
         'grupo': 'Flujo de Caja',
         'unidad': 'ratio',
@@ -198,19 +198,19 @@ class MotorRiesgo:
 
     def _extraer_vector_ratios(self, vector_ratios):
         """
-        Convierte cualquier formato de entrada (dict, RatioFinanciero, list/tuple)
+        Convierte cualquier formato de entrada (dict, FinancialRatio, list/tuple)
         en una lista ordenada con las 7 variables numéricas [X1, X2, X3, X4, X5, X6, X7].
         """
-        if hasattr(vector_ratios, 'v1_razon_corriente'):
-            # Instancia de RatioFinanciero (Django Model)
+        if hasattr(vector_ratios, 'v1_current_ratio'):
+            # Instancia de FinancialRatio (Django Model)
             return [
-                float(vector_ratios.v1_razon_corriente if vector_ratios.v1_razon_corriente is not None else 1.0),
-                float(vector_ratios.v2_capital_trabajo_activos if vector_ratios.v2_capital_trabajo_activos is not None else 0.0),
-                float(vector_ratios.v3_leverage_total if vector_ratios.v3_leverage_total is not None else 1.0),
-                float(vector_ratios.v4_roa_operacional if vector_ratios.v4_roa_operacional is not None else 0.0),
-                float(vector_ratios.v5_margen_operacional if vector_ratios.v5_margen_operacional is not None else 0.0),
-                float(vector_ratios.v6_rotacion_activos if vector_ratios.v6_rotacion_activos is not None else 1.0),
-                float(vector_ratios.v7_volatilidad_flujo if vector_ratios.v7_volatilidad_flujo is not None else 0.0),
+                float(vector_ratios.v1_current_ratio if vector_ratios.v1_current_ratio is not None else 1.0),
+                float(vector_ratios.v2_working_capital_to_assets if vector_ratios.v2_working_capital_to_assets is not None else 0.0),
+                float(vector_ratios.v3_total_leverage if vector_ratios.v3_total_leverage is not None else 1.0),
+                float(vector_ratios.v4_operating_roa if vector_ratios.v4_operating_roa is not None else 0.0),
+                float(vector_ratios.v5_operating_margin if vector_ratios.v5_operating_margin is not None else 0.0),
+                float(vector_ratios.v6_asset_turnover if vector_ratios.v6_asset_turnover is not None else 1.0),
+                float(vector_ratios.v7_cash_flow_volatility if vector_ratios.v7_cash_flow_volatility is not None else 0.0),
             ]
 
         if isinstance(vector_ratios, dict):
@@ -375,40 +375,40 @@ def evaluar_vector_financiero(vector_ratios):
 def ejecutar_y_persistir_prediccion(ratio_obj_o_id, usuario=None, empresa=None):
     """
     Servicio de alto nivel invocado cuando el usuario ejecuta una predicción.
-    Evalúa los ratios financieros y persiste la instancia de PrediccionRiesgo en el sistema.
+    Evalúa los ratios financieros y persiste la instancia de RiskPrediction en el sistema.
     """
-    from moduloETL.models import RatioFinanciero
-    from capaAnalitica.models import PrediccionRiesgo
+    from moduloETL.models import FinancialRatio
+    from capaAnalitica.models import RiskPrediction
 
     t_inicio = time.time()
 
     if isinstance(ratio_obj_o_id, (int, str)):
-        ratio_obj = RatioFinanciero.objects.get(pk=ratio_obj_o_id)
+        ratio_obj = FinancialRatio.objects.get(pk=ratio_obj_o_id)
     else:
         ratio_obj = ratio_obj_o_id
 
     # Si no se suministra empresa, obtenerla del ratio o del usuario
-    if not empresa and ratio_obj and ratio_obj.empresa:
-        empresa = ratio_obj.empresa
-    elif not empresa and usuario and hasattr(usuario, 'empresa'):
-        empresa = usuario.empresa
+    if not empresa and ratio_obj and ratio_obj.company:
+        empresa = ratio_obj.company
+    elif not empresa and usuario and hasattr(usuario, 'company'):
+        empresa = usuario.company
 
     motor = MotorRiesgo()
     resultado = motor.evaluar_riesgo(ratio_obj)
     tiempo_ms = int((time.time() - t_inicio) * 1000)
 
-    # Persistencia en tabla 'prediccionriesgo'
-    prediccion = PrediccionRiesgo.objects.create(
+    # Persistencia en tabla 'risk_prediction'
+    prediccion = RiskPrediction.objects.create(
         ratio=ratio_obj,
-        fecha_prediccion=timezone.now(),
-        score_riesgo=Decimal(str(resultado['score'])),
-        nivel_semaforo=resultado['nivel'],
-        variables_influyentes=json.dumps(resultado['top_3_variables'], ensure_ascii=False),
-        impacto_variables=json.dumps(resultado['shap_values'], ensure_ascii=False),
-        version_modelo=str(resultado.get('version_modelo', '1.1'))[:50],
-        tiempo_inferencia_ms=tiempo_ms,
-        ejecutada_por_usuario=usuario,
-        empresa=empresa,
+        prediction_date=timezone.now(),
+        risk_score=Decimal(str(resultado['score'])),
+        traffic_light_level=resultado['nivel'],
+        influential_variables=json.dumps(resultado['top_3_variables'], ensure_ascii=False),
+        variable_impacts=json.dumps(resultado['shap_values'], ensure_ascii=False),
+        model_version=str(resultado.get('version_modelo', '1.1'))[:50],
+        inference_time_ms=tiempo_ms,
+        executed_by_user=usuario,
+        company=empresa,
     )
 
     # Persistir inmediatamente las recomendaciones vinculadas al ID de la predicción
@@ -427,11 +427,11 @@ def generar_o_recuperar_recomendaciones_prediccion(
     forzar_recalculo=False
 ) -> dict:
     """
-    Recupera las recomendaciones persistidas en la tabla 'recomendacion' vinculadas
+    Recupera las recomendaciones persistidas en la tabla 'recommendation' vinculadas
     al 'prediccion_obj.id' (período actual), o las genera y persiste si no existen aún.
     Garantiza trazabilidad histórica ligada al ID del período analizado.
     """
-    from capaAnalitica.models import Recomendacion
+    from capaAnalitica.models import Recommendation
     from capaAnalitica.catalogo_recomendaciones import (
         seleccionar_recomendaciones_para_periodo,
         clasificar_nivel
@@ -444,25 +444,25 @@ def generar_o_recuperar_recomendaciones_prediccion(
             variables_dict=ratios_dict or {}
         )
 
-    sc_act = float(prediccion_obj.score_riesgo if prediccion_obj.score_riesgo is not None else 35.0)
+    sc_act = float(prediccion_obj.risk_score if prediccion_obj.risk_score is not None else 35.0)
     sc_proy = float(score_proyectado) if score_proyectado is not None else sc_act
 
     # 1. Si ya tiene recomendaciones guardadas y no forzamos recálculo, leerlas
-    qs_existentes = Recomendacion.objects.filter(prediccion=prediccion_obj).order_by('id')
+    qs_existentes = Recommendation.objects.filter(prediction=prediccion_obj).order_by('id')
     if qs_existentes.exists() and not forzar_recalculo:
         macro_item = None
         tacticas_items = []
         for rec in qs_existentes:
             try:
-                data = json.loads(rec.texto) if rec.texto else {}
+                data = json.loads(rec.text) if rec.text else {}
             except Exception:
                 data = {
-                    'titulo': rec.texto or 'Acción Financiera',
-                    'que_hacer': rec.texto or '',
+                    'titulo': rec.text or 'Acción Financiera',
+                    'que_hacer': rec.text or '',
                     'fuente': 'Chile Financial Distress Model'
                 }
 
-            if rec.variable_origen == 'macro_transicion':
+            if rec.source_variable == 'macro_transicion':
                 macro_item = data
             else:
                 tacticas_items.append(data)
@@ -474,10 +474,10 @@ def generar_o_recuperar_recomendaciones_prediccion(
                 'tacticas': tacticas_items,
                 'meta': {
                     'prediccion_id': prediccion_obj.id,
-                    'periodo': prediccion_obj.ratio.periodo if (prediccion_obj.ratio and prediccion_obj.ratio.periodo) else 'Actual',
+                    'periodo': prediccion_obj.ratio.period if (prediccion_obj.ratio and prediccion_obj.ratio.period) else 'Actual',
                     'score_actual': sc_act,
                     'score_proyectado': sc_proy,
-                    'nivel_actual': prediccion_obj.nivel_semaforo or clasificar_nivel(sc_act),
+                    'nivel_actual': prediccion_obj.traffic_light_level or clasificar_nivel(sc_act),
                     'nivel_proyectado': clasificar_nivel(sc_proy),
                     'delta_riesgo': delta,
                     'tendencia': 'Deterioro' if delta > 1.5 else ('Mejora' if delta < -1.5 else 'Estable'),
@@ -486,22 +486,22 @@ def generar_o_recuperar_recomendaciones_prediccion(
 
     # 2. Si no existen o se forzó recálculo, generarlas desde el catálogo
     top_3_vars = []
-    if prediccion_obj.variables_influyentes:
+    if prediccion_obj.influential_variables:
         try:
-            top_3_vars = json.loads(prediccion_obj.variables_influyentes)
+            top_3_vars = json.loads(prediccion_obj.influential_variables)
         except Exception:
             top_3_vars = []
 
     vars_eval = dict(ratios_dict or {})
     if prediccion_obj.ratio:
         r = prediccion_obj.ratio
-        vars_eval.setdefault('razon_corriente', float(r.v1_razon_corriente or 1.0))
-        vars_eval.setdefault('capital_trabajo_sobre_activos', float(r.v2_capital_trabajo_activos or 0.1))
-        vars_eval.setdefault('leverage_total', float(r.v3_leverage_total or 1.0))
-        vars_eval.setdefault('roa_operacional', float(r.v4_roa_operacional or 0.05))
-        vars_eval.setdefault('margen_operacional', float(r.v5_margen_operacional or 0.08))
-        vars_eval.setdefault('rotacion_activos', float(r.v6_rotacion_activos or 1.0))
-        vars_eval.setdefault('volatilidad_flujo_caja', float(r.v7_volatilidad_flujo or 0.5))
+        vars_eval.setdefault('razon_corriente', float(r.v1_current_ratio or 1.0))
+        vars_eval.setdefault('capital_trabajo_sobre_activos', float(r.v2_working_capital_to_assets or 0.1))
+        vars_eval.setdefault('leverage_total', float(r.v3_total_leverage or 1.0))
+        vars_eval.setdefault('roa_operacional', float(r.v4_operating_roa or 0.05))
+        vars_eval.setdefault('margen_operacional', float(r.v5_operating_margin or 0.08))
+        vars_eval.setdefault('rotacion_activos', float(r.v6_asset_turnover or 1.0))
+        vars_eval.setdefault('volatilidad_flujo_caja', float(r.v7_cash_flow_volatility or 0.5))
 
     resultado = seleccionar_recomendaciones_para_periodo(
         score_actual=sc_act,
@@ -510,29 +510,29 @@ def generar_o_recuperar_recomendaciones_prediccion(
         top_3_variables=top_3_vars
     )
     resultado['meta']['prediccion_id'] = prediccion_obj.id
-    resultado['meta']['periodo'] = prediccion_obj.ratio.periodo if (prediccion_obj.ratio and prediccion_obj.ratio.periodo) else 'Actual'
+    resultado['meta']['periodo'] = prediccion_obj.ratio.period if (prediccion_obj.ratio and prediccion_obj.ratio.period) else 'Actual'
 
-    # 3. Persistencia en tabla 'recomendacion' vinculada a prediccion_obj.id
+    # 3. Persistencia en tabla 'recommendation' vinculada a prediccion_obj.id
     try:
-        Recomendacion.objects.filter(prediccion=prediccion_obj).delete()
+        Recommendation.objects.filter(prediction=prediccion_obj).delete()
 
         # Guardar Macro
-        Recomendacion.objects.create(
-            prediccion=prediccion_obj,
-            variable_origen='macro_transicion',
-            grupo_riesgo=str(resultado['macro'].get('tipo', 'Macro'))[:40],
-            prioridad=str(resultado['macro'].get('prioridad', 'Alta'))[:10],
-            texto=json.dumps(resultado['macro'], ensure_ascii=False)
+        Recommendation.objects.create(
+            prediction=prediccion_obj,
+            source_variable='macro_transicion',
+            risk_group=str(resultado['macro'].get('tipo', 'Macro'))[:40],
+            priority=str(resultado['macro'].get('prioridad', 'Alta'))[:10],
+            text=json.dumps(resultado['macro'], ensure_ascii=False)
         )
 
         # Guardar Tácticas
         for tac in resultado['tacticas']:
-            Recomendacion.objects.create(
-                prediccion=prediccion_obj,
-                variable_origen=str(tac.get('variable_origen', 'tactica'))[:50],
-                grupo_riesgo=str(tac.get('grupo_riesgo', 'Operativo'))[:40],
-                prioridad=str(tac.get('prioridad', 'Media'))[:10],
-                texto=json.dumps(tac, ensure_ascii=False)
+            Recommendation.objects.create(
+                prediction=prediccion_obj,
+                source_variable=str(tac.get('variable_origen', 'tactica'))[:50],
+                risk_group=str(tac.get('grupo_riesgo', 'Operativo'))[:40],
+                priority=str(tac.get('prioridad', 'Media'))[:10],
+                text=json.dumps(tac, ensure_ascii=False)
             )
     except Exception as e:
         logger.warning(f"No se pudieron persistir recomendaciones para predicción #{prediccion_obj.id}: {e}")

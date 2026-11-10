@@ -80,9 +80,9 @@
             </span>
         </div>
         <p class="text-muted-custom mb-0 fs-caption">
-            Empresa: <strong class="text-main">{{ empresa_usuario.razon_social|default:"11111111-1" }}</strong>
-            {% if empresa_usuario.rut %}
-                <span class="badge border font-monospace ms-1 badge-status-neutral fs-micro">{{ empresa_usuario.rut }}</span>
+            Empresa: <strong class="text-main">{{ empresa_usuario.business_name|default:"11111111-1" }}</strong>
+            {% if empresa_usuario.tax_id %}
+                <span class="badge border font-monospace ms-1 badge-status-neutral fs-micro">{{ empresa_usuario.tax_id }}</span>
             {% endif %}
             &middot; Proyección predictiva anticipatoria basada en los 7 ratios financieros del balance contable.
         </p>
@@ -144,7 +144,7 @@
     <div class="d-flex align-items-center gap-3">
         <i class="bi bi-cpu fs-3 text-primary"></i>
         <div>
-            <div class="fw-semibold text-main fs-6">Balance del período {{ ultimo_ratio.periodo|default:"cargado" }} (Q<sub>t</sub>) listo para proyectar</div>
+            <div class="fw-semibold text-main fs-6">Balance del período {{ ultimo_ratio.period|default:"cargado" }} (Q<sub>t</sub>) listo para proyectar</div>
             <div class="text-muted-custom fs-caption">
                 Los 7 ratios financieros ya fueron calculados. Haz clic en <strong>Ejecutar Proyección</strong> para generar la Alerta Temprana a 90 días hacia <strong>{{ periodo_proyectado }}</strong>.
             </div>
@@ -718,7 +718,7 @@
                             Advertencia: Valores Anómalos (Outliers) Detectados
                         </h5>
                         <span class="text-muted fs-micro">
-                            Período Contable: <strong>{{ ultimo_ratio.periodo|default:"Balance Activo" }}</strong> &middot; Validación Previa a Inferencia
+                            Período Contable: <strong>{{ ultimo_ratio.period|default:"Balance Activo" }}</strong> &middot; Validación Previa a Inferencia
                         </span>
                     </div>
                 </div>

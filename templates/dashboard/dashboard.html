@@ -91,9 +91,9 @@
             </h1>
         </div>
         <p class="text-muted-custom mb-0 fs-caption">
-            Empresa: <strong class="text-main">{{ empresa_usuario.razon_social|default:"Empresa Activa" }}</strong>
-            {% if empresa_usuario.rut %}
-                <span class="badge border font-monospace ms-1 badge-status-neutral fs-micro">{{ empresa_usuario.rut }}</span>
+            Empresa: <strong class="text-main">{{ empresa_usuario.business_name|default:"Empresa Activa" }}</strong>
+            {% if empresa_usuario.tax_id %}
+                <span class="badge border font-monospace ms-1 badge-status-neutral fs-micro">{{ empresa_usuario.tax_id }}</span>
             {% endif %}
             &middot; Balance contable consolidado.
         </p>
@@ -208,7 +208,7 @@
     <div class="d-flex align-items-center gap-3">
         <i class="bi bi-cpu fs-3 text-primary"></i>
         <div>
-            <div class="fw-semibold text-main fs-6">Balance del período {{ ultimo_ratio.periodo|default:"cargado" }} listo para análisis</div>
+            <div class="fw-semibold text-main fs-6">Balance del período {{ ultimo_ratio.period|default:"cargado" }} listo para análisis</div>
             <div class="text-muted-custom fs-caption">
                 Los ratios e información contable ya fueron registrados. Haz clic en <strong>Ejecutar Análisis</strong> para generar el diagnóstico predictivo de solvencia y explicabilidad SHAP.
             </div>
@@ -234,7 +234,7 @@
     <div class="d-flex align-items-center gap-2">
         <i class="bi bi-clock-history fs-5 text-primary"></i>
         <div class="fs-caption">
-            Visualizando diagnóstico histórico del período: <strong class="text-main" id="bannerPeriodoNombre">{{ ratio_asociado_prediccion.periodo|default:"Balance Seleccionado" }}</strong>
+            Visualizando diagnóstico histórico del período: <strong class="text-main" id="bannerPeriodoNombre">{{ ratio_asociado_prediccion.period|default:"Balance Seleccionado" }}</strong>
             &middot; Inferencia evaluada el <span id="bannerFechaPrediccion">{{ fecha_prediccion|date:"d/m/Y H:i" }}</span> con un Score de <strong id="bannerScoreValor">{{ score|floatformat:1 }}%</strong>
             <span id="bannerNivelBadge">
             {% if nivel == 'Verde' %}
@@ -387,8 +387,8 @@
             <div>
                 <div class="d-flex align-items-baseline gap-2">
                     <span class="fw-bold tracking-tight text-main fs-kpi">
-                        {% if ultimo_ratio.v1_razon_corriente %}
-                            {{ ultimo_ratio.v1_razon_corriente|floatformat:2 }}x
+                        {% if ultimo_ratio.v1_current_ratio %}
+                            {{ ultimo_ratio.v1_current_ratio|floatformat:2 }}x
                         {% else %}
                             --
                         {% endif %}
@@ -402,7 +402,7 @@
             </div>
 
             <div class="pt-2 mt-3 border-top border-subtle d-flex align-items-center justify-content-between text-muted-custom fs-micro">
-                <span>Período: <strong class="text-main">{{ ultimo_ratio.periodo|default:"Balance Activo" }}</strong></span>
+                <span>Período: <strong class="text-main">{{ ultimo_ratio.period|default:"Balance Activo" }}</strong></span>
                 <a href="{% url 'moduloETL:ratios_financieros' %}" class="text-decoration-none text-primary">Ver Ratios</a>
             </div>
         </div>
@@ -421,8 +421,8 @@
             <div>
                 <div class="d-flex align-items-baseline gap-2">
                     <span class="fw-bold tracking-tight text-main fs-kpi">
-                        {% if ultimo_ratio.v3_leverage_total %}
-                            {{ ultimo_ratio.v3_leverage_total|floatformat:2 }}
+                        {% if ultimo_ratio.v3_total_leverage %}
+                            {{ ultimo_ratio.v3_total_leverage|floatformat:2 }}
                         {% else %}
                             --
                         {% endif %}
@@ -717,7 +717,7 @@
             </div>
             <p class="text-muted-custom mb-0 fs-caption">
                 Desglose cuantitativo de todas las variables financieras que alimentaron el modelo predictivo en la evaluación de
-                <strong class="text-main" id="ratiosPeriodoTexto">{{ ratio_asociado_prediccion.periodo|default:"Balance Activo" }}</strong>
+                <strong class="text-main" id="ratiosPeriodoTexto">{{ ratio_asociado_prediccion.period|default:"Balance Activo" }}</strong>
                 &middot; <span id="ratiosFechaInferencia">Inferencia: {% if fecha_prediccion %}{{ fecha_prediccion|date:"d/m/Y H:i" }}{% else %}Pendiente{% endif %}</span>
             </p>
         </div>
@@ -887,7 +887,7 @@
             <div class="d-flex align-items-center gap-2 mb-1">
                 <h2 class="h6 fw-semibold text-main mb-0">Información Contable del Período (Balance & Resultados)</h2>
                 <span class="badge border font-monospace badge-status-neutral fs-micro" id="infoPeriodoBadge">
-                    Período {% if info_periodo and info_periodo.periodo %}{{ info_periodo.periodo }}{% elif ratio_asociado_prediccion and ratio_asociado_prediccion.periodo %}{{ ratio_asociado_prediccion.periodo }}{% else %}Balance Activo{% endif %}
+                    Período {% if info_periodo and info_periodo.periodo %}{{ info_periodo.periodo }}{% elif ratio_asociado_prediccion and ratio_asociado_prediccion.period %}{{ ratio_asociado_prediccion.period }}{% else %}Balance Activo{% endif %}
                 </span>
                 <span id="infoCuadreBadge">
                 {% if info_periodo and info_periodo.cuadrado %}
@@ -1186,7 +1186,7 @@
                             Advertencia: Valores Anómalos (Outliers) Detectados
                         </h5>
                         <span class="text-muted fs-micro">
-                            Período Contable: <strong>{{ ultimo_ratio.periodo|default:"Balance Activo" }}</strong> &middot; Validación Previa a Inferencia (RF-10)
+                            Período Contable: <strong>{{ ultimo_ratio.period|default:"Balance Activo" }}</strong> &middot; Validación Previa a Inferencia (RF-10)
                         </span>
                     </div>
                 </div>

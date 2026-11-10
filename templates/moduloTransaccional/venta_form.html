@@ -45,13 +45,13 @@
 
                     <!-- Método de Pago -->
                     <div class="mb-3">
-                        <label for="{{ form.metodo_pago.id_for_label }}" class="form-label fw-semibold">
-                            {{ form.metodo_pago.label }} <span class="text-danger">*</span>
+                        <label for="{{ form.payment_method.id_for_label }}" class="form-label fw-semibold">
+                            {{ form.payment_method.label }} <span class="text-danger">*</span>
                         </label>
-                        {{ form.metodo_pago }}
-                        {% if form.metodo_pago.errors %}
+                        {{ form.payment_method }}
+                        {% if form.payment_method.errors %}
                             <div class="text-danger small mt-1">
-                                {{ form.metodo_pago.errors|striptags }}
+                                {{ form.payment_method.errors|striptags }}
                             </div>
                         {% endif %}
                         <div class="form-text small">
@@ -61,32 +61,32 @@
 
                     <!-- Total Bruto -->
                     <div class="mb-3">
-                        <label for="{{ form.total_bruto.id_for_label }}" class="form-label fw-semibold">
-                            {{ form.total_bruto.label }} <span class="text-danger">*</span>
+                        <label for="{{ form.gross_total.id_for_label }}" class="form-label fw-semibold">
+                            {{ form.gross_total.label }} <span class="text-danger">*</span>
                         </label>
                         <div class="input-group">
                             <span class="input-group-text">$</span>
-                            {{ form.total_bruto }}
+                            {{ form.gross_total }}
                         </div>
-                        {% if form.total_bruto.errors %}
+                        {% if form.gross_total.errors %}
                             <div class="text-danger small mt-1">
-                                {{ form.total_bruto.errors|striptags }}
+                                {{ form.gross_total.errors|striptags }}
                             </div>
                         {% endif %}
                     </div>
 
                     <!-- Descuento Monto -->
                     <div class="mb-3">
-                        <label for="{{ form.descuento_monto.id_for_label }}" class="form-label fw-semibold">
-                            {{ form.descuento_monto.label }}
+                        <label for="{{ form.discount_amount.id_for_label }}" class="form-label fw-semibold">
+                            {{ form.discount_amount.label }}
                         </label>
                         <div class="input-group">
                             <span class="input-group-text">$</span>
-                            {{ form.descuento_monto }}
+                            {{ form.discount_amount }}
                         </div>
-                        {% if form.descuento_monto.errors %}
+                        {% if form.discount_amount.errors %}
                             <div class="text-danger small mt-1">
-                                {{ form.descuento_monto.errors|striptags }}
+                                {{ form.discount_amount.errors|striptags }}
                             </div>
                         {% endif %}
                         <div class="form-text small">
@@ -145,15 +145,15 @@
                         <tbody>
                             {% for v in ventas_hoy %}
                             <tr>
-                                <td class="small text-muted">{{ v.fecha|date:"H:i" }}</td>
+                                <td class="small text-muted">{{ v.date|date:"H:i" }}</td>
                                 <td>
                                     <span class="badge bg-dark-subtle text-dark border">
-                                        {{ v.metodo_pago.nombre }}
+                                        {{ v.payment_method.name }}
                                     </span>
                                 </td>
-                                <td class="text-end small">${{ v.total_bruto|floatformat:0 }}</td>
-                                <td class="text-end small text-danger">-${{ v.comision_aplicada|floatformat:0 }}</td>
-                                <td class="text-end fw-bold text-success">${{ v.ingreso_real|floatformat:0 }}</td>
+                                <td class="text-end small">${{ v.gross_total|floatformat:0 }}</td>
+                                <td class="text-end small text-danger">-${{ v.applied_commission|floatformat:0 }}</td>
+                                <td class="text-end fw-bold text-success">${{ v.net_income|floatformat:0 }}</td>
                             </tr>
                             {% empty %}
                             <tr>
@@ -176,9 +176,9 @@
 <!-- Reactividad pura en Vanilla JS para mitigar la ceguera de liquidez -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const inputBruto = document.getElementById('id_total_bruto');
-    const inputDescuento = document.getElementById('id_descuento_monto');
-    const selectMetodo = document.getElementById('id_metodo_pago');
+    const inputBruto = document.getElementById('id_gross_total');
+    const inputDescuento = document.getElementById('id_discount_amount');
+    const selectMetodo = document.getElementById('id_payment_method');
     const textoIngresoReal = document.getElementById('textoIngresoReal');
     const textoComision = document.getElementById('textoComision');
     const panelLiquidez = document.getElementById('panelLiquidez');

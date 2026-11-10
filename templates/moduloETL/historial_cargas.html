@@ -9,8 +9,8 @@
             <i class="bi bi-clock-history text-primary me-2"></i>Historial de Ingesta y Cargas Contables
         </h1>
         <p class="text-muted mb-0 small">
-            Empresa: <strong class="text-dark">{{ empresa_usuario.razon_social|default:"Tu Empresa" }}</strong>
-            {% if empresa_usuario.rut %}<span class="badge bg-secondary-subtle text-secondary font-monospace ms-1">{{ empresa_usuario.rut }}</span>{% endif %}
+            Empresa: <strong class="text-dark">{{ empresa_usuario.business_name|default:"Tu Empresa" }}</strong>
+            {% if empresa_usuario.tax_id %}<span class="badge bg-secondary-subtle text-secondary font-monospace ms-1">{{ empresa_usuario.tax_id }}</span>{% endif %}
             &middot; Bitácora de balances ingestados y validados para tu empresa.
         </p>
     </div>
@@ -108,39 +108,39 @@
                     {% for c in cargas %}
                     <tr>
                         <td class="ps-3 text-muted font-sans-serif" style="font-size: 0.75rem;">
-                            <i class="bi bi-calendar3 me-1"></i>{{ c.fecha_carga|date:"d/m/Y H:i" }}
+                            <i class="bi bi-calendar3 me-1"></i>{{ c.upload_date|date:"d/m/Y H:i" }}
                         </td>
                         <td class="font-sans-serif">
-                            <span class="fw-bold text-dark">{{ c.periodo }}</span>
+                            <span class="fw-bold text-dark">{{ c.period }}</span>
                         </td>
-                        <td class="text-truncate" style="max-width: 180px;" title="{{ c.archivo_origen }}">
-                            <i class="bi bi-file-earmark-text text-muted me-1"></i>{{ c.archivo_origen }}
+                        <td class="text-truncate" style="max-width: 180px;" title="{{ c.source_file }}">
+                            <i class="bi bi-file-earmark-text text-muted me-1"></i>{{ c.source_file }}
                         </td>
                         <td>
                             <span class="badge bg-light text-dark border font-sans-serif">
-                                {{ c.tipo_carga|default:"Balance" }}
+                                {{ c.upload_type|default:"Balance" }}
                             </span>
                         </td>
-                        <td class="text-end fw-semibold">${{ c.activo_total|floatformat:0 }}</td>
-                        <td class="text-end">${{ c.pasivo_total|floatformat:0 }}</td>
-                        <td class="text-end">${{ c.patrimonio|floatformat:0 }}</td>
+                        <td class="text-end fw-semibold">${{ c.total_assets|floatformat:0 }}</td>
+                        <td class="text-end">${{ c.total_liabilities|floatformat:0 }}</td>
+                        <td class="text-end">${{ c.equity|floatformat:0 }}</td>
                         <td>
-                            {% if c.estado == 'PROCESADO' %}
+                            {% if c.status == 'PROCESADO' %}
                                 <span class="badge bg-success-subtle text-success border border-success-subtle font-sans-serif">
                                     <i class="bi bi-check-circle me-1"></i>Procesado
                                 </span>
-                            {% elif c.estado == 'ERROR' %}
+                            {% elif c.status == 'ERROR' %}
                                 <span class="badge bg-danger-subtle text-danger border border-danger-subtle font-sans-serif">
                                     <i class="bi bi-exclamation-octagon me-1"></i>Error
                                 </span>
                             {% else %}
                                 <span class="badge bg-secondary-subtle text-secondary border font-sans-serif">
-                                    {{ c.estado|default:"Registrado" }}
+                                    {{ c.status|default:"Registrado" }}
                                 </span>
                             {% endif %}
                         </td>
                         <td class="pe-3 font-sans-serif text-muted">
-                            <i class="bi bi-person me-1"></i>{{ c.usuario.username|default:"Sistema" }}
+                            <i class="bi bi-person me-1"></i>{{ c.user.username|default:"Sistema" }}
                         </td>
                     </tr>
                     {% empty %}

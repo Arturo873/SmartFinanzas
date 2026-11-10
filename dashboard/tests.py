@@ -8,13 +8,13 @@ from decimal import Decimal
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.utils import timezone
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User as AuthUser
 
-from usuarios.models import Empresa, Usuario, Rol
-from AppWeb.models import PerfilUsuario
-from capaAnalitica.models import PrediccionRiesgo
-from moduloTransaccional.models import Venta, MetodoPago
-from moduloETL.models import RatioFinanciero, CargaFinanciera
+from usuarios.models import Company, User, Role
+from AppWeb.models import UserProfile
+from capaAnalitica.models import RiskPrediction
+from moduloTransaccional.models import Sale, PaymentMethod
+from moduloETL.models import FinancialRatio, FinancialUpload
 
 
 class DashboardViewTests(TestCase):
@@ -26,47 +26,47 @@ class DashboardViewTests(TestCase):
         self.client = Client()
 
         # Roles del sistema
-        self.rol_dueno, _ = Rol.objects.get_or_create(nombre='Dueño')
-        self.rol_contador, _ = Rol.objects.get_or_create(nombre='Contador')
-        self.rol_trabajador, _ = Rol.objects.get_or_create(nombre='Trabajador')
+        self.rol_dueno, _ = Role.objects.get_or_create(name='Dueño')
+        self.rol_contador, _ = Role.objects.get_or_create(name='Contador')
+        self.rol_trabajador, _ = Role.objects.get_or_create(name='Trabajador')
 
         # Empresa de prueba
-        self.empresa = Empresa.objects.create(
-            razon_social="Comercial Norte SpA",
-            rut="76.123.456-7"
+        self.empresa = Company.objects.create(
+            business_name="Comercial Norte SpA",
+            tax_id="76.123.456-7"
         )
 
         # Usuario Dueño (Autorizado)
-        self.user_auth_dueno = User.objects.create_user(username='dueno_user', password='password123')
-        self.perfil_dueno = PerfilUsuario.objects.create(user=self.user_auth_dueno, rol='Dueño')
-        self.usuario_db_dueno = Usuario.objects.create(
+        self.user_auth_dueno = AuthUser.objects.create_user(username='dueno_user', password='password123')
+        self.perfil_dueno = UserProfile.objects.create(user=self.user_auth_dueno, role='Dueño')
+        self.usuario_db_dueno = User.objects.create(
             username='dueno_user',
             email='dueno@norte.cl',
-            rol=self.rol_dueno,
-            empresa=self.empresa,
+            role=self.rol_dueno,
+            company=self.empresa,
         )
         self.usuario_db_dueno.set_password('password123')
         self.usuario_db_dueno.save()
 
         # Usuario Trabajador (No Autorizado)
-        self.user_auth_trabajador = User.objects.create_user(username='trabajador_user', password='password123')
-        self.perfil_trabajador = PerfilUsuario.objects.create(user=self.user_auth_trabajador, rol='Trabajador')
-        self.usuario_db_trabajador = Usuario.objects.create(
+        self.user_auth_trabajador = AuthUser.objects.create_user(username='trabajador_user', password='password123')
+        self.perfil_trabajador = UserProfile.objects.create(user=self.user_auth_trabajador, role='Trabajador')
+        self.usuario_db_trabajador = User.objects.create(
             username='trabajador_user',
             email='trabajador@norte.cl',
-            rol=self.rol_trabajador,
-            empresa=self.empresa,
+            role=self.rol_trabajador,
+            company=self.empresa,
         )
         self.usuario_db_trabajador.set_password('password123')
         self.usuario_db_trabajador.save()
 
-        # Datos de prueba para PrediccionRiesgo (capaAnalitica)
-        self.prediccion1 = PrediccionRiesgo.objects.create(
-            empresa=self.empresa,
-            fecha_prediccion=timezone.now() - timezone.timedelta(days=2),
-            score_riesgo=Decimal("42.50"),
-            nivel_semaforo="Amarillo",
-            variables_influyentes=json.dumps([
+        # Datos de prueba para RiskPrediction (capaAnalitica)
+        self.prediccion1 = RiskPrediction.objects.create(
+            company=self.empresa,
+            prediction_date=timezone.now() - timezone.timedelta(days=2),
+            risk_score=Decimal("42.50"),
+            traffic_light_level="Amarillo",
+            influential_variables=json.dumps([
                 {
                     'nombre': 'Margen Operacional',
                     'impacto_pct': 12.5,
@@ -78,12 +78,12 @@ class DashboardViewTests(TestCase):
             ]),
         )
 
-        self.prediccion_reciente = PrediccionRiesgo.objects.create(
-            empresa=self.empresa,
-            fecha_prediccion=timezone.now(),
-            score_riesgo=Decimal("78.20"),
-            nivel_semaforo="Rojo",
-            variables_influyentes=json.dumps([
+        self.prediccion_reciente = RiskPrediction.objects.create(
+            company=self.empresa,
+            prediction_date=timezone.now(),
+            risk_score=Decimal("78.20"),
+            traffic_light_level="Rojo",
+            influential_variables=json.dumps([
                 {
                     'codigo': 'X5',
                     'nombre': 'Margen Operacional',
@@ -115,15 +115,15 @@ class DashboardViewTests(TestCase):
         )
 
         # Transacción de Venta (moduloTransaccional / app_caja) del día actual
-        self.metodo_pago = MetodoPago.objects.create(nombre="Efectivo", empresa=self.empresa)
-        self.venta_hoy = Venta.objects.create(
-            empresa=self.empresa,
-            fecha=timezone.now(),
-            metodo_pago=self.metodo_pago,
-            total_bruto=Decimal("150000.00"),
-            total_cobrado=Decimal("150000.00"),
-            ingreso_real=Decimal("148000.00"),
-            usuario=self.usuario_db_dueno,
+        self.metodo_pago = PaymentMethod.objects.create(name="Efectivo", company=self.empresa)
+        self.venta_hoy = Sale.objects.create(
+            company=self.empresa,
+            date=timezone.now(),
+            payment_method=self.metodo_pago,
+            gross_total=Decimal("150000.00"),
+            charged_total=Decimal("150000.00"),
+            net_income=Decimal("148000.00"),
+            user=self.usuario_db_dueno,
         )
 
     def test_acceso_anonimo_redirige_a_login(self):
@@ -250,7 +250,7 @@ class DashboardViewTests(TestCase):
         para filtrar y ocultar períodos históricos cargados en el gráfico de líneas temporales.
         """
         # Asociar un ratio con período específico a la predicción para verificar períodos
-        ratio_2025 = RatioFinanciero.objects.create(empresa=self.empresa, periodo='2025-Q4')
+        ratio_2025 = FinancialRatio.objects.create(company=self.empresa, period='2025-Q4')
         self.prediccion1.ratio = ratio_2025
         self.prediccion1.save()
 
@@ -303,16 +303,16 @@ class DashboardViewTests(TestCase):
         session.save()
 
         # Ratio con margen operacional anómalo (> 100%) y leverage extremo
-        ratio_anomalo = RatioFinanciero.objects.create(
-            empresa=self.empresa,
-            periodo='2026-Q1',
-            fecha_calculo=timezone.now(),
-            v1_razon_corriente=Decimal("1.50"),
-            v2_capital_trabajo_activos=Decimal("0.20"),
-            v3_leverage_total=Decimal("8.50"),  # Outlier > 7.0
-            v4_roa_operacional=Decimal("0.08"),
-            v5_margen_operacional=Decimal("1.40"),  # Outlier > 100%
-            v6_rotacion_activos=Decimal("1.20"),
+        ratio_anomalo = FinancialRatio.objects.create(
+            company=self.empresa,
+            period='2026-Q1',
+            calculation_date=timezone.now(),
+            v1_current_ratio=Decimal("1.50"),
+            v2_working_capital_to_assets=Decimal("0.20"),
+            v3_total_leverage=Decimal("8.50"),  # Outlier > 7.0
+            v4_operating_roa=Decimal("0.08"),
+            v5_operating_margin=Decimal("1.40"),  # Outlier > 100%
+            v6_asset_turnover=Decimal("1.20"),
         )
 
         response = self.client.get(reverse('dashboard:dashboard'))
@@ -337,26 +337,26 @@ class DashboardViewTests(TestCase):
         session.save()
 
         # Crear ratio con outlier
-        RatioFinanciero.objects.create(
-            empresa=self.empresa,
-            periodo='2026-Q1',
-            fecha_calculo=timezone.now(),
-            v1_razon_corriente=Decimal("1.50"),
-            v2_capital_trabajo_activos=Decimal("0.20"),
-            v3_leverage_total=Decimal("8.50"),
-            v4_roa_operacional=Decimal("0.08"),
-            v5_margen_operacional=Decimal("1.40"),
-            v6_rotacion_activos=Decimal("1.20"),
+        FinancialRatio.objects.create(
+            company=self.empresa,
+            period='2026-Q1',
+            calculation_date=timezone.now(),
+            v1_current_ratio=Decimal("1.50"),
+            v2_working_capital_to_assets=Decimal("0.20"),
+            v3_total_leverage=Decimal("8.50"),
+            v4_operating_roa=Decimal("0.08"),
+            v5_operating_margin=Decimal("1.40"),
+            v6_asset_turnover=Decimal("1.20"),
         )
 
-        total_predicciones_antes = PrediccionRiesgo.objects.filter(empresa=self.empresa).count()
+        total_predicciones_antes = RiskPrediction.objects.filter(company=self.empresa).count()
 
         # POST sin 'forzar_ejecucion'
         response = self.client.post(reverse('dashboard:ejecutar_prediccion'), follow=True)
         self.assertEqual(response.status_code, 200)
 
         # No debe haberse generado una nueva predicción
-        total_predicciones_despues = PrediccionRiesgo.objects.filter(empresa=self.empresa).count()
+        total_predicciones_despues = RiskPrediction.objects.filter(company=self.empresa).count()
         self.assertEqual(total_predicciones_despues, total_predicciones_antes)
 
         # Mensaje de advertencia debe estar en los mensajes flash
@@ -374,19 +374,19 @@ class DashboardViewTests(TestCase):
         session.save()
 
         # Crear ratio con outlier
-        ratio_anomalo = RatioFinanciero.objects.create(
-            empresa=self.empresa,
-            periodo='2026-Q1',
-            fecha_calculo=timezone.now(),
-            v1_razon_corriente=Decimal("1.50"),
-            v2_capital_trabajo_activos=Decimal("0.20"),
-            v3_leverage_total=Decimal("8.50"),
-            v4_roa_operacional=Decimal("0.08"),
-            v5_margen_operacional=Decimal("1.40"),
-            v6_rotacion_activos=Decimal("1.20"),
+        ratio_anomalo = FinancialRatio.objects.create(
+            company=self.empresa,
+            period='2026-Q1',
+            calculation_date=timezone.now(),
+            v1_current_ratio=Decimal("1.50"),
+            v2_working_capital_to_assets=Decimal("0.20"),
+            v3_total_leverage=Decimal("8.50"),
+            v4_operating_roa=Decimal("0.08"),
+            v5_operating_margin=Decimal("1.40"),
+            v6_asset_turnover=Decimal("1.20"),
         )
 
-        total_predicciones_antes = PrediccionRiesgo.objects.filter(empresa=self.empresa).count()
+        total_predicciones_antes = RiskPrediction.objects.filter(company=self.empresa).count()
 
         # POST con 'forzar_ejecucion=1'
         response = self.client.post(
@@ -397,7 +397,7 @@ class DashboardViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
 
         # Debe haberse generado una nueva predicción
-        total_predicciones_despues = PrediccionRiesgo.objects.filter(empresa=self.empresa).count()
+        total_predicciones_despues = RiskPrediction.objects.filter(company=self.empresa).count()
         self.assertEqual(total_predicciones_despues, total_predicciones_antes + 1)
 
         # Mensaje de éxito informando que se forzó la ejecución
@@ -415,16 +415,16 @@ class DashboardViewTests(TestCase):
         session.save()
 
         # Ratio sin anomalías para habilitar el botón directo
-        RatioFinanciero.objects.create(
-            empresa=self.empresa,
-            periodo='2026-Q1',
-            fecha_calculo=timezone.now(),
-            v1_razon_corriente=Decimal("1.80"),
-            v2_capital_trabajo_activos=Decimal("0.25"),
-            v3_leverage_total=Decimal("0.60"),
-            v4_roa_operacional=Decimal("0.10"),
-            v5_margen_operacional=Decimal("0.12"),
-            v6_rotacion_activos=Decimal("1.20"),
+        FinancialRatio.objects.create(
+            company=self.empresa,
+            period='2026-Q1',
+            calculation_date=timezone.now(),
+            v1_current_ratio=Decimal("1.80"),
+            v2_working_capital_to_assets=Decimal("0.25"),
+            v3_total_leverage=Decimal("0.60"),
+            v4_operating_roa=Decimal("0.10"),
+            v5_operating_margin=Decimal("0.12"),
+            v6_asset_turnover=Decimal("1.20"),
         )
 
         response = self.client.get(reverse('dashboard:dashboard'))
@@ -451,16 +451,16 @@ class DashboardViewTests(TestCase):
         session['usuario_rol'] = 'Dueño'
         session.save()
 
-        RatioFinanciero.objects.create(
-            empresa=self.empresa,
-            periodo='2026-Q1',
-            fecha_calculo=timezone.now(),
-            v1_razon_corriente=Decimal("1.80"),
-            v2_capital_trabajo_activos=Decimal("0.25"),
-            v3_leverage_total=Decimal("0.60"),
-            v4_roa_operacional=Decimal("0.10"),
-            v5_margen_operacional=Decimal("0.12"),
-            v6_rotacion_activos=Decimal("1.20"),
+        FinancialRatio.objects.create(
+            company=self.empresa,
+            period='2026-Q1',
+            calculation_date=timezone.now(),
+            v1_current_ratio=Decimal("1.80"),
+            v2_working_capital_to_assets=Decimal("0.25"),
+            v3_total_leverage=Decimal("0.60"),
+            v4_operating_roa=Decimal("0.10"),
+            v5_operating_margin=Decimal("0.12"),
+            v6_asset_turnover=Decimal("1.20"),
         )
 
         t_inicio = time.time()
@@ -487,45 +487,45 @@ class AlertaTempranaPredictivoTests(TestCase):
         self.calcular_delta = calcular_delta_riesgo
 
         # Rol y usuario Dueño
-        self.rol_dueno, _ = Rol.objects.get_or_create(id=1, defaults={'nombre': 'Dueño'})
-        self.empresa = Empresa.objects.create(rut='76.111.222-3', razon_social='Inversiones Alerta SpA')
-        self.usuario_dueno = Usuario.objects.create(
+        self.rol_dueno, _ = Role.objects.get_or_create(id=1, defaults={'name': 'Dueño'})
+        self.empresa = Company.objects.create(tax_id='76.111.222-3', business_name='Inversiones Alerta SpA')
+        self.usuario_dueno = User.objects.create(
             username='directivo_alerta',
             email='directivo@alerta.cl',
-            rol=self.rol_dueno,
-            empresa=self.empresa
+            role=self.rol_dueno,
+            company=self.empresa
         )
 
         # Usuario Django de autenticación
-        self.auth_user = User.objects.create_user(
+        self.auth_user = AuthUser.objects.create_user(
             username='directivo_alerta',
             password='Password123!',
             email='directivo@alerta.cl'
         )
 
-        from moduloETL.models import RatioFinanciero
-        from capaAnalitica.models import PrediccionRiesgo
+        from moduloETL.models import FinancialRatio
+        from capaAnalitica.models import RiskPrediction
 
-        self.ratio = RatioFinanciero.objects.create(
-            empresa=self.empresa,
-            periodo='2024-Q4',
-            v1_razon_corriente=1.5,
-            v2_capital_trabajo_activos=0.2,
-            v3_leverage_total=2.0,
-            v4_roa_operacional=0.08,
-            v5_margen_operacional=0.10,
-            v6_rotacion_activos=1.2,
-            v7_volatilidad_flujo=0.4,
-            fecha_calculo=timezone.now(),
+        self.ratio = FinancialRatio.objects.create(
+            company=self.empresa,
+            period='2024-Q4',
+            v1_current_ratio=1.5,
+            v2_working_capital_to_assets=0.2,
+            v3_total_leverage=2.0,
+            v4_operating_roa=0.08,
+            v5_operating_margin=0.10,
+            v6_asset_turnover=1.2,
+            v7_cash_flow_volatility=0.4,
+            calculation_date=timezone.now(),
         )
 
-        self.prediccion = PrediccionRiesgo.objects.create(
+        self.prediccion = RiskPrediction.objects.create(
             ratio=self.ratio,
-            empresa=self.empresa,
-            score_riesgo=35.0,
-            nivel_semaforo='Verde',
-            fecha_prediccion=timezone.now(),
-            ejecutada_por_usuario=self.usuario_dueno
+            company=self.empresa,
+            risk_score=35.0,
+            traffic_light_level='Verde',
+            prediction_date=timezone.now(),
+            executed_by_user=self.usuario_dueno
         )
 
     def test_calculo_periodo_siguiente_q4_a_q1(self):
@@ -678,32 +678,32 @@ class AlertaTempranaPredictivoTests(TestCase):
         períodos posteriores (2024-Q3, 2024-Q4) para que el botón 'Todos' pueda mostrar toda la historia,
         y que la proyección salga del período consultado (2024-Q2 -> 2024-Q3).
         """
-        from moduloETL.models import RatioFinanciero
+        from moduloETL.models import FinancialRatio
 
         # Crear trimestres adicionales
-        RatioFinanciero.objects.create(
-            empresa=self.empresa,
-            periodo='2024-Q1',
-            v1_razon_corriente=1.8,
-            v3_leverage_total=1.2,
-            v4_roa_operacional=0.09,
-            fecha_calculo=timezone.now(),
+        FinancialRatio.objects.create(
+            company=self.empresa,
+            period='2024-Q1',
+            v1_current_ratio=1.8,
+            v3_total_leverage=1.2,
+            v4_operating_roa=0.09,
+            calculation_date=timezone.now(),
         )
-        RatioFinanciero.objects.create(
-            empresa=self.empresa,
-            periodo='2024-Q2',
-            v1_razon_corriente=1.4,
-            v3_leverage_total=1.8,
-            v4_roa_operacional=0.06,
-            fecha_calculo=timezone.now(),
+        FinancialRatio.objects.create(
+            company=self.empresa,
+            period='2024-Q2',
+            v1_current_ratio=1.4,
+            v3_total_leverage=1.8,
+            v4_operating_roa=0.06,
+            calculation_date=timezone.now(),
         )
-        RatioFinanciero.objects.create(
-            empresa=self.empresa,
-            periodo='2024-Q3',
-            v1_razon_corriente=1.3,
-            v3_leverage_total=2.1,
-            v4_roa_operacional=0.05,
-            fecha_calculo=timezone.now(),
+        FinancialRatio.objects.create(
+            company=self.empresa,
+            period='2024-Q3',
+            v1_current_ratio=1.3,
+            v3_total_leverage=2.1,
+            v4_operating_roa=0.05,
+            calculation_date=timezone.now(),
         )
 
         self.client.force_login(self.auth_user)
@@ -739,14 +739,14 @@ class AlertaTempranaPredictivoTests(TestCase):
         y mercados emergentes (Z''-Score).
         """
         from dashboard.views import calcular_score_observado, calcular_z_score_altman_1983
-        from moduloETL.models import RatioFinanciero
+        from moduloETL.models import FinancialRatio
 
         # Caso solvente (alta liquidez, bajo endeudamiento)
-        r_solvente = RatioFinanciero(
-            v1_razon_corriente=2.2,
-            v2_capital_trabajo_activos=0.3,
-            v3_leverage_total=0.8,
-            v4_roa_operacional=0.12,
+        r_solvente = FinancialRatio(
+            v1_current_ratio=2.2,
+            v2_working_capital_to_assets=0.3,
+            v3_total_leverage=0.8,
+            v4_operating_roa=0.12,
         )
         z_solvente = calcular_z_score_altman_1983(r_solvente)
         self.assertGreaterEqual(z_solvente, 2.60)  # Zona Segura de Altman
@@ -754,11 +754,11 @@ class AlertaTempranaPredictivoTests(TestCase):
         self.assertLessEqual(score_solvente, 35.0)  # Zona Verde
 
         # Caso crítico (baja liquidez, alto endeudamiento, ROA negativo)
-        r_critico = RatioFinanciero(
-            v1_razon_corriente=0.6,
-            v2_capital_trabajo_activos=-0.2,
-            v3_leverage_total=5.5,
-            v4_roa_operacional=-0.08,
+        r_critico = FinancialRatio(
+            v1_current_ratio=0.6,
+            v2_working_capital_to_assets=-0.2,
+            v3_total_leverage=5.5,
+            v4_operating_roa=-0.08,
         )
         z_critico = calcular_z_score_altman_1983(r_critico)
         self.assertLess(z_critico, 1.10)  # Zona de Quiebra de Altman

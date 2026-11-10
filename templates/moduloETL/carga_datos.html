@@ -197,9 +197,9 @@
                             <div>
                                 <div class="text-muted small">Empresa vinculada a tu cuenta:</div>
                                 <div class="fw-bold text-dark fs-6">
-                                    {{ empresa_usuario.razon_social|default:"Empresa Asignada" }}
-                                    {% if empresa_usuario.rut %}
-                                        <span class="badge bg-secondary-subtle text-secondary font-monospace ms-1">{{ empresa_usuario.rut }}</span>
+                                    {{ empresa_usuario.business_name|default:"Empresa Asignada" }}
+                                    {% if empresa_usuario.tax_id %}
+                                        <span class="badge bg-secondary-subtle text-secondary font-monospace ms-1">{{ empresa_usuario.tax_id }}</span>
                                     {% endif %}
                                 </div>
                             </div>

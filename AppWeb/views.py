@@ -24,7 +24,7 @@ from .viewsML import (
     simular_sensibilidad_proactiva,
 )
 from .variables_modelo import calcular_variables_modelo
-from .models import Empresa, HistorialPrediccion, PerfilUsuario, EstadoCarga
+from .models import Company, PredictionHistory, UserProfile, UploadState
 from .decorators import rol_requerido
 
 COLUMNAS_PLANTILLA = [
@@ -71,38 +71,38 @@ def registro_view(request: HttpRequest):
         password = request.POST.get('password', '')
         rol = request.POST.get('rol')
 
-        if not username or not password or rol not in dict(PerfilUsuario.ROLES):
+        if not username or not password or rol not in dict(UserProfile.ROLE_CHOICES):
             messages.error(request, 'Completa usuario, contraseña y selecciona un rol válido.')
         elif User.objects.filter(username=username).exists():
             messages.error(request, 'Ese nombre de usuario ya existe.')
         else:
             user = User.objects.create_user(username=username, password=password)
-            PerfilUsuario.objects.create(user=user, rol=rol)
+            UserProfile.objects.create(user=user, role=rol)
             login(request, user)
             messages.success(request, f'Cuenta creada como {rol}. ¡Bienvenido!')
             return redirect('home')
 
-    return render(request, 'AppWeb/registro.html', {'roles': PerfilUsuario.ROLES})
+    return render(request, 'AppWeb/registro.html', {'roles': UserProfile.ROLE_CHOICES})
 
 
 @login_required(login_url='login')
 def home(request: HttpRequest):
-    perfil = getattr(request.user, 'perfil', None)
-    estado = EstadoCarga.actual()
+    perfil = getattr(request.user, 'profile', None)
+    estado = UploadState.current()
     contexto = {
-        'paso_1': bool(estado.ruta_csv and os.path.exists(estado.ruta_csv)),
-        'rol': perfil.rol if perfil else None,
+        'paso_1': bool(estado.csv_path and os.path.exists(estado.csv_path)),
+        'rol': perfil.role if perfil else None,
     }
     return render(request, 'AppWeb/index.html', contexto)
 
 def _contexto_carga():
     return {
-        'datos_cargados': bool(EstadoCarga.actual().ruta_csv),
+        'datos_cargados': bool(UploadState.current().csv_path),
         'columnas_plantilla': COLUMNAS_PLANTILLA,
     }
 
 
-@rol_requerido(PerfilUsuario.ROL_CONTADOR)
+@rol_requerido(UserProfile.ACCOUNTANT_ROLE)
 def carga_datos(request: HttpRequest):
     if request.method == 'POST':
         if 'archivo_datos' not in request.FILES:
@@ -182,8 +182,8 @@ def carga_datos(request: HttpRequest):
                 archivo_id = str(uuid.uuid4())
                 ruta_csv = os.path.join(DATA_DIR, f'{archivo_id}.csv')
                 df.to_csv(ruta_csv, index=False)
-                estado = EstadoCarga.actual()
-                estado.ruta_csv = ruta_csv
+                estado = UploadState.current()
+                estado.csv_path = ruta_csv
                 estado.save()
                 messages.success(request, f'¡Archivo "{archivo.name}" validado correctamente! {len(df)} registros cargados.')
 
@@ -231,12 +231,12 @@ def calcular_tendencia_periodos(df: pd.DataFrame) -> list:
     ]
 
 
-@rol_requerido(PerfilUsuario.ROL_DUENO)
+@rol_requerido(UserProfile.OWNER_ROLE)
 def ejecutar_prediccion(request: HttpRequest):
     if request.method == 'POST':
         try:
-            estado = EstadoCarga.actual()
-            ruta_csv = estado.ruta_csv
+            estado = UploadState.current()
+            ruta_csv = estado.csv_path
             if not ruta_csv:
                 messages.error(request, 'No hay datos cargados. Pide al Contador que cargue un archivo primero.')
                 return redirect('home')
@@ -269,22 +269,22 @@ def ejecutar_prediccion(request: HttpRequest):
             top_3_riesgo = analizar_contribucion_riesgo(variables_modelo)
             recomendacion_general = obtener_recomendacion_general(color)
 
-            empresa, _ = Empresa.objects.get_or_create(
-                rut=str(empresa_id), defaults={'nombre': str(empresa_id)}
+            empresa, _ = Company.objects.get_or_create(
+                tax_id=str(empresa_id), defaults={'name': str(empresa_id)}
             )
-            ultima_anterior = HistorialPrediccion.objects.filter(empresa=empresa).order_by('-fecha_prediccion', '-id').first()
+            ultima_anterior = PredictionHistory.objects.filter(company=empresa).order_by('-prediction_date', '-id').first()
             delta_info = calcular_delta_riesgo(puntaje_riesgo, ultima_anterior.score if ultima_anterior else None)
 
-            HistorialPrediccion.objects.create(
-                empresa=empresa,
+            PredictionHistory.objects.create(
+                company=empresa,
                 score=puntaje_riesgo,
-                riesgo=color,
-                razon_corriente=ratios_empresa.get('razon_corriente'),
-                prueba_acuda=ratios_empresa.get('prueba_acida'),
+                risk=color,
+                current_ratio=ratios_empresa.get('razon_corriente'),
+                quick_ratio=ratios_empresa.get('prueba_acida'),
             )
             historial_empresa = [
-                {'fecha': h.fecha_prediccion.strftime('%d-%m-%Y %H:%M'), 'score': h.score}
-                for h in HistorialPrediccion.objects.filter(empresa=empresa).order_by('fecha_prediccion')
+                {'fecha': h.prediction_date.strftime('%d-%m-%Y %H:%M'), 'score': h.score}
+                for h in PredictionHistory.objects.filter(company=empresa).order_by('prediction_date')
             ]
 
             tendencia_periodos = calcular_tendencia_periodos(df)
@@ -363,7 +363,7 @@ def ejecutar_prediccion(request: HttpRequest):
     return redirect('home')
 
 
-@rol_requerido(PerfilUsuario.ROL_DUENO)
+@rol_requerido(UserProfile.OWNER_ROLE)
 def exportar_pdf(request: HttpRequest):
     contexto = request.session.get('ultimo_resultado')
     if not contexto:
@@ -381,13 +381,13 @@ def exportar_pdf(request: HttpRequest):
     return response
 
 
-@rol_requerido(PerfilUsuario.ROL_CONTADOR)
+@rol_requerido(UserProfile.ACCOUNTANT_ROLE)
 def limpiar_datos(request: HttpRequest):
     if request.method == 'POST':
-        estado = EstadoCarga.actual()
-        if estado.ruta_csv and os.path.exists(estado.ruta_csv):
-            os.remove(estado.ruta_csv)
-        estado.ruta_csv = None
+        estado = UploadState.current()
+        if estado.csv_path and os.path.exists(estado.csv_path):
+            os.remove(estado.csv_path)
+        estado.csv_path = None
         estado.save()
         request.session.pop('ultimo_resultado', None)
         messages.success(request, 'Datos eliminados correctamente.')

@@ -1,38 +1,38 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth import login as auth_login, logout as auth_logout
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User as AuthUser
 from django.utils import timezone
 from django.views.generic import TemplateView
 
-from .models import Usuario, Empresa
+from .models import User, Company
 from .forms import LoginForm, RegistroForm
-from AppWeb.models import PerfilUsuario
+from AppWeb.models import UserProfile
 
 
 def sincronizar_sesion(request, usuario_db):
     """
-    Sincroniza la autenticación entre el modelo Usuario
-    y el subsistema de sesiones y usuarios de Django (auth.User + PerfilUsuario).
+    Sincroniza la autenticación entre el modelo User
+    y el subsistema de sesiones y usuarios de Django (auth.User + UserProfile).
     """
     # 1. Actualizar última sesión
-    usuario_db.ultima_sesion = timezone.now()
-    usuario_db.save(update_fields=['ultima_sesion'])
+    usuario_db.last_login = timezone.now()
+    usuario_db.save(update_fields=['last_login'])
 
     # 2. Guardar datos en la sesión HTTP
     request.session['usuario_id'] = usuario_db.id
     request.session['usuario_nombre'] = usuario_db.username
-    request.session['usuario_rol'] = usuario_db.rol.nombre if usuario_db.rol else 'Usuario'
+    request.session['usuario_rol'] = usuario_db.role.name if usuario_db.role else 'Usuario'
 
     # 3. Vincular con auth.User para que request.user y los decoradores/mixins funcionen al 100%
-    auth_user, _ = User.objects.get_or_create(
+    auth_user, _ = AuthUser.objects.get_or_create(
         username=usuario_db.username,
         defaults={'email': usuario_db.email or ''}
     )
-    if usuario_db.rol:
-        PerfilUsuario.objects.update_or_create(
+    if usuario_db.role:
+        UserProfile.objects.update_or_create(
             user=auth_user,
-            defaults={'rol': usuario_db.rol.nombre}
+            defaults={'role': usuario_db.role.name}
         )
 
     # Iniciar sesión oficial en Django
@@ -45,7 +45,7 @@ def redireccionar_segun_rol(usuario_db):
     - Trabajador: Punto de Venta Operativo (moduloTransaccional:venta_crear).
     - Dueño / Contador / Administrador / Otros: Panel Gerencial (dashboard:dashboard).
     """
-    if usuario_db and usuario_db.rol and usuario_db.rol.nombre == 'Trabajador':
+    if usuario_db and usuario_db.role and usuario_db.role.name == 'Trabajador':
         return 'moduloTransaccional:venta_crear'
     return 'dashboard:dashboard'
 
@@ -56,7 +56,7 @@ def login_view(request):
     Redirige a 'dashboard:dashboard' (o POS si Trabajador) tras una autenticación exitosa.
     """
     if request.user.is_authenticated:
-        usuario_db = Usuario.objects.select_related('rol').filter(username=request.user.username).first()
+        usuario_db = User.objects.select_related('role').filter(username=request.user.username).first()
         return redirect(redireccionar_segun_rol(usuario_db))
 
     form = LoginForm(request.POST or None)
@@ -64,7 +64,7 @@ def login_view(request):
     if request.method == 'POST' and form.is_valid():
         usuario_db = form.cleaned_data['usuario_db']
         sincronizar_sesion(request, usuario_db)
-        messages.success(request, f"Bienvenido(a), {usuario_db.username} ({usuario_db.rol.nombre if usuario_db.rol else 'Usuario'}).")
+        messages.success(request, f"Bienvenido(a), {usuario_db.username} ({usuario_db.role.name if usuario_db.role else 'Usuario'}).")
         return redirect(redireccionar_segun_rol(usuario_db))
 
     return render(request, 'usuarios/login.html', {'form': form})
@@ -85,7 +85,7 @@ def registro_view(request):
     Vista de registro de nuevos usuarios en el sistema.
     """
     if request.user.is_authenticated:
-        usuario_db = Usuario.objects.select_related('rol').filter(username=request.user.username).first()
+        usuario_db = User.objects.select_related('role').filter(username=request.user.username).first()
         return redirect(redireccionar_segun_rol(usuario_db))
 
     form = RegistroForm(request.POST or None)
@@ -99,11 +99,11 @@ def registro_view(request):
             sincronizar_sesion(request, usuario_db)
             messages.success(
                 request,
-                f"¡Cuenta creada con éxito! Has sido registrado como {usuario_db.rol.nombre}."
+                f"¡Cuenta creada con éxito! Has sido registrado como {usuario_db.role.name}."
             )
             return redirect(redireccionar_segun_rol(usuario_db))
 
-    empresas = list(Empresa.objects.all().order_by('id'))
+    empresas = list(Company.objects.all().order_by('id'))
     return render(request, 'usuarios/registro.html', {
         'form': form,
         'empresas': empresas,

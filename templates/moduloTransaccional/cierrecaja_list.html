@@ -13,7 +13,7 @@
         </p>
     </div>
     <div class="mt-2 mt-md-0 d-flex gap-2">
-        {% if user.perfil.rol == 'Dueño' or user.is_superuser %}
+        {% if user.profile.role == 'Dueño' or user.is_superuser %}
             {% if not cierre_hoy_existe %}
                 <a href="{% url 'moduloTransaccional:cierre_caja' %}" class="btn btn-primary btn-sm shadow-sm">
                     <i class="bi bi-plus-circle me-1"></i>Efectuar Cierre de Hoy
@@ -145,10 +145,10 @@
                     {% for c in cierres %}
                     <tr>
                         <td class="ps-4 fw-semibold text-dark">
-                            <i class="bi bi-calendar3 me-2 text-muted"></i>{{ c.fecha|date:"d/m/Y" }}
+                            <i class="bi bi-calendar3 me-2 text-muted"></i>{{ c.date|date:"d/m/Y" }}
                         </td>
                         <td>
-                            {% if c.estado == 'Cuadrado' %}
+                            {% if c.status == 'Cuadrado' %}
                                 <span class="badge bg-success-subtle text-success border border-success-subtle">
                                     <i class="bi bi-check-circle me-1"></i>Cuadrado
                                 </span>
@@ -158,19 +158,19 @@
                                 </span>
                             {% endif %}
                         </td>
-                        <td class="text-end font-monospace">${{ c.total_sistema|floatformat:0 }}</td>
-                        <td class="text-end font-monospace text-danger">-${{ c.total_retiros|floatformat:0 }}</td>
-                        <td class="text-end font-monospace fw-bold">${{ c.total_arqueo|floatformat:0 }}</td>
-                        <td class="text-end font-monospace {% if c.descuadre_total != 0 %}text-danger fw-bold{% else %}text-muted{% endif %}">
-                            {% if c.descuadre_total > 0 %}+{% endif %}${{ c.descuadre_total|floatformat:0 }}
+                        <td class="text-end font-monospace">${{ c.system_total|floatformat:0 }}</td>
+                        <td class="text-end font-monospace text-danger">-${{ c.withdrawals_total|floatformat:0 }}</td>
+                        <td class="text-end font-monospace fw-bold">${{ c.counted_total|floatformat:0 }}</td>
+                        <td class="text-end font-monospace {% if c.total_discrepancy != 0 %}text-danger fw-bold{% else %}text-muted{% endif %}">
+                            {% if c.total_discrepancy > 0 %}+{% endif %}${{ c.total_discrepancy|floatformat:0 }}
                         </td>
                         <td>
                             <small class="text-muted">
-                                <i class="bi bi-person me-1"></i>{{ c.cerrado_por_usuario.username|default:"Sistema" }}
+                                <i class="bi bi-person me-1"></i>{{ c.closed_by_user.username|default:"Sistema" }}
                             </small>
                         </td>
                         <td class="pe-4 text-end small text-muted">
-                            {{ c.fecha_confirmacion|date:"d/m/Y H:i" }}
+                            {{ c.confirmation_date|date:"d/m/Y H:i" }}
                         </td>
                     </tr>
                     {% empty %}

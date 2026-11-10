@@ -9,11 +9,11 @@ import json
 import pandas as pd
 from decimal import Decimal
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User as AuthUser
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import CargaFinanciera, RatioFinanciero
+from .models import FinancialUpload, FinancialRatio
 from .forms import CargaArchivoForm
 from .services import (
     COLUMNAS_PLANTILLA,
@@ -26,8 +26,8 @@ from .services import (
     calcular_zem_altman,
     detectar_anomalias_financieras,
 )
-from usuarios.models import Usuario, Empresa, Rol
-from AppWeb.models import PerfilUsuario, EstadoCarga
+from usuarios.models import User, Company, Role
+from AppWeb.models import UserProfile, UploadState
 
 
 FILA_BALANCE_SANO = {
@@ -113,22 +113,22 @@ class ETLServicesTests(TestCase):
     def test_rf10_detectar_anomalias_financieras_outliers(self):
         """[RF-10] Verifica detección de outliers y cuentas con signos inválidos."""
         # 1. Caso sin anomalías
-        ratio_sano = RatioFinanciero(
-            v1_razon_corriente=Decimal("1.50"),
-            v2_capital_trabajo_activos=Decimal("0.20"),
-            v3_leverage_total=Decimal("0.80"),
-            v4_roa_operacional=Decimal("0.10"),
-            v5_margen_operacional=Decimal("0.12"),
-            v6_rotacion_activos=Decimal("1.10"),
+        ratio_sano = FinancialRatio(
+            v1_current_ratio=Decimal("1.50"),
+            v2_working_capital_to_assets=Decimal("0.20"),
+            v3_total_leverage=Decimal("0.80"),
+            v4_operating_roa=Decimal("0.10"),
+            v5_operating_margin=Decimal("0.12"),
+            v6_asset_turnover=Decimal("1.10"),
         )
         anomalias_sanas = detectar_anomalias_financieras(ratio_sano)
         self.assertEqual(len(anomalias_sanas), 0)
 
         # 2. Caso con ratio outlier extremo (Margen Operacional > 100% y Leverage > 7.0)
-        ratio_outlier = RatioFinanciero(
-            v1_razon_corriente=Decimal("9.50"),
-            v3_leverage_total=Decimal("8.20"),
-            v5_margen_operacional=Decimal("1.50"),
+        ratio_outlier = FinancialRatio(
+            v1_current_ratio=Decimal("9.50"),
+            v3_total_leverage=Decimal("8.20"),
+            v5_operating_margin=Decimal("1.50"),
         )
         anomalias = detectar_anomalias_financieras(ratio_outlier)
         self.assertGreaterEqual(len(anomalias), 3)
@@ -138,9 +138,9 @@ class ETLServicesTests(TestCase):
         self.assertIn('Margen Operacional (V5)', campos)
 
         # 3. Caso con carga con cuenta negativa (Efectivo negativo)
-        carga_invalida = CargaFinanciera(
-            efectivo_equivalentes=Decimal("-50000"),
-            activo_total=Decimal("1000000"),
+        carga_invalida = FinancialUpload(
+            cash_and_equivalents=Decimal("-50000"),
+            total_assets=Decimal("1000000"),
         )
         anomalias_carga = detectar_anomalias_financieras(carga_invalida)
         self.assertTrue(any(a['campo'] == 'Efectivo y Equivalentes' for a in anomalias_carga))
@@ -158,41 +158,41 @@ class ETLIntegrationAndViewsTests(TestCase):
 
     def setUp(self):
         # Roles
-        self.rol_contador, _ = Rol.objects.get_or_create(nombre='Contador', defaults={'descripcion': 'Rol Contador'})
-        self.rol_dueno, _ = Rol.objects.get_or_create(nombre='Dueño', defaults={'descripcion': 'Rol Dueño'})
+        self.rol_contador, _ = Role.objects.get_or_create(name='Contador', defaults={'description': 'Rol Contador'})
+        self.rol_dueno, _ = Role.objects.get_or_create(name='Dueño', defaults={'description': 'Rol Dueño'})
 
         # Empresa 1
-        self.empresa1 = Empresa.objects.create(
-            razon_social='Nstock Importaciones',
-            rut='76.123.456-7'
+        self.empresa1 = Company.objects.create(
+            business_name='Nstock Importaciones',
+            tax_id='76.123.456-7'
         )
 
         # Empresa 2 (para probar aislamiento)
-        self.empresa2 = Empresa.objects.create(
-            razon_social='Empresa Externa SpA',
-            rut='99.888.777-6'
+        self.empresa2 = Company.objects.create(
+            business_name='Empresa Externa SpA',
+            tax_id='99.888.777-6'
         )
 
         # Usuario Contador de Empresa 1
-        self.auth_contador = User.objects.create_user(username='contador_test', password='password123')
-        PerfilUsuario.objects.create(user=self.auth_contador, rol='Contador')
-        self.usuario_db = Usuario.objects.create(
+        self.auth_contador = AuthUser.objects.create_user(username='contador_test', password='password123')
+        UserProfile.objects.create(user=self.auth_contador, role='Contador')
+        self.usuario_db = User.objects.create(
             username='contador_test',
             email='contador@test.cl',
-            rol=self.rol_contador,
-            empresa=self.empresa1
+            role=self.rol_contador,
+            company=self.empresa1
         )
         self.usuario_db.set_password('password123')
         self.usuario_db.save()
 
         # Usuario de Empresa 2
-        self.auth_user2 = User.objects.create_user(username='user2_test', password='password123')
-        PerfilUsuario.objects.create(user=self.auth_user2, rol='Dueño')
-        self.usuario2_db = Usuario.objects.create(
+        self.auth_user2 = AuthUser.objects.create_user(username='user2_test', password='password123')
+        UserProfile.objects.create(user=self.auth_user2, role='Dueño')
+        self.usuario2_db = User.objects.create(
             username='user2_test',
             email='user2@test.cl',
-            rol=self.rol_dueno,
-            empresa=self.empresa2
+            role=self.rol_dueno,
+            company=self.empresa2
         )
         self.usuario2_db.set_password('password123')
         self.usuario2_db.save()
@@ -229,15 +229,15 @@ class ETLIntegrationAndViewsTests(TestCase):
         )
 
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(CargaFinanciera.objects.count(), 1)
-        self.assertEqual(RatioFinanciero.objects.count(), 1)
+        self.assertEqual(FinancialUpload.objects.count(), 1)
+        self.assertEqual(FinancialRatio.objects.count(), 1)
 
-        carga = CargaFinanciera.objects.first()
-        self.assertEqual(carga.empresa, self.empresa1)
-        self.assertEqual(carga.periodo, '2025-Q4')
+        carga = FinancialUpload.objects.first()
+        self.assertEqual(carga.company, self.empresa1)
+        self.assertEqual(carga.period, '2025-Q4')
 
-        ratio = RatioFinanciero.objects.first()
-        self.assertEqual(ratio.empresa, self.empresa1)
+        ratio = FinancialRatio.objects.first()
+        self.assertEqual(ratio.company, self.empresa1)
 
     def test_aislamiento_multi_empresa_ratios_y_cargas(self):
         # 1. Cargar datos para Empresa 1
@@ -277,8 +277,8 @@ class ETLIntegrationAndViewsTests(TestCase):
             }
         )
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(CargaFinanciera.objects.count(), 0)
-        self.assertEqual(RatioFinanciero.objects.count(), 0)
+        self.assertEqual(FinancialUpload.objects.count(), 0)
+        self.assertEqual(FinancialRatio.objects.count(), 0)
 
     def test_descargar_plantilla(self):
         self.client.force_login(self.auth_contador)
@@ -295,20 +295,20 @@ class ETLIntegrationAndViewsTests(TestCase):
             {'tipo_documento': 'Balance General', 'archivo_datos': archivo, 'terminos_aceptados': 'on'}
         )
 
-        self.assertIsNotNone(EstadoCarga.actual().ruta_csv)
+        self.assertIsNotNone(UploadState.current().csv_path)
         resp = self.client.post(reverse('moduloETL:limpiar_datos'), follow=True)
         self.assertEqual(resp.status_code, 200)
-        self.assertIsNone(EstadoCarga.actual().ruta_csv)
+        self.assertIsNone(UploadState.current().csv_path)
 
     def test_rf10_vista_ratios_modal_outliers(self):
         """[RF-10] Verifica que la vista de ratios detecte anomalías y renderice el modal de advertencia."""
         self.client.force_login(self.auth_contador)
         # Crear un ratio con anomalía (margen 150%)
-        RatioFinanciero.objects.create(
-            empresa=self.empresa1,
-            periodo='2025-Q4',
-            v1_razon_corriente=Decimal("1.80"),
-            v5_margen_operacional=Decimal("1.50"),
+        FinancialRatio.objects.create(
+            company=self.empresa1,
+            period='2025-Q4',
+            v1_current_ratio=Decimal("1.80"),
+            v5_operating_margin=Decimal("1.50"),
         )
         resp = self.client.get(reverse('moduloETL:ratios_financieros'))
         self.assertEqual(resp.status_code, 200)
@@ -325,15 +325,15 @@ class ETLIntegrationAndViewsTests(TestCase):
         y el modal con spinner/barra de progreso de carga.
         """
         self.client.force_login(self.auth_contador)
-        RatioFinanciero.objects.create(
-            empresa=self.empresa1,
-            periodo='2025-Q4',
-            v1_razon_corriente=Decimal("1.80"),
-            v2_capital_trabajo_activos=Decimal("0.25"),
-            v3_leverage_total=Decimal("0.60"),
-            v4_roa_operacional=Decimal("0.10"),
-            v5_margen_operacional=Decimal("0.12"),
-            v6_rotacion_activos=Decimal("1.20"),
+        FinancialRatio.objects.create(
+            company=self.empresa1,
+            period='2025-Q4',
+            v1_current_ratio=Decimal("1.80"),
+            v2_working_capital_to_assets=Decimal("0.25"),
+            v3_total_leverage=Decimal("0.60"),
+            v4_operating_roa=Decimal("0.10"),
+            v5_operating_margin=Decimal("0.12"),
+            v6_asset_turnover=Decimal("1.20"),
         )
 
         resp = self.client.get(reverse('moduloETL:ratios_financieros'))
@@ -356,19 +356,19 @@ class ETLIntegrationAndViewsTests(TestCase):
         dashboard con mensaje de éxito y resultados actualizados.
         """
         import time
-        from capaAnalitica.models import PrediccionRiesgo
+        from capaAnalitica.models import RiskPrediction
 
         self.client.force_login(self.auth_contador)
 
-        ratio = RatioFinanciero.objects.create(
-            empresa=self.empresa1,
-            periodo='2025-Q4',
-            v1_razon_corriente=Decimal("1.80"),
-            v2_capital_trabajo_activos=Decimal("0.25"),
-            v3_leverage_total=Decimal("0.60"),
-            v4_roa_operacional=Decimal("0.10"),
-            v5_margen_operacional=Decimal("0.12"),
-            v6_rotacion_activos=Decimal("1.20"),
+        ratio = FinancialRatio.objects.create(
+            company=self.empresa1,
+            period='2025-Q4',
+            v1_current_ratio=Decimal("1.80"),
+            v2_working_capital_to_assets=Decimal("0.25"),
+            v3_total_leverage=Decimal("0.60"),
+            v4_operating_roa=Decimal("0.10"),
+            v5_operating_margin=Decimal("0.12"),
+            v6_asset_turnover=Decimal("1.20"),
         )
 
         t_inicio = time.time()
@@ -387,26 +387,26 @@ class ETLIntegrationAndViewsTests(TestCase):
         self.assertEqual(resp_dashboard.status_code, 200)
 
         # Verificar que se creó la predicción en base de datos
-        prediccion = PrediccionRiesgo.objects.filter(empresa=self.empresa1, ratio=ratio).first()
+        prediccion = RiskPrediction.objects.filter(company=self.empresa1, ratio=ratio).first()
         self.assertIsNotNone(prediccion)
-        self.assertGreaterEqual(float(prediccion.score_riesgo), 0.0)
-        self.assertIn(prediccion.nivel_semaforo, ['Verde', 'Amarillo', 'Rojo'])
+        self.assertGreaterEqual(float(prediccion.risk_score), 0.0)
+        self.assertIn(prediccion.traffic_light_level, ['Verde', 'Amarillo', 'Rojo'])
 
     def test_rf11_ejecutar_analisis_periodo_especifico(self):
         """[RF-11] Verifica la ejecución manual especificando un 'ratio_id' de período."""
-        from capaAnalitica.models import PrediccionRiesgo
+        from capaAnalitica.models import RiskPrediction
 
         self.client.force_login(self.auth_contador)
 
-        ratio_q1 = RatioFinanciero.objects.create(
-            empresa=self.empresa1,
-            periodo='2025-Q1',
-            v1_razon_corriente=Decimal("1.50"),
-            v2_capital_trabajo_activos=Decimal("0.20"),
-            v3_leverage_total=Decimal("0.80"),
-            v4_roa_operacional=Decimal("0.08"),
-            v5_margen_operacional=Decimal("0.10"),
-            v6_rotacion_activos=Decimal("1.10"),
+        ratio_q1 = FinancialRatio.objects.create(
+            company=self.empresa1,
+            period='2025-Q1',
+            v1_current_ratio=Decimal("1.50"),
+            v2_working_capital_to_assets=Decimal("0.20"),
+            v3_total_leverage=Decimal("0.80"),
+            v4_operating_roa=Decimal("0.08"),
+            v5_operating_margin=Decimal("0.10"),
+            v6_asset_turnover=Decimal("1.10"),
         )
 
         resp = self.client.post(
@@ -415,7 +415,7 @@ class ETLIntegrationAndViewsTests(TestCase):
             follow=True
         )
         self.assertEqual(resp.status_code, 200)
-        prediccion = PrediccionRiesgo.objects.filter(empresa=self.empresa1, ratio=ratio_q1).first()
+        prediccion = RiskPrediction.objects.filter(company=self.empresa1, ratio=ratio_q1).first()
         self.assertIsNotNone(prediccion)
 
     def test_rnf10_settings_limite_subida_25mb(self):
@@ -477,7 +477,7 @@ class ETLIntegrationAndViewsTests(TestCase):
 
     def test_ejecutar_analisis_periodos_multiples_etl(self):
         """Verifica la ejecución de predicción ML independiente para múltiples períodos extraídos por ETL."""
-        from capaAnalitica.models import PrediccionRiesgo
+        from capaAnalitica.models import RiskPrediction
         self.client.force_login(self.auth_contador)
 
         features_dict = {
@@ -512,14 +512,14 @@ class ETLIntegrationAndViewsTests(TestCase):
         self.assertEqual(resp.status_code, 200)
 
         # 1. Ratios creados para ambos períodos
-        r1 = RatioFinanciero.objects.filter(empresa=self.empresa1, periodo='2026-T1').first()
-        r2 = RatioFinanciero.objects.filter(empresa=self.empresa1, periodo='2026-T2').first()
+        r1 = FinancialRatio.objects.filter(company=self.empresa1, period='2026-T1').first()
+        r2 = FinancialRatio.objects.filter(company=self.empresa1, period='2026-T2').first()
         self.assertIsNotNone(r1)
         self.assertIsNotNone(r2)
 
         # 2. Predicciones independientes creadas para cada período
-        p1 = PrediccionRiesgo.objects.filter(empresa=self.empresa1, ratio=r1).first()
-        p2 = PrediccionRiesgo.objects.filter(empresa=self.empresa1, ratio=r2).first()
+        p1 = RiskPrediction.objects.filter(company=self.empresa1, ratio=r1).first()
+        p2 = RiskPrediction.objects.filter(company=self.empresa1, ratio=r2).first()
         self.assertIsNotNone(p1)
         self.assertIsNotNone(p2)
         self.assertNotEqual(p1.id, p2.id)
@@ -528,14 +528,14 @@ class ETLIntegrationAndViewsTests(TestCase):
         messages_list = list(resp.context['messages']) if resp.context and 'messages' in resp.context else []
         self.assertTrue(any('predicciones independientes' in str(m) for m in messages_list))
 
-        # 4. Registros en CargaFinanciera creados para el Historial de Ingesta y Cargas Contables
-        c1 = CargaFinanciera.objects.filter(empresa=self.empresa1, periodo='2026-T1').first()
-        c2 = CargaFinanciera.objects.filter(empresa=self.empresa1, periodo='2026-T2').first()
+        # 4. Registros en FinancialUpload creados para el Historial de Ingesta y Cargas Contables
+        c1 = FinancialUpload.objects.filter(company=self.empresa1, period='2026-T1').first()
+        c2 = FinancialUpload.objects.filter(company=self.empresa1, period='2026-T2').first()
         self.assertIsNotNone(c1)
         self.assertIsNotNone(c2)
-        self.assertEqual(c1.estado, 'PROCESADO')
-        self.assertEqual(c2.estado, 'PROCESADO')
+        self.assertEqual(c1.status, 'PROCESADO')
+        self.assertEqual(c2.status, 'PROCESADO')
 
         # 5. Balance activo en sesión limpiado al realizarse la predicción
-        estado = EstadoCarga.actual()
-        self.assertIsNone(estado.ruta_csv)
+        estado = UploadState.current()
+        self.assertIsNone(estado.csv_path)

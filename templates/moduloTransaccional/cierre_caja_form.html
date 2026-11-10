@@ -81,7 +81,7 @@
                         {% for m in resumen_metodos_electronicos %}
                         <div class="d-flex justify-content-between align-items-center mb-2 small text-muted">
                             <div>
-                                <strong class="text-dark">{{ m.metodo.nombre }}</strong>
+                                <strong class="text-dark">{{ m.metodo.name }}</strong>
                                 <span class="badge bg-light text-secondary border ms-1">{{ m.cantidad }} transac.</span>
                             </div>
                             <strong class="text-dark font-monospace">${{ m.total_ingreso_real|floatformat:0 }}</strong>
@@ -148,16 +148,16 @@
 
                     <!-- Total Arqueo Físico de Gaveta -->
                     <div class="mb-4">
-                        <label for="{{ form.total_arqueo.id_for_label }}" class="form-label fw-bold fs-6">
-                            {{ form.total_arqueo.label }} <span class="text-danger">*</span>
+                        <label for="{{ form.counted_total.id_for_label }}" class="form-label fw-bold fs-6">
+                            {{ form.counted_total.label }} <span class="text-danger">*</span>
                         </label>
                         <div class="input-group input-group-lg">
                             <span class="input-group-text bg-light fw-bold">$</span>
-                            {{ form.total_arqueo }}
+                            {{ form.counted_total }}
                         </div>
-                        {% if form.total_arqueo.errors %}
+                        {% if form.counted_total.errors %}
                             <div class="text-danger small mt-1">
-                                {{ form.total_arqueo.errors|striptags }}
+                                {{ form.counted_total.errors|striptags }}
                             </div>
                         {% endif %}
                         <div class="form-text small">
@@ -181,14 +181,14 @@
                     </div>
 
                     <!-- Campo Justificación (Se oculta/muestra reactivamente vía JS) -->
-                    <div id="contenedorJustificacion" class="mb-4 {% if not form.justificacion.errors %}d-none{% endif %}">
-                        <label for="{{ form.justificacion.id_for_label }}" class="form-label fw-bold text-danger">
+                    <div id="contenedorJustificacion" class="mb-4 {% if not form.justification.errors %}d-none{% endif %}">
+                        <label for="{{ form.justification.id_for_label }}" class="form-label fw-bold text-danger">
                             <i class="bi bi-shield-exclamation me-1"></i>Justificación de Descuadre en Gaveta <span class="text-danger">*</span>
                         </label>
-                        {{ form.justificacion }}
-                        {% if form.justificacion.errors %}
+                        {{ form.justification }}
+                        {% if form.justification.errors %}
                             <div class="text-danger small mt-1 fw-bold">
-                                {{ form.justificacion.errors|striptags }}
+                                {{ form.justification.errors|striptags }}
                             </div>
                         {% endif %}
                         <div class="form-text text-danger small">
@@ -316,7 +316,7 @@
 <!-- Reactividad controlada en Vanilla JS: las alertas de descuadre y justificación solo se activan al confirmar el cierre -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const inputArqueo = document.getElementById('id_total_arqueo');
+    const inputArqueo = document.getElementById('id_counted_total');
     const displayEfectivoEsperado = document.getElementById('displayEfectivoEsperado');
     const displayTotalSistema = document.getElementById('displayTotalSistema');
     const panelDiferencia = document.getElementById('panelDiferencia');
@@ -324,7 +324,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const textoDiferencia = document.getElementById('textoDiferencia');
     const subtextoDiferencia = document.getElementById('subtextoDiferencia');
     const contenedorJustificacion = document.getElementById('contenedorJustificacion');
-    const textareaJustificacion = document.getElementById('id_justificacion');
+    const textareaJustificacion = document.getElementById('id_justification');
     const formCierre = document.getElementById('formCierre');
 
     // La cuadratura física (Opción A) se realiza estrictamente contra el Efectivo Físico en Gaveta

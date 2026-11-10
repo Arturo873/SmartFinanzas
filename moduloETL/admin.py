@@ -1,16 +1,16 @@
 from django.contrib import admin
-from .models import CargaFinanciera, RatioFinanciero
+from .models import FinancialUpload, FinancialRatio
 
 
-@admin.register(CargaFinanciera)
-class CargaFinancieraAdmin(admin.ModelAdmin):
-    list_display = ('id', 'periodo', 'fecha_carga', 'tipo_carga', 'estado', 'usuario', 'empresa')
-    list_filter = ('estado', 'tipo_carga', 'empresa')
-    search_fields = ('periodo', 'archivo_origen')
+@admin.register(FinancialUpload)
+class FinancialUploadAdmin(admin.ModelAdmin):
+    list_display = ('id', 'period', 'upload_date', 'upload_type', 'status', 'user', 'company')
+    list_filter = ('status', 'upload_type', 'company')
+    search_fields = ('period', 'source_file')
 
 
-@admin.register(RatioFinanciero)
-class RatioFinancieroAdmin(admin.ModelAdmin):
-    list_display = ('id', 'periodo', 'fecha_calculo', 'v1_razon_corriente', 'v3_leverage_total', 'validado', 'empresa')
-    list_filter = ('validado', 'empresa')
-    search_fields = ('periodo',)
+@admin.register(FinancialRatio)
+class FinancialRatioAdmin(admin.ModelAdmin):
+    list_display = ('id', 'period', 'calculation_date', 'v1_current_ratio', 'v3_total_leverage', 'is_validated', 'company')
+    list_filter = ('is_validated', 'company')
+    search_fields = ('period',)

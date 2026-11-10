@@ -3,14 +3,15 @@ Pruebas Unitarias para la Capa Analítica (MotorRiesgo y Explicabilidad SHAP).
 SmartFinanzas.
 """
 
+import json
 from decimal import Decimal
 import numpy as np
 from django.test import TestCase
 from django.utils import timezone
-from capaAnalitica.services import MotorRiesgo, ejecutar_y_persistir_prediccion
-from capaAnalitica.models import PrediccionRiesgo
-from moduloETL.models import RatioFinanciero, CargaFinanciera
-from usuarios.models import Empresa, Usuario, Rol
+from capaAnalitica.services import MotorRiesgo, VARIABLES_FINANCIERAS, ejecutar_y_persistir_prediccion
+from capaAnalitica.models import RiskPrediction
+from moduloETL.models import FinancialRatio, FinancialUpload
+from usuarios.models import Company, User, Role
 
 
 class MotorRiesgoTests(TestCase):
@@ -112,25 +113,31 @@ class MotorRiesgoTests(TestCase):
         """
         Verifica la función de servicio ejecutar_y_persistir_prediccion.
         """
-        empresa = Empresa.objects.create(razon_social="Empresa Test SpA", rut="77.888.999-1")
-        carga = CargaFinanciera.objects.create(periodo="2026-Q1", empresa=empresa)
-        ratio = RatioFinanciero.objects.create(
-            carga=carga,
-            empresa=empresa,
-            periodo="2026-Q1",
-            v1_razon_corriente=Decimal("1.8000"),
-            v2_capital_trabajo_activos=Decimal("0.2500"),
-            v3_leverage_total=Decimal("1.2000"),
-            v4_roa_operacional=Decimal("0.0800"),
-            v5_margen_operacional=Decimal("0.1000"),
-            v6_rotacion_activos=Decimal("1.4000"),
-            v7_volatilidad_flujo=Decimal("0.0500"),
+        empresa = Company.objects.create(business_name="Empresa Test SpA", tax_id="77.888.999-1")
+        carga = FinancialUpload.objects.create(period="2026-Q1", company=empresa)
+        ratio = FinancialRatio.objects.create(
+            upload=carga,
+            company=empresa,
+            period="2026-Q1",
+            v1_current_ratio=Decimal("1.8000"),
+            v2_working_capital_to_assets=Decimal("0.2500"),
+            v3_total_leverage=Decimal("1.2000"),
+            v4_operating_roa=Decimal("0.0800"),
+            v5_operating_margin=Decimal("0.1000"),
+            v6_asset_turnover=Decimal("1.4000"),
+            v7_cash_flow_volatility=Decimal("0.0500"),
         )
 
         pred, res = ejecutar_y_persistir_prediccion(ratio, empresa=empresa)
 
-        self.assertIsInstance(pred, PrediccionRiesgo)
-        self.assertEqual(pred.empresa, empresa)
-        self.assertIsNotNone(pred.score_riesgo)
-        self.assertIn(pred.nivel_semaforo, ['Verde', 'Amarillo', 'Rojo'])
-        self.assertIn('Margen Operacional', pred.variables_influyentes)
+        self.assertIsInstance(pred, RiskPrediction)
+        self.assertEqual(pred.company, empresa)
+        self.assertIsNotNone(pred.risk_score)
+        self.assertIn(pred.traffic_light_level, ['Verde', 'Amarillo', 'Rojo'])
+
+        top3_persistido = json.loads(pred.influential_variables)
+        nombres_validos = {v['nombre'] for v in VARIABLES_FINANCIERAS}
+        self.assertEqual(len(top3_persistido), 3)
+        self.assertEqual(top3_persistido, res['top_3_variables'])
+        for item in top3_persistido:
+            self.assertIn(item.get('nombre'), nombres_validos)

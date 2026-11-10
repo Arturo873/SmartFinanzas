@@ -1,225 +1,225 @@
 from django.db import models
 
 
-class MetodoPago(models.Model):
-    nombre = models.CharField(max_length=50, verbose_name="Nombre")
-    comision_porcentaje = models.DecimalField(
+class PaymentMethod(models.Model):  # Antes: MetodoPago
+    name = models.CharField(max_length=50, verbose_name="Nombre")  # Antes: nombre
+    commission_percentage = models.DecimalField(  # Antes: comision_porcentaje
         max_digits=5, decimal_places=2, null=True, blank=True, verbose_name="Porcentaje de Comisión"
     )
-    activo = models.BooleanField(default=True, null=True, blank=True, verbose_name="Activo")
-    empresa = models.ForeignKey(
-        'usuarios.Empresa',
+    is_active = models.BooleanField(default=True, null=True, blank=True, verbose_name="Activo")  # Antes: activo
+    company = models.ForeignKey(  # Antes: empresa
+        'usuarios.Company',
         on_delete=models.CASCADE,
         null=True,
         blank=True,
-        db_column='empresa_id',
-        related_name='metodos_pago',
+        db_column='company_id',
+        related_name='payment_methods',
         verbose_name="Empresa"
     )
 
     class Meta:
-        db_table = 'metodopago'
+        db_table = 'payment_method'  # Antes: metodopago
         verbose_name = 'Método de Pago'
         verbose_name_plural = 'Métodos de Pago'
 
     def __str__(self):
-        return self.nombre
+        return self.name
 
 
-class CierreCaja(models.Model):
-    fecha = models.DateField(unique=True, verbose_name="Fecha del Cierre")
-    estado = models.CharField(max_length=15, null=True, blank=True, verbose_name="Estado")
-    total_sistema = models.DecimalField(
+class CashRegisterClosure(models.Model):  # Antes: CierreCaja
+    date = models.DateField(unique=True, verbose_name="Fecha del Cierre")  # Antes: fecha
+    status = models.CharField(max_length=15, null=True, blank=True, verbose_name="Estado")  # Antes: estado
+    system_total = models.DecimalField(  # Antes: total_sistema
         max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Total Sistema"
     )
-    total_retiros = models.DecimalField(
+    withdrawals_total = models.DecimalField(  # Antes: total_retiros
         max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Total Retiros"
     )
-    total_arqueo = models.DecimalField(
+    counted_total = models.DecimalField(  # Antes: total_arqueo
         max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Total Arqueo"
     )
-    descuadre_total = models.DecimalField(
+    total_discrepancy = models.DecimalField(  # Antes: descuadre_total
         max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Descuadre Total"
     )
-    cerrado_por_usuario = models.ForeignKey(
-        'usuarios.Usuario',
+    closed_by_user = models.ForeignKey(  # Antes: cerrado_por_usuario
+        'usuarios.User',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        db_column='cerrado_por_usuario_id',
-        related_name='cierres_realizados',
+        db_column='closed_by_user_id',
+        related_name='closures_performed',
         verbose_name="Cerrado Por"
     )
-    fecha_confirmacion = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de Confirmación")
-    revisado_por_usuario = models.ForeignKey(
-        'usuarios.Usuario',
+    confirmation_date = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de Confirmación")  # Antes: fecha_confirmacion
+    reviewed_by_user = models.ForeignKey(  # Antes: revisado_por_usuario
+        'usuarios.User',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        db_column='revisado_por_usuario_id',
-        related_name='cierres_revisados',
+        db_column='reviewed_by_user_id',
+        related_name='closures_reviewed',
         verbose_name="Revisado Por"
     )
-    fecha_revision = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de Revisión")
-    empresa = models.ForeignKey(
-        'usuarios.Empresa',
+    review_date = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de Revisión")  # Antes: fecha_revision
+    company = models.ForeignKey(  # Antes: empresa
+        'usuarios.Company',
         on_delete=models.CASCADE,
         null=True,
         blank=True,
-        db_column='empresa_id',
-        related_name='cierres_caja',
+        db_column='company_id',
+        related_name='cash_register_closures',
         verbose_name="Empresa"
     )
 
     class Meta:
-        db_table = 'cierrecaja'
+        db_table = 'cash_register_closure'  # Antes: cierrecaja
         verbose_name = 'Cierre de Caja'
         verbose_name_plural = 'Cierres de Caja'
 
     def __str__(self):
-        return f"Cierre {self.fecha} - Estado: {self.estado}"
+        return f"Cierre {self.date} - Estado: {self.status}"
 
 
-class DetalleCierrePorMetodo(models.Model):
-    cierre = models.ForeignKey(
-        CierreCaja,
+class ClosureMethodDetail(models.Model):  # Antes: DetalleCierrePorMetodo
+    closure = models.ForeignKey(  # Antes: cierre
+        CashRegisterClosure,
         on_delete=models.CASCADE,
-        db_column='cierre_id',
-        related_name='detalles_metodo',
+        db_column='closure_id',
+        related_name='method_details',
         verbose_name="Cierre de Caja"
     )
-    metodo_pago = models.ForeignKey(
-        MetodoPago,
+    payment_method = models.ForeignKey(  # Antes: metodo_pago
+        PaymentMethod,
         on_delete=models.PROTECT,
-        db_column='metodo_pago_id',
-        related_name='detalles_cierre',
+        db_column='payment_method_id',
+        related_name='closure_details',
         verbose_name="Método de Pago"
     )
-    total_sistema = models.DecimalField(
+    system_total = models.DecimalField(  # Antes: total_sistema
         max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Total Sistema"
     )
-    total_arqueo = models.DecimalField(
+    counted_total = models.DecimalField(  # Antes: total_arqueo
         max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Total Arqueo"
     )
-    descuadre = models.DecimalField(
+    discrepancy = models.DecimalField(  # Antes: descuadre
         max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Descuadre"
     )
-    justificacion = models.TextField(null=True, blank=True, verbose_name="Justificación")
+    justification = models.TextField(null=True, blank=True, verbose_name="Justificación")  # Antes: justificacion
 
     class Meta:
-        db_table = 'detallecierrepormetodo'
+        db_table = 'closure_method_detail'  # Antes: detallecierrepormetodo
         verbose_name = 'Detalle de Cierre por Método'
         verbose_name_plural = 'Detalles de Cierre por Método'
 
     def __str__(self):
-        return f"Detalle Cierre #{self.cierre_id} - {self.metodo_pago.nombre}"
+        return f"Detalle Cierre #{self.closure_id} - {self.payment_method.name}"
 
 
-class RetiroCajaChica(models.Model):
-    fecha = models.DateTimeField(null=True, blank=True, verbose_name="Fecha y Hora")
-    monto = models.DecimalField(
+class PettyCashWithdrawal(models.Model):  # Antes: RetiroCajaChica
+    date = models.DateTimeField(null=True, blank=True, verbose_name="Fecha y Hora")  # Antes: fecha
+    amount = models.DecimalField(  # Antes: monto
         max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Monto"
     )
-    motivo = models.CharField(max_length=255, null=True, blank=True, verbose_name="Motivo")
-    responsable = models.CharField(max_length=100, null=True, blank=True, verbose_name="Responsable")
-    usuario = models.ForeignKey(
-        'usuarios.Usuario',
+    reason = models.CharField(max_length=255, null=True, blank=True, verbose_name="Motivo")  # Antes: motivo
+    responsible_person = models.CharField(max_length=100, null=True, blank=True, verbose_name="Responsable")  # Antes: responsable
+    user = models.ForeignKey(  # Antes: usuario
+        'usuarios.User',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        db_column='usuario_id',
-        related_name='retiros_caja_chica',
+        db_column='user_id',
+        related_name='petty_cash_withdrawals',
         verbose_name="Usuario"
     )
-    cierre = models.ForeignKey(
-        CierreCaja,
+    closure = models.ForeignKey(  # Antes: cierre
+        CashRegisterClosure,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        db_column='cierre_id',
-        related_name='retiros',
+        db_column='closure_id',
+        related_name='withdrawals',
         verbose_name="Cierre de Caja"
     )
-    empresa = models.ForeignKey(
-        'usuarios.Empresa',
+    company = models.ForeignKey(  # Antes: empresa
+        'usuarios.Company',
         on_delete=models.CASCADE,
         null=True,
         blank=True,
-        db_column='empresa_id',
-        related_name='retiros_caja_chica',
+        db_column='company_id',
+        related_name='petty_cash_withdrawals',
         verbose_name="Empresa"
     )
 
     class Meta:
-        db_table = 'retirocajachica'
+        db_table = 'petty_cash_withdrawal'  # Antes: retirocajachica
         verbose_name = 'Retiro de Caja Chica'
         verbose_name_plural = 'Retiros de Caja Chica'
 
     def __str__(self):
-        return f"Retiro ${self.monto} - {self.motivo} ({self.fecha})"
+        return f"Retiro ${self.amount} - {self.reason} ({self.date})"
 
 
-class Venta(models.Model):
-    fecha = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de Venta")
-    metodo_pago = models.ForeignKey(
-        MetodoPago,
+class Sale(models.Model):  # Antes: Venta
+    date = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de Venta")  # Antes: fecha
+    payment_method = models.ForeignKey(  # Antes: metodo_pago
+        PaymentMethod,
         on_delete=models.PROTECT,
         null=True,
         blank=True,
-        db_column='metodo_pago_id',
-        related_name='ventas',
+        db_column='payment_method_id',
+        related_name='sales',
         verbose_name="Método de Pago"
     )
-    total_bruto = models.DecimalField(
+    gross_total = models.DecimalField(  # Antes: total_bruto
         max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Total Bruto"
     )
-    descuento_tipo = models.CharField(
+    discount_type = models.CharField(  # Antes: descuento_tipo
         max_length=10, null=True, blank=True, verbose_name="Tipo de Descuento"
     )
-    descuento_monto = models.DecimalField(
+    discount_amount = models.DecimalField(  # Antes: descuento_monto
         max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Monto Descuento"
     )
-    total_cobrado = models.DecimalField(
+    charged_total = models.DecimalField(  # Antes: total_cobrado
         max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Total Cobrado"
     )
-    comision_aplicada = models.DecimalField(
+    applied_commission = models.DecimalField(  # Antes: comision_aplicada
         max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Comisión Aplicada"
     )
-    ingreso_real = models.DecimalField(
+    net_income = models.DecimalField(  # Antes: ingreso_real
         max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Ingreso Real"
     )
-    usuario = models.ForeignKey(
-        'usuarios.Usuario',
+    user = models.ForeignKey(  # Antes: usuario
+        'usuarios.User',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        db_column='usuario_id',
-        related_name='ventas',
+        db_column='user_id',
+        related_name='sales',
         verbose_name="Usuario"
     )
-    cierre = models.ForeignKey(
-        CierreCaja,
+    closure = models.ForeignKey(  # Antes: cierre
+        CashRegisterClosure,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        db_column='cierre_id',
-        related_name='ventas',
+        db_column='closure_id',
+        related_name='sales',
         verbose_name="Cierre de Caja"
     )
-    empresa = models.ForeignKey(
-        'usuarios.Empresa',
+    company = models.ForeignKey(  # Antes: empresa
+        'usuarios.Company',
         on_delete=models.CASCADE,
         null=True,
         blank=True,
-        db_column='empresa_id',
-        related_name='ventas',
+        db_column='company_id',
+        related_name='sales',
         verbose_name="Empresa"
     )
 
     class Meta:
-        db_table = 'venta'
+        db_table = 'sale'  # Antes: venta
         verbose_name = 'Venta'
         verbose_name_plural = 'Ventas'
 
     def __str__(self):
-        return f"Venta #{self.pk} - ${self.total_cobrado} ({self.fecha})"
+        return f"Venta #{self.pk} - ${self.charged_total} ({self.date})"
