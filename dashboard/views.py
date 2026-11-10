@@ -1002,12 +1002,60 @@ class DashboardPredictivoView(DashboardView):
             nivel=nivel,
         )
 
+        # 6. Catálogo de Recomendaciones Estratégicas y Preventivas a 90 Días vinculadas al ID del período
+        from capaAnalitica.services import generar_o_recuperar_recomendaciones_prediccion
+        recomendaciones_por_periodo = {}
+
+        for pt in timeline_puntos:
+            per_key = pt['periodo']
+            lbl_key = pt['label']
+            p_obj = pred_por_periodo.get(per_key)
+            r_obj = ratios_por_periodo.get(per_key)
+
+            vars_dict_periodo = None
+            if r_obj:
+                vars_dict_periodo = {
+                    'razon_corriente': float(r_obj.v1_razon_corriente or 1.0),
+                    'capital_trabajo_sobre_activos': float(r_obj.v2_capital_trabajo_activos or 0.1),
+                    'leverage_total': float(r_obj.v3_leverage_total or 1.0),
+                    'roa_operacional': float(r_obj.v4_roa_operacional or 0.05),
+                    'margen_operacional': float(r_obj.v5_margen_operacional or 0.08),
+                    'rotacion_activos': float(r_obj.v6_rotacion_activos or 1.0),
+                    'volatilidad_flujo_caja': float(r_obj.v7_volatilidad_flujo or 0.5),
+                }
+
+            rec_resultado = generar_o_recuperar_recomendaciones_prediccion(
+                prediccion_obj=p_obj,
+                score_proyectado=pt.get('score_proyectado'),
+                ratios_dict=vars_dict_periodo
+            )
+            rec_resultado['meta']['periodo_label'] = lbl_key
+            if pt.get('id'):
+                rec_resultado['meta']['prediccion_id'] = pt['id']
+            pt['recomendaciones'] = rec_resultado
+
+            recomendaciones_por_periodo[per_key] = rec_resultado
+            recomendaciones_por_periodo[lbl_key] = rec_resultado
+            if pt.get('id'):
+                recomendaciones_por_periodo[str(pt['id'])] = rec_resultado
+
+        punto_activo = next((pt for pt in timeline_puntos if pt['es_actual']), timeline_puntos[-1] if timeline_puntos else None)
+        plan_recomendaciones_activo = punto_activo.get('recomendaciones') if punto_activo else None
+        if not plan_recomendaciones_activo and ultima_prediccion:
+            plan_recomendaciones_activo = generar_o_recuperar_recomendaciones_prediccion(
+                prediccion_obj=ultima_prediccion,
+                score_proyectado=score_actual
+            )
+
         context.update({
             'periodo_balance': periodo_balance_norm,
             'periodo_balance_raw': periodo_balance_raw,
             'periodo_proyectado': periodo_proyectado,
             'ventana_preventiva_dias': dias_horizonte,
             'delta_info': delta_info,
+
+            'plan_recomendaciones_activo': plan_recomendaciones_activo,
+            'recomendaciones_por_periodo_json': json.dumps(recomendaciones_por_periodo, ensure_ascii=False),
 
             'etiquetas_periodos_pasados': periodos_pasados_labels,
             'valores_historicos': valores_historicos,

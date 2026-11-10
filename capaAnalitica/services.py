@@ -411,4 +411,131 @@ def ejecutar_y_persistir_prediccion(ratio_obj_o_id, usuario=None, empresa=None):
         empresa=empresa,
     )
 
+    # Persistir inmediatamente las recomendaciones vinculadas al ID de la predicción
+    try:
+        generar_o_recuperar_recomendaciones_prediccion(prediccion, forzar_recalculo=True)
+    except Exception as e:
+        logger.warning(f"Error al generar recomendaciones tras predicción #{prediccion.id}: {e}")
+
     return prediccion, resultado
+
+
+def generar_o_recuperar_recomendaciones_prediccion(
+    prediccion_obj,
+    score_proyectado=None,
+    ratios_dict=None,
+    forzar_recalculo=False
+) -> dict:
+    """
+    Recupera las recomendaciones persistidas en la tabla 'recomendacion' vinculadas
+    al 'prediccion_obj.id' (período actual), o las genera y persiste si no existen aún.
+    Garantiza trazabilidad histórica ligada al ID del período analizado.
+    """
+    from capaAnalitica.models import Recomendacion
+    from capaAnalitica.catalogo_recomendaciones import (
+        seleccionar_recomendaciones_para_periodo,
+        clasificar_nivel
+    )
+
+    if not prediccion_obj:
+        return seleccionar_recomendaciones_para_periodo(
+            score_actual=35.0,
+            score_proyectado=score_proyectado or 35.0,
+            variables_dict=ratios_dict or {}
+        )
+
+    sc_act = float(prediccion_obj.score_riesgo if prediccion_obj.score_riesgo is not None else 35.0)
+    sc_proy = float(score_proyectado) if score_proyectado is not None else sc_act
+
+    # 1. Si ya tiene recomendaciones guardadas y no forzamos recálculo, leerlas
+    qs_existentes = Recomendacion.objects.filter(prediccion=prediccion_obj).order_by('id')
+    if qs_existentes.exists() and not forzar_recalculo:
+        macro_item = None
+        tacticas_items = []
+        for rec in qs_existentes:
+            try:
+                data = json.loads(rec.texto) if rec.texto else {}
+            except Exception:
+                data = {
+                    'titulo': rec.texto or 'Acción Financiera',
+                    'que_hacer': rec.texto or '',
+                    'fuente': 'Chile Financial Distress Model'
+                }
+
+            if rec.variable_origen == 'macro_transicion':
+                macro_item = data
+            else:
+                tacticas_items.append(data)
+
+        if macro_item and tacticas_items:
+            delta = round(sc_proy - sc_act, 1)
+            return {
+                'macro': macro_item,
+                'tacticas': tacticas_items,
+                'meta': {
+                    'prediccion_id': prediccion_obj.id,
+                    'periodo': prediccion_obj.ratio.periodo if (prediccion_obj.ratio and prediccion_obj.ratio.periodo) else 'Actual',
+                    'score_actual': sc_act,
+                    'score_proyectado': sc_proy,
+                    'nivel_actual': prediccion_obj.nivel_semaforo or clasificar_nivel(sc_act),
+                    'nivel_proyectado': clasificar_nivel(sc_proy),
+                    'delta_riesgo': delta,
+                    'tendencia': 'Deterioro' if delta > 1.5 else ('Mejora' if delta < -1.5 else 'Estable'),
+                }
+            }
+
+    # 2. Si no existen o se forzó recálculo, generarlas desde el catálogo
+    top_3_vars = []
+    if prediccion_obj.variables_influyentes:
+        try:
+            top_3_vars = json.loads(prediccion_obj.variables_influyentes)
+        except Exception:
+            top_3_vars = []
+
+    vars_eval = dict(ratios_dict or {})
+    if prediccion_obj.ratio:
+        r = prediccion_obj.ratio
+        vars_eval.setdefault('razon_corriente', float(r.v1_razon_corriente or 1.0))
+        vars_eval.setdefault('capital_trabajo_sobre_activos', float(r.v2_capital_trabajo_activos or 0.1))
+        vars_eval.setdefault('leverage_total', float(r.v3_leverage_total or 1.0))
+        vars_eval.setdefault('roa_operacional', float(r.v4_roa_operacional or 0.05))
+        vars_eval.setdefault('margen_operacional', float(r.v5_margen_operacional or 0.08))
+        vars_eval.setdefault('rotacion_activos', float(r.v6_rotacion_activos or 1.0))
+        vars_eval.setdefault('volatilidad_flujo_caja', float(r.v7_volatilidad_flujo or 0.5))
+
+    resultado = seleccionar_recomendaciones_para_periodo(
+        score_actual=sc_act,
+        score_proyectado=sc_proy,
+        variables_dict=vars_eval,
+        top_3_variables=top_3_vars
+    )
+    resultado['meta']['prediccion_id'] = prediccion_obj.id
+    resultado['meta']['periodo'] = prediccion_obj.ratio.periodo if (prediccion_obj.ratio and prediccion_obj.ratio.periodo) else 'Actual'
+
+    # 3. Persistencia en tabla 'recomendacion' vinculada a prediccion_obj.id
+    try:
+        Recomendacion.objects.filter(prediccion=prediccion_obj).delete()
+
+        # Guardar Macro
+        Recomendacion.objects.create(
+            prediccion=prediccion_obj,
+            variable_origen='macro_transicion',
+            grupo_riesgo=str(resultado['macro'].get('tipo', 'Macro'))[:40],
+            prioridad=str(resultado['macro'].get('prioridad', 'Alta'))[:10],
+            texto=json.dumps(resultado['macro'], ensure_ascii=False)
+        )
+
+        # Guardar Tácticas
+        for tac in resultado['tacticas']:
+            Recomendacion.objects.create(
+                prediccion=prediccion_obj,
+                variable_origen=str(tac.get('variable_origen', 'tactica'))[:50],
+                grupo_riesgo=str(tac.get('grupo_riesgo', 'Operativo'))[:40],
+                prioridad=str(tac.get('prioridad', 'Media'))[:10],
+                texto=json.dumps(tac, ensure_ascii=False)
+            )
+    except Exception as e:
+        logger.warning(f"No se pudieron persistir recomendaciones para predicción #{prediccion_obj.id}: {e}")
+
+    return resultado
+
