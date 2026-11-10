@@ -637,12 +637,23 @@ class LimpiarDatosView(RolRequeridoMixin, View):
 
 class DescargarPlantillaView(RolRequeridoMixin, View):
     """
-    Permite descargar una plantilla oficial en formato CSV con la estructura
-    y formato exigido por el pipeline ETL.
+    Descarga directamente el archivo Excel estático PlantillaIFRS.xlsx
+    almacenado en static/plantillas/.
     """
     def get(self, request: HttpRequest):
-        contenido_csv = generar_plantilla_ejemplo_csv()
-        response = HttpResponse(contenido_csv, content_type='text/csv; charset=utf-8')
-        response['Content-Disposition'] = 'attachment; filename="plantilla_estados_financieros_smartfinanzas.csv"'
+        from django.conf import settings
+        ruta_archivo = os.path.join(settings.BASE_DIR, 'static', 'plantillas', 'PlantillaIFRS.xlsx')
+        if not os.path.exists(ruta_archivo):
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            ruta_archivo = os.path.join(base_dir, 'plantillas', 'PlantillaIFRS.xlsx')
+
+        with open(ruta_archivo, 'rb') as f:
+            contenido = f.read()
+
+        response = HttpResponse(
+            contenido,
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename="PlantillaIFRS.xlsx"'
         return response
 

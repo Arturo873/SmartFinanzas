@@ -223,6 +223,7 @@ class ETLIntegrationAndViewsTests(TestCase):
             {
                 'tipo_documento': 'Balance General',
                 'archivo_datos': archivo,
+                'terminos_aceptados': 'on',
             },
             follow=True
         )
@@ -244,7 +245,7 @@ class ETLIntegrationAndViewsTests(TestCase):
         archivo = self._generar_archivo_post([FILA_BALANCE_SANO])
         self.client.post(
             reverse('moduloETL:carga_datos'),
-            {'tipo_documento': 'Balance General', 'archivo_datos': archivo}
+            {'tipo_documento': 'Balance General', 'archivo_datos': archivo, 'terminos_aceptados': 'on'}
         )
 
         # 2. Iniciar sesión como Usuario de Empresa 2
@@ -272,6 +273,7 @@ class ETLIntegrationAndViewsTests(TestCase):
             {
                 'tipo_documento': 'Balance General',
                 'archivo_datos': archivo,
+                'terminos_aceptados': 'on',
             }
         )
         self.assertEqual(resp.status_code, 200)
@@ -282,13 +284,16 @@ class ETLIntegrationAndViewsTests(TestCase):
         self.client.force_login(self.auth_contador)
         resp = self.client.get(reverse('moduloETL:descargar_plantilla'))
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp['Content-Type'], 'text/csv; charset=utf-8')
-        self.assertIn('attachment', resp['Content-Disposition'])
+        self.assertIn('spreadsheetml', resp['Content-Type'])
+        self.assertIn('PlantillaIFRS.xlsx', resp['Content-Disposition'])
 
     def test_limpiar_datos(self):
         self.client.force_login(self.auth_contador)
         archivo = self._generar_archivo_post([FILA_BALANCE_SANO])
-        self.client.post(reverse('moduloETL:carga_datos'), {'tipo_documento': 'Balance General', 'archivo_datos': archivo})
+        self.client.post(
+            reverse('moduloETL:carga_datos'),
+            {'tipo_documento': 'Balance General', 'archivo_datos': archivo, 'terminos_aceptados': 'on'}
+        )
 
         self.assertIsNotNone(EstadoCarga.actual().ruta_csv)
         resp = self.client.post(reverse('moduloETL:limpiar_datos'), follow=True)
