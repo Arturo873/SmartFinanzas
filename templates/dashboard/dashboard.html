@@ -382,8 +382,8 @@
     </div>
     -->
 
-    <!-- Explicabilidad SHAP del Diagnóstico (Ocupa el espacio de las cards 2, 3 y 4) -->
-    <div class="col-12 col-lg-8 col-xl-9">
+    <!-- Explicabilidad SHAP del Diagnóstico (Ancho completo) -->
+    <div class="col-12">
         <div class="card h-100 border-default d-flex flex-column justify-content-between">
             <div class="card-header py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-2 border-default bg-white">
                 <div>
@@ -1331,7 +1331,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const fechasElem = document.getElementById('chart-fechas-raw');
     const scoresElem = document.getElementById('chart-scores-raw');
     const actualElem = document.getElementById('chart-actual-raw');
-    const puntosElem = document.getElementById('chart-puntos-raw') || document.getElementById('timeline-puntos-raw');
+    const puntosElem = document.getElementById('timeline-puntos-raw') || document.getElementById('chart-puntos-raw');
+    const puntosFiltradosElem = document.getElementById('chart-puntos-raw');
     const observadoElem = document.getElementById('timeline-observado-raw');
     const prediccionesElem = document.getElementById('timeline-predicciones-raw');
     const labelsElem = document.getElementById('timeline-labels-raw');
@@ -1340,6 +1341,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let scores = [];
     let esActual = [];
     let puntosRaw = [];
+    let puntosFiltradosRaw = [];
     let timelineObservado = [];
     let timelinePredicciones = [];
     let timelineLabels = [];
@@ -1349,6 +1351,7 @@ document.addEventListener('DOMContentLoaded', function () {
         scores = scoresElem ? JSON.parse(scoresElem.textContent || '[]') : [];
         esActual = actualElem ? JSON.parse(actualElem.textContent || '[]') : [];
         puntosRaw = puntosElem ? JSON.parse(puntosElem.textContent || '[]') : [];
+        puntosFiltradosRaw = puntosFiltradosElem ? JSON.parse(puntosFiltradosElem.textContent || '[]') : [];
         timelineObservado = observadoElem ? JSON.parse(observadoElem.textContent || '[]') : [];
         timelinePredicciones = prediccionesElem ? JSON.parse(prediccionesElem.textContent || '[]') : [];
         timelineLabels = labelsElem ? JSON.parse(labelsElem.textContent || '[]') : [];
@@ -1436,10 +1439,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Estado reactivo de períodos seleccionados y filtros
     let periodosSeleccionados = new Set(periodosUnicos);
-    let filtroRango = 'todos'; // 'todos' | 'ultimos3' | 'ultimos5'
+    let filtroRango = 'todos'; // 'todos' | 'ultimos4' | 'ultimos8' | 'personalizado'
+    if (puntosFiltradosRaw && puntosFiltradosRaw.length > 0 && puntosFiltradosRaw.length < puntosOriginales.length) {
+        const filtradosSet = new Set(puntosFiltradosRaw.map(p => p.periodo).filter(p => periodosUnicos.includes(p)));
+        if (filtradosSet.size > 0) {
+            periodosSeleccionados = filtradosSet;
+            filtroRango = 'personalizado';
+        }
+    }
     let soloAlertas = false;
     let esActualArr = [];
     let puntosVisiblesActuales = [];
+    let activeIdxActual = -1;
+    let destIdxActual = -1;
+    let puntoActivoActual = null;
 
     // Datos de proyección futura a 90 días (Q_{t+1})
     const periodoProyectadoElem = document.getElementById('periodo-proyectado-raw');
@@ -1459,6 +1472,8 @@ document.addEventListener('DOMContentLoaded', function () {
         return { border: '#dc2626', bg: '#ef4444', text: 'Rojo (Riesgo Crítico)' };
     }
     const colorProyeccion = getColorSemaforo(scoreProyectado);
+    let colorProyeccionActual = colorProyeccion;
+    const indicadorLeyendaProyeccion = document.getElementById('indicadorLeyendaProyeccion');
 
     // Estado de visibilidad de series
     const visibilidadSeries = {
@@ -1512,18 +1527,16 @@ document.addEventListener('DOMContentLoaded', function () {
     if (btnToggleObservados) {
         btnToggleObservados.addEventListener('click', function () {
             visibilidadSeries.observados = !visibilidadSeries.observados;
-            chart.setDatasetVisibility(0, visibilidadSeries.observados);
             actualizarBotonesVisibilidad();
-            chart.update();
+            aplicarFiltrosYActualizar();
         });
     }
 
     if (btnToggleProyeccion) {
         btnToggleProyeccion.addEventListener('click', function () {
             visibilidadSeries.proyeccion = !visibilidadSeries.proyeccion;
-            chart.setDatasetVisibility(1, visibilidadSeries.proyeccion);
             actualizarBotonesVisibilidad();
-            chart.update();
+            aplicarFiltrosYActualizar();
         });
     }
 
@@ -1789,10 +1802,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (!elements || elements.length === 0) return;
                 const el = elements[0];
                 const dataIndex = el.index;
-                const lastIdx = chart.data.labels.length - 1;
 
-                // Si se hace clic en el nodo destino proyectado final, no alterar
-                if (dataIndex === lastIdx && el.datasetIndex === 1) return;
+                // Si se hace clic en el nodo destino proyectado, no alterar
+                if (el.datasetIndex === 1 && dataIndex === destIdxActual) return;
 
                 const punto = puntosVisiblesActuales[dataIndex];
                 if (!punto) return;
@@ -1839,7 +1851,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         color: function(context) {
                             const lastIdx = chart ? (chart.data.labels.length - 1) : -1;
                             if (context.index === lastIdx) {
-                                return colorProyeccion.border;
+                                return colorProyeccionActual.border;
                             }
                             return '#475569';
                         }
@@ -1854,13 +1866,18 @@ document.addEventListener('DOMContentLoaded', function () {
                     bodyFont: { size: 11 },
                     padding: 10,
                     cornerRadius: 6,
+                    filter: function(tooltipItem) {
+                        if (tooltipItem.datasetIndex === 1 && tooltipItem.dataIndex !== destIdxActual) {
+                            return !visibilidadSeries.observados;
+                        }
+                        return true;
+                    },
                     callbacks: {
                         title: function(items) {
                             if (!items || !items.length) return '';
                             const idx = items[0].dataIndex;
-                            const lastIdx = chart.data.labels.length - 1;
-                            if (idx === lastIdx && items[0].datasetIndex === 1) {
-                                return 'Pronóstico Preventivo AI (90 días - Q_{t+1}): ' + items[0].label;
+                            if (items[0].datasetIndex === 1 && idx === destIdxActual) {
+                                return 'Pronóstico Preventivo AI (90 días - Q(t+1)): ' + items[0].label;
                             }
                             const isAct = esActualArr[idx];
                             return 'Trimestre ' + items[0].label + (isAct ? '  [ACTUAL]' : '');
@@ -1874,6 +1891,9 @@ document.addEventListener('DOMContentLoaded', function () {
                                 || (puntosVisiblesActuales && idx === lastIdx ? puntosVisiblesActuales[puntosVisiblesActuales.length - 1] : null);
 
                             if (context.datasetIndex === 1) {
+                                if (idx !== destIdxActual) {
+                                    return 'Riesgo Observado Base (Q_t): ' + val.toFixed(1) + '%';
+                                }
                                 let estadoProy = val > 70 ? 'Crítica (>70%)' : (val > 35 ? 'Preventiva / Alerta (35-70%)' : 'Solvente (≤35%)');
                                 return 'Pronóstico Machine Learning 90d: ' + val.toFixed(1) + '% | Probabilidad de Insolvencia: ' + estadoProy;
                             }
@@ -1887,10 +1907,17 @@ document.addEventListener('DOMContentLoaded', function () {
                         afterLabel: function(ctx) {
                             const idx = ctx.dataIndex;
                             if (ctx.datasetIndex === 1) {
-                                return 'Pronóstico preventivo generado por Random Forest AI anticipando el estado en Q_{t+1}.';
+                                if (idx !== destIdxActual) {
+                                    return '● Balance actual seleccionado (punto de partida de la proyección)';
+                                }
+                                const origenStr = puntoActivoActual ? ` desde ${puntoActivoActual.label}` : '';
+                                return `Pronóstico preventivo generado por Random Forest AI anticipando el estado en ${ctx.label}${origenStr}.`;
                             }
                             if (esActualArr[idx]) {
-                                return '● Balance actual seleccionado (la línea proyectada sale desde aquí hacia Q_{t+1})';
+                                if (visibilidadSeries.proyeccion && puntoActivoActual) {
+                                    return `● Balance actual seleccionado (pronóstico 90d a ${puntoActivoActual.periodo_proyectado}: ${puntoActivoActual.score_prediccion.toFixed(1)}%)`;
+                                }
+                                return '● Balance actual seleccionado';
                             }
                             return '👉 Clic para situar el análisis en este trimestre';
                         }
@@ -1905,9 +1932,6 @@ document.addEventListener('DOMContentLoaded', function () {
         // Filtrar puntos cuyos períodos estén marcados
         let visibles = puntosOriginales.filter(p => periodosSeleccionados.has(p.periodo));
 
-        // Guardar referencia para el handler de clic
-        puntosVisiblesActuales = visibles;
-
         // Aplicar filtro de rango si no es 'todos'
         if (filtroRango === 'ultimos4' || filtroRango === 'ultimos3') {
             visibles = visibles.slice(-4);
@@ -1920,8 +1944,15 @@ document.addEventListener('DOMContentLoaded', function () {
             visibles = visibles.filter(p => p.score_prediccion > 35 || p.score_observado > 35);
         }
 
+        // Guardar referencia exacta de los puntos visibles tras todos los filtros
+        puntosVisiblesActuales = visibles;
+
         // Control visual del mensaje de estado cuando no hay períodos visibles
         if (visibles.length === 0) {
+            activeIdxActual = -1;
+            destIdxActual = -1;
+            puntoActivoActual = null;
+            esActualArr = [];
             if (mensajeSinPeriodos) mensajeSinPeriodos.classList.remove('d-none');
             ctx.style.opacity = '0.15';
             chart.data.labels = [];
@@ -1941,11 +1972,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const M = visibles.length;
 
-        // Determinar índice del período activo dentro de los visibles
+        // Determinar índice del período activo dentro de los visibles (sin mutar puntosOriginales)
         let activeIdx = visibles.findIndex(p => p.es_actual);
         if (activeIdx === -1) {
             activeIdx = M - 1;
-            visibles[activeIdx].es_actual = true;
         }
         const puntoActivo = visibles[activeIdx];
 
@@ -1963,22 +1993,34 @@ document.addEventListener('DOMContentLoaded', function () {
         newProyectado[activeIdx] = puntoActivo.score_observado;
         newProyectado[destIdx] = puntoActivo.score_prediccion;
 
-        esActualArr = visibles.map(p => Boolean(p.es_actual)).concat([false]);
+        activeIdxActual = activeIdx;
+        destIdxActual = destIdx;
+        puntoActivoActual = puntoActivo;
+
+        esActualArr = visibles.map((_, idx) => idx === activeIdx).concat([false]);
         const colorActivoSem = getColorSemaforo(puntoActivo.score_prediccion);
+        colorProyeccionActual = colorActivoSem;
+        if (indicadorLeyendaProyeccion) {
+            indicadorLeyendaProyeccion.style.borderTopColor = colorActivoSem.border;
+        }
 
         // Styling Dataset 0 (Observados)
-        const obsPointRadii = visibles.map(p => p.es_actual ? 7.5 : 5.5).concat([0]);
-        const obsPointHoverRadii = visibles.map(p => p.es_actual ? 10 : 8).concat([0]);
-        const obsPointBorders = visibles.map(p => p.es_actual ? '#0f172a' : '#ffffff').concat(['transparent']);
-        const obsPointBorderWidths = visibles.map(p => p.es_actual ? 3 : 2).concat([0]);
-        const obsPointBg = visibles.map(p => '#2563eb').concat(['transparent']);
+        const obsPointRadii = visibles.map((_, idx) => idx === activeIdx ? 7.5 : 5.5).concat([0]);
+        const obsPointHoverRadii = visibles.map((_, idx) => idx === activeIdx ? 10 : 8).concat([0]);
+        const obsPointBorders = visibles.map((_, idx) => idx === activeIdx ? '#0f172a' : '#ffffff').concat(['transparent']);
+        const obsPointBorderWidths = visibles.map((_, idx) => idx === activeIdx ? 3 : 2).concat([0]);
+        const obsPointBg = visibles.map(() => '#2563eb').concat(['transparent']);
 
         // Styling Dataset 1 (Proyección a 90 días)
         const projPointRadii = new Array(M + 1).fill(0);
-        projPointRadii[activeIdx] = 4;
+        projPointRadii[activeIdx] = visibilidadSeries.observados ? 0 : 4;
         projPointRadii[destIdx] = 9;
         const projPointHoverRadii = new Array(M + 1).fill(0);
+        projPointHoverRadii[activeIdx] = visibilidadSeries.observados ? 0 : 6;
         projPointHoverRadii[destIdx] = 12;
+        const projPointHitRadii = new Array(M + 1).fill(0);
+        projPointHitRadii[activeIdx] = visibilidadSeries.observados ? 0 : 8;
+        projPointHitRadii[destIdx] = 12;
         const projPointBg = new Array(M + 1).fill(colorActivoSem.border);
         projPointBg[activeIdx] = '#ffffff';
 
@@ -1997,6 +2039,7 @@ document.addEventListener('DOMContentLoaded', function () {
         chart.data.datasets[1].borderColor = colorActivoSem.border;
         chart.data.datasets[1].pointRadius = projPointRadii;
         chart.data.datasets[1].pointHoverRadius = projPointHoverRadii;
+        chart.data.datasets[1].pointHitRadius = projPointHitRadii;
         chart.data.datasets[1].pointBackgroundColor = projPointBg;
 
         // Respetar visibilidad elegida por el usuario
@@ -2729,6 +2772,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Inicialización del Componente
     actualizarBotonesVisibilidad();
+    setRangoActivo(filtroRango);
     renderizarCheckboxesPeriodos();
     aplicarFiltrosYActualizar();
 });

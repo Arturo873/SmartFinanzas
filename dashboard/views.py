@@ -505,6 +505,16 @@ class DashboardView(DashboardRolMixin, TemplateView):
         elif not user.is_superuser:
             ratios_qs = ratios_qs.none()
 
+        ultimo_ratio = (
+            ultima_prediccion.ratio
+            if (ultima_prediccion and ultima_prediccion.ratio)
+            else (
+                ratios_qs.filter(Q(period=periodo_param) | Q(period__icontains=periodo_param)).order_by('-id').first()
+                if periodo_param
+                else ratios_qs.order_by('-calculation_date', '-id').first()
+            )
+        )
+
         # 3. Consulta y construcción completa de períodos para el Monitor de Solvencia Contable (RF-04)
         periodos_unicos = list(
             ratios_qs.exclude(period__isnull=True)
@@ -580,7 +590,7 @@ class DashboardView(DashboardRolMixin, TemplateView):
                 pat_val = float(getattr(carga_obj, 'equity', 1.0) or 1.0) if carga_obj else 1.0
             else:
                 sc_obs = raw_ml
-                z_val = 2.60
+                z_val = None
                 pat_val = 1.0
 
             sc_pred = calibrar_score_proyeccion(raw_ml, sc_obs)
@@ -620,9 +630,12 @@ class DashboardView(DashboardRolMixin, TemplateView):
         if ultima_prediccion and chart_puntos and not any(pt['es_actual'] for pt in chart_puntos):
             chart_puntos[-1]['es_actual'] = True
 
-        # En Dashboard general, si se solicita filtrar por un período por GET, recortar chart_puntos para esa consulta
+        # Conservar la serie histórica completa para que el botón "Todos" en el gráfico pueda mostrarla siempre
+        chart_puntos_completos = list(chart_puntos)
+
+        # En Dashboard general, si se solicita filtrar por un período por GET, marcar filtro inicial en chart_puntos
         if periodo_param and not (self.request.headers.get('x-requested-with') == 'XMLHttpRequest' or self.request.GET.get('ajax') == '1'):
-            chart_puntos_filtrados = [pt for pt in chart_puntos if pt['periodo'] == periodo_param or pt['label'] == periodo_param]
+            chart_puntos_filtrados = [pt for pt in chart_puntos_completos if pt['periodo'] == periodo_param or pt['label'] == periodo_param]
             if chart_puntos_filtrados:
                 chart_puntos = chart_puntos_filtrados
 
@@ -631,37 +644,27 @@ class DashboardView(DashboardRolMixin, TemplateView):
         chart_niveles = [pt['nivel'] for pt in chart_puntos]
         chart_es_actual = [pt['es_actual'] for pt in chart_puntos]
 
-        ultimo_ratio = (
-            ultima_prediccion.ratio
-            if (ultima_prediccion and ultima_prediccion.ratio)
-            else (
-                ratios_qs.filter(Q(period=periodo_param) | Q(period__icontains=periodo_param)).order_by('-id').first()
-                if periodo_param
-                else ratios_qs.order_by('-calculation_date', '-id').first()
-            )
-        )
-
         # Proyección futura a 90 días (Q_{t+1}) para la curva de tendencia con alternador/ocultador
         periodo_base_dashboard = ''
         if ultima_prediccion and ultima_prediccion.ratio and ultima_prediccion.ratio.period:
             periodo_base_dashboard = ultima_prediccion.ratio.period
         elif ultimo_ratio and ultimo_ratio.period:
             periodo_base_dashboard = ultimo_ratio.period
-        elif chart_puntos:
-            periodo_base_dashboard = chart_puntos[-1]['periodo']
+        elif chart_puntos_completos:
+            periodo_base_dashboard = chart_puntos_completos[-1]['periodo']
         else:
             periodo_base_dashboard = '2024-Q4'
 
         periodo_proyectado_dashboard, periodo_base_norm_dashboard, dias_horizonte_dashboard = calcular_periodo_siguiente(periodo_base_dashboard)
         idx_act = -1
-        for idx_h, pt in enumerate(chart_puntos):
+        for idx_h, pt in enumerate(chart_puntos_completos):
             if pt['es_actual']:
                 idx_act = idx_h
                 break
-        if idx_act == -1 and chart_puntos:
-            idx_act = len(chart_puntos) - 1
+        if idx_act == -1 and chart_puntos_completos:
+            idx_act = len(chart_puntos_completos) - 1
 
-        punto_activo = chart_puntos[idx_act] if (0 <= idx_act < len(chart_puntos)) else None
+        punto_activo = chart_puntos_completos[idx_act] if (0 <= idx_act < len(chart_puntos_completos)) else None
         score_base_dashboard = punto_activo['score_observado'] if punto_activo else (float(score) if score is not None else 35.0)
         score_actual_proy = punto_activo['score_prediccion'] if punto_activo else (float(score) if score is not None else 35.0)
         score_proyectado_dashboard = score_actual_proy
@@ -669,7 +672,8 @@ class DashboardView(DashboardRolMixin, TemplateView):
         score_anterior_dashboard = valores_predicciones[idx_act - 1] if idx_act >= 1 else None
         delta_info_dashboard = calcular_delta_riesgo(score_actual_proy, score_anterior_dashboard)
 
-        timeline_labels = list(periodos_pasados_labels) + [periodo_proyectado_dashboard]
+        ultimo_futuro_label = chart_puntos_completos[-1]['periodo_proyectado'] if chart_puntos_completos else periodo_proyectado_dashboard
+        timeline_labels = list(periodos_pasados_labels) + [ultimo_futuro_label]
         timeline_observado_data = list(valores_observados) + [None]
         timeline_predicciones_data = list(valores_predicciones) + [None]
 
@@ -835,8 +839,8 @@ class DashboardView(DashboardRolMixin, TemplateView):
             'chart_puntos_json': json.dumps(chart_puntos, ensure_ascii=False),
             'top_3_shap_json': json.dumps(top_3_variables, ensure_ascii=False),
             # Datos alineados para visualización idéntica y compatible con dashboard_predictivo
-            'timeline_puntos': chart_puntos,
-            'timeline_puntos_json': json.dumps(chart_puntos, ensure_ascii=False),
+            'timeline_puntos': chart_puntos_completos,
+            'timeline_puntos_json': json.dumps(chart_puntos_completos, ensure_ascii=False),
             'timeline_labels': timeline_labels,
             'timeline_labels_json': json.dumps(timeline_labels, ensure_ascii=False),
             'timeline_observado_json': json.dumps(timeline_observado_data),
@@ -977,7 +981,7 @@ class DashboardPredictivoView(DashboardView):
                 pat_val = float(getattr(carga_obj, 'equity', 1.0) or 1.0) if carga_obj else 1.0
                 sc_obs = calcular_score_observado(r_obj)
             else:
-                z_val = 2.60
+                z_val = None
                 pat_val = 1.0
                 sc_obs = raw_ml
             niv_obs = 'Verde' if sc_obs <= 35 else ('Amarillo' if sc_obs <= 70 else 'Rojo')
@@ -1062,7 +1066,8 @@ class DashboardPredictivoView(DashboardView):
             valores_historicos = list(valores_observados)
 
             # 4. Listas separadas de datos para el Gráfico Temporal con Proyección Futura (Chart.js)
-            timeline_labels = list(periodos_pasados_labels) + [periodo_proyectado]
+            ultimo_futuro_pred = timeline_puntos[-1]['periodo_proyectado'] if timeline_puntos else periodo_proyectado
+            timeline_labels = list(periodos_pasados_labels) + [ultimo_futuro_pred]
             timeline_observado_data = list(valores_observados) + [None]
             timeline_predicciones_data = list(valores_predicciones) + [None]
             timeline_historico_data = list(valores_observados) + [None]

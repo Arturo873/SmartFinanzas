@@ -765,5 +765,88 @@ class AlertaTempranaPredictivoTests(TestCase):
         score_critico = calcular_score_observado(r_critico)
         self.assertGreater(score_critico, 70.0)  # Zona Roja Crítica
 
+    def test_dashboard_ver_periodo_preserva_todos_para_grafico_y_shap_ancho_completo(self):
+        """
+        Verifica que al abrir /dashboard/?periodo=... (botón VER de Ratios Financieros):
+        1. timeline_puntos_json conserve toda la historia para que el botón 'Todos' muestre todos los períodos.
+        2. timeline_proyectado_json y timeline_labels se alineen con el período seleccionado.
+        3. Explicabilidad SHAP ocupe todo el ancho (col-12 sin col-lg-8/col-xl-9).
+        4. El tooltip del gráfico filtre el ancla duplicada del dataset proyectado.
+        """
+        FinancialRatio.objects.create(
+            company=self.empresa,
+            period='2024-Q2',
+            v1_current_ratio=1.6,
+            v2_working_capital_to_assets=0.22,
+            v3_total_leverage=1.4,
+            v4_operating_roa=0.07,
+            calculation_date=timezone.now(),
+        )
+        FinancialRatio.objects.create(
+            company=self.empresa,
+            period='2024-Q3',
+            v1_current_ratio=1.4,
+            v2_working_capital_to_assets=0.18,
+            v3_total_leverage=1.7,
+            v4_operating_roa=0.05,
+            calculation_date=timezone.now(),
+        )
+
+        self.client.force_login(self.auth_user)
+        response = self.client.get(reverse('dashboard:dashboard'), {'periodo': '2024-Q2'})
+        self.assertEqual(response.status_code, 200)
+
+        puntos_filtrados = json.loads(response.context['chart_puntos_json'])
+        self.assertEqual(len(puntos_filtrados), 1)
+        self.assertEqual(puntos_filtrados[0]['periodo'], '2024-Q2')
+
+        puntos_completos = json.loads(response.context['timeline_puntos_json'])
+        periodos_completos = [p['periodo'] for p in puntos_completos]
+        self.assertIn('2024-Q2', periodos_completos)
+        self.assertIn('2024-Q3', periodos_completos)
+        self.assertIn('2024-Q4', periodos_completos)
+
+        punto_q2 = next(p for p in puntos_completos if p['periodo'] == '2024-Q2')
+        self.assertTrue(punto_q2['es_actual'])
+
+        labels = json.loads(response.context['timeline_labels_json'])
+        self.assertEqual(labels[-1], '2025-Q1')
+
+        idx_q2 = periodos_completos.index('2024-Q2')
+        proyectado = json.loads(response.context['timeline_proyectado_json'])
+        self.assertIsNotNone(proyectado[idx_q2])
+        self.assertIsNotNone(proyectado[idx_q2 + 1])
+
+        content = response.content.decode('utf-8')
+        self.assertNotIn('col-12 col-lg-8 col-xl-9', content)
+        self.assertIn('<!-- Explicabilidad SHAP del Diagnóstico (Ancho completo) -->', content)
+        self.assertIn("document.getElementById('timeline-puntos-raw')", content)
+        self.assertIn('destIdxActual', content)
+
+    def test_dashboard_solo_ratios_sin_prediccion_no_falla(self):
+        """
+        Verifica que cuando la empresa tiene FinancialRatio pero aún no tiene RiskPrediction,
+        DashboardView no lance UnboundLocalError por ultimo_ratio.
+        """
+        RiskPrediction.objects.filter(company=self.empresa).delete()
+        FinancialRatio.objects.filter(company=self.empresa).delete()
+        FinancialRatio.objects.create(
+            company=self.empresa,
+            period='2025-Q1',
+            v1_current_ratio=1.7,
+            v2_working_capital_to_assets=0.25,
+            v3_total_leverage=1.1,
+            v4_operating_roa=0.09,
+            calculation_date=timezone.now(),
+        )
+
+        self.client.force_login(self.auth_user)
+        response = self.client.get(reverse('dashboard:dashboard'))
+        self.assertEqual(response.status_code, 200)
+        puntos = json.loads(response.context['timeline_puntos_json'])
+        self.assertEqual(len(puntos), 1)
+        self.assertTrue(puntos[0]['es_actual'])
+
+
 
 

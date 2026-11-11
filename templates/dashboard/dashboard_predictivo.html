@@ -1035,10 +1035,13 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     let periodosSeleccionados = new Set(periodosUnicos);
-    let filtroRango = 'todos'; // 'todos' | 'ultimos3' | 'ultimos5'
+    let filtroRango = 'todos'; // 'todos' | 'ultimos4' | 'ultimos8' | 'personalizado'
     let soloAlertas = false;
     let esActualArr = [];
     let puntosVisiblesActuales = [];
+    let activeIdxActual = -1;
+    let destIdxActual = -1;
+    let puntoActivoActual = null;
 
     // Período proyectado a 90 días (Q_{t+1})
     const periodoProyectadoLabel = '{{ periodo_futuro_label|default:periodo_proyectado|default:"Q_{t+1}" }}';
@@ -1050,6 +1053,10 @@ document.addEventListener('DOMContentLoaded', function () {
         return { border: '#dc2626', bg: '#ef4444', text: 'Rojo (Riesgo Crítico)' };
     }
     const colorActual = getColorSemaforo(scoreProyectado);
+    let colorProyeccionActual = colorActual;
+    const indicadorLeyendaProyeccion = document.getElementById('indicadorLeyendaProyeccion');
+    const leyendaObservados = document.getElementById('leyendaObservados');
+    const leyendaProyeccion = document.getElementById('leyendaProyeccion');
 
     // Estado y controles de visibilidad independiente de series
     const visibilidadSeries = {
@@ -1083,28 +1090,32 @@ document.addEventListener('DOMContentLoaded', function () {
             btnToggleObservados.classList.toggle('btn-outline-primary', !visibilidadSeries.observados);
             btnToggleObservados.innerHTML = `<i class="bi bi-${visibilidadSeries.observados ? 'eye' : 'eye-slash'} me-1"></i>Observados`;
         }
+        if (leyendaObservados) {
+            leyendaObservados.style.opacity = visibilidadSeries.observados ? '1' : '0.35';
+        }
         if (btnToggleProyeccion) {
             btnToggleProyeccion.classList.toggle('btn-dark', visibilidadSeries.proyeccion);
             btnToggleProyeccion.classList.toggle('btn-outline-secondary', !visibilidadSeries.proyeccion);
             btnToggleProyeccion.innerHTML = `<i class="bi bi-${visibilidadSeries.proyeccion ? 'eye' : 'eye-slash'} me-1"></i>Pronóstico 90d`;
+        }
+        if (leyendaProyeccion) {
+            leyendaProyeccion.style.opacity = visibilidadSeries.proyeccion ? '1' : '0.35';
         }
     }
 
     if (btnToggleObservados) {
         btnToggleObservados.addEventListener('click', function () {
             visibilidadSeries.observados = !visibilidadSeries.observados;
-            chartInstance.setDatasetVisibility(0, visibilidadSeries.observados);
             actualizarBotonesVisibilidad();
-            chartInstance.update();
+            aplicarFiltrosYActualizar();
         });
     }
 
     if (btnToggleProyeccion) {
         btnToggleProyeccion.addEventListener('click', function () {
             visibilidadSeries.proyeccion = !visibilidadSeries.proyeccion;
-            chartInstance.setDatasetVisibility(1, visibilidadSeries.proyeccion);
             actualizarBotonesVisibilidad();
-            chartInstance.update();
+            aplicarFiltrosYActualizar();
         });
     }
 
@@ -1368,10 +1379,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (!elements || elements.length === 0) return;
                 const el = elements[0];
                 const dataIndex = el.index;
-                const lastIdx = chartInstance.data.labels.length - 1;
 
-                // Si se hace clic en el nodo destino proyectado final, no alterar
-                if (dataIndex === lastIdx && el.datasetIndex === 1) return;
+                // Si se hace clic en el nodo destino proyectado, no alterar
+                if (el.datasetIndex === 1 && dataIndex === destIdxActual) return;
 
                 const punto = puntosVisiblesActuales[dataIndex];
                 if (!punto) return;
@@ -1418,7 +1428,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         color: function(context) {
                             const lastIdx = chartInstance ? (chartInstance.data.labels.length - 1) : -1;
                             if (context.index === lastIdx) {
-                                return colorActual.border;
+                                return colorProyeccionActual.border;
                             }
                             return '#475569';
                         }
@@ -1435,13 +1445,18 @@ document.addEventListener('DOMContentLoaded', function () {
                     bodyFont: { size: 11 },
                     padding: 10,
                     cornerRadius: 6,
+                    filter: function(tooltipItem) {
+                        if (tooltipItem.datasetIndex === 1 && tooltipItem.dataIndex !== destIdxActual) {
+                            return !visibilidadSeries.observados;
+                        }
+                        return true;
+                    },
                     callbacks: {
                         title: function(items) {
                             if (!items || !items.length) return '';
                             const idx = items[0].dataIndex;
-                            const lastIdx = chartInstance.data.labels.length - 1;
-                            if (idx === lastIdx && items[0].datasetIndex === 1) {
-                                return 'Pronóstico Preventivo AI (90 días - Q_{t+1}): ' + items[0].label;
+                            if (items[0].datasetIndex === 1 && idx === destIdxActual) {
+                                return 'Pronóstico Preventivo AI (90 días - Q(t+1)): ' + items[0].label;
                             }
                             const isAct = esActualArr[idx];
                             return 'Trimestre ' + items[0].label + (isAct ? '  [ACTUAL]' : '');
@@ -1455,6 +1470,9 @@ document.addEventListener('DOMContentLoaded', function () {
                                 || (puntosVisiblesActuales && idx === lastIdx ? puntosVisiblesActuales[puntosVisiblesActuales.length - 1] : null);
 
                             if (ctx.datasetIndex === 1) {
+                                if (idx !== destIdxActual) {
+                                    return 'Riesgo Observado Base (Q_t): ' + val.toFixed(1) + '%';
+                                }
                                 let estadoProy = val > 70 ? 'Crítica (>70%)' : (val > 35 ? 'Preventiva / Alerta (35-70%)' : 'Solvente (≤35%)');
                                 return 'Pronóstico Machine Learning 90d: ' + val.toFixed(1) + '% | Probabilidad de Insolvencia: ' + estadoProy;
                             }
@@ -1468,10 +1486,17 @@ document.addEventListener('DOMContentLoaded', function () {
                         afterLabel: function(ctx) {
                             const idx = ctx.dataIndex;
                             if (ctx.datasetIndex === 1) {
-                                return 'Pronóstico preventivo generado por Random Forest AI anticipando el estado en Q_{t+1}.';
+                                if (idx !== destIdxActual) {
+                                    return '● Balance actual seleccionado (punto de partida de la proyección)';
+                                }
+                                const origenStr = puntoActivoActual ? ` desde ${puntoActivoActual.label}` : '';
+                                return `Pronóstico preventivo generado por Random Forest AI anticipando el estado en ${ctx.label}${origenStr}.`;
                             }
                             if (esActualArr[idx]) {
-                                return '● Balance actual seleccionado (la línea proyectada sale desde aquí hacia Q_{t+1})';
+                                if (visibilidadSeries.proyeccion && puntoActivoActual) {
+                                    return `● Balance actual seleccionado (pronóstico 90d a ${puntoActivoActual.periodo_proyectado}: ${puntoActivoActual.score_prediccion.toFixed(1)}%)`;
+                                }
+                                return '● Balance actual seleccionado';
                             }
                             return '👉 Clic para situar el análisis en este trimestre';
                         }
@@ -1676,7 +1701,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // =========================================================================
     function aplicarFiltrosYActualizar() {
         let visibles = puntosOriginales.filter(p => periodosSeleccionados.has(p.periodo));
-        puntosVisiblesActuales = visibles;
 
         if (filtroRango === 'ultimos4' || filtroRango === 'ultimos3') {
             visibles = visibles.slice(-4);
@@ -1688,7 +1712,13 @@ document.addEventListener('DOMContentLoaded', function () {
             visibles = visibles.filter(p => p.score_prediccion > 35 || p.score_observado > 35);
         }
 
+        puntosVisiblesActuales = visibles;
+
         if (visibles.length === 0) {
+            activeIdxActual = -1;
+            destIdxActual = -1;
+            puntoActivoActual = null;
+            esActualArr = [];
             if (mensajeSinPeriodos) mensajeSinPeriodos.classList.remove('d-none');
             canvasChart.style.opacity = '0.15';
             chartInstance.data.labels = [];
@@ -1708,11 +1738,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const M = visibles.length;
 
-        // Determinar índice del período activo dentro de los visibles
+        // Determinar índice del período activo dentro de los visibles (sin mutar puntosOriginales)
         let activeIdx = visibles.findIndex(p => p.es_actual);
         if (activeIdx === -1) {
             activeIdx = M - 1;
-            visibles[activeIdx].es_actual = true;
         }
         const puntoActivo = visibles[activeIdx];
 
@@ -1730,23 +1759,35 @@ document.addEventListener('DOMContentLoaded', function () {
         newProyectado[activeIdx] = puntoActivo.score_observado;
         newProyectado[destIdx] = puntoActivo.score_prediccion;
 
-        esActualArr = visibles.map(p => Boolean(p.es_actual)).concat([false]);
+        activeIdxActual = activeIdx;
+        destIdxActual = destIdx;
+        puntoActivoActual = puntoActivo;
+
+        esActualArr = visibles.map((_, idx) => idx === activeIdx).concat([false]);
 
         const colorActivoSem = getColorSemaforo(puntoActivo.score_prediccion);
+        colorProyeccionActual = colorActivoSem;
+        if (indicadorLeyendaProyeccion) {
+            indicadorLeyendaProyeccion.style.borderTopColor = colorActivoSem.border;
+        }
 
         // Styling Dataset 0 (Observados)
-        const obsPointRadii = visibles.map(p => p.es_actual ? 7.5 : 5.5).concat([0]);
-        const obsPointHoverRadii = visibles.map(p => p.es_actual ? 10 : 8).concat([0]);
-        const obsPointBorders = visibles.map(p => p.es_actual ? '#0f172a' : '#ffffff').concat(['transparent']);
-        const obsPointBorderWidths = visibles.map(p => p.es_actual ? 3 : 2).concat([0]);
-        const obsPointBg = visibles.map(p => '#2563eb').concat(['transparent']);
+        const obsPointRadii = visibles.map((_, idx) => idx === activeIdx ? 7.5 : 5.5).concat([0]);
+        const obsPointHoverRadii = visibles.map((_, idx) => idx === activeIdx ? 10 : 8).concat([0]);
+        const obsPointBorders = visibles.map((_, idx) => idx === activeIdx ? '#0f172a' : '#ffffff').concat(['transparent']);
+        const obsPointBorderWidths = visibles.map((_, idx) => idx === activeIdx ? 3 : 2).concat([0]);
+        const obsPointBg = visibles.map(() => '#2563eb').concat(['transparent']);
 
         // Styling Dataset 1 (Proyección a 90 días)
         const projPointRadii = new Array(M + 1).fill(0);
-        projPointRadii[activeIdx] = 4;
+        projPointRadii[activeIdx] = visibilidadSeries.observados ? 0 : 4;
         projPointRadii[destIdx] = 9;
         const projPointHoverRadii = new Array(M + 1).fill(0);
+        projPointHoverRadii[activeIdx] = visibilidadSeries.observados ? 0 : 6;
         projPointHoverRadii[destIdx] = 12;
+        const projPointHitRadii = new Array(M + 1).fill(0);
+        projPointHitRadii[activeIdx] = visibilidadSeries.observados ? 0 : 8;
+        projPointHitRadii[destIdx] = 12;
         const projPointBg = new Array(M + 1).fill(colorActivoSem.border);
         projPointBg[activeIdx] = '#ffffff';
 
@@ -1765,6 +1806,7 @@ document.addEventListener('DOMContentLoaded', function () {
         chartInstance.data.datasets[1].borderColor = colorActivoSem.border;
         chartInstance.data.datasets[1].pointRadius = projPointRadii;
         chartInstance.data.datasets[1].pointHoverRadius = projPointHoverRadii;
+        chartInstance.data.datasets[1].pointHitRadius = projPointHitRadii;
         chartInstance.data.datasets[1].pointBackgroundColor = projPointBg;
 
         // Respetar visibilidad elegida por el usuario
