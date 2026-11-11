@@ -822,6 +822,7 @@ class AlertaTempranaPredictivoTests(TestCase):
         self.assertIn('<!-- Explicabilidad SHAP del Diagnóstico (Ancho completo) -->', content)
         self.assertIn("document.getElementById('timeline-puntos-raw')", content)
         self.assertIn('destIdxActual', content)
+        self.assertNotIn('| Altman Z', content)
 
     def test_dashboard_solo_ratios_sin_prediccion_no_falla(self):
         """

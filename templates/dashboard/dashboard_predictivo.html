@@ -1465,9 +1465,6 @@ document.addEventListener('DOMContentLoaded', function () {
                             const val = ctx.parsed.y;
                             if (val === null || val === undefined) return '';
                             const idx = ctx.dataIndex;
-                            const lastIdx = chartInstance.data.labels.length - 1;
-                            const punto = (puntosVisiblesActuales && puntosVisiblesActuales[idx]) 
-                                || (puntosVisiblesActuales && idx === lastIdx ? puntosVisiblesActuales[puntosVisiblesActuales.length - 1] : null);
 
                             if (ctx.datasetIndex === 1) {
                                 if (idx !== destIdxActual) {
@@ -1477,11 +1474,8 @@ document.addEventListener('DOMContentLoaded', function () {
                                 return 'Pronóstico Machine Learning 90d: ' + val.toFixed(1) + '% | Probabilidad de Insolvencia: ' + estadoProy;
                             }
 
-                            const zScoreStr = (punto && punto.altman_z !== null && punto.altman_z !== undefined) 
-                                ? Number(punto.altman_z).toFixed(2) 
-                                : '--';
                             let zonaTexto = val > 70 ? 'Zona Crítica' : (val > 35 ? 'Zona Gris' : 'Zona Segura');
-                            return 'Riesgo: ' + val.toFixed(1) + '% | Altman Z\'\': ' + zScoreStr + ' | ' + zonaTexto;
+                            return 'Riesgo: ' + val.toFixed(1) + '% | ' + zonaTexto;
                         },
                         afterLabel: function(ctx) {
                             const idx = ctx.dataIndex;
