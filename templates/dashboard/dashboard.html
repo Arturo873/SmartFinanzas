@@ -271,68 +271,7 @@
 <!-- ====================================================================== -->
 <div class="row g-3 mb-4">
     <!-- Card 1: Probabilidad de Insolvencia / Semáforo ML -->
-    <div class="col-12 col-lg-4 col-xl-3">
-        <div class="card h-100 p-3 d-flex flex-column justify-content-between">
-            <div class="d-flex align-items-start justify-content-between mb-2">
-                <span class="text-muted-custom fw-medium fs-caption">Índice de Riesgo (ML)</span>
-                <span id="kpiNivelBadge">
-                {% if nivel == 'Verde' %}
-                    <span class="badge border fw-medium badge-status-solvente fs-micro">
-                        Solvente
-                    </span>
-                {% elif nivel == 'Amarillo' %}
-                    <span class="badge border fw-medium badge-status-alerta fs-micro">
-                        Alerta Preventiva
-                    </span>
-                {% elif nivel == 'Rojo' %}
-                    <span class="badge border fw-medium badge-status-critico fs-micro">
-                        Riesgo Crítico
-                    </span>
-                {% else %}
-                    <span class="badge border fw-medium badge-status-neutral fs-micro">
-                        Sin Inferencia
-                    </span>
-                {% endif %}
-                </span>
-            </div>
-
-            <div>
-                <div class="d-flex align-items-baseline gap-2">
-                    <span class="fw-bold tracking-tight text-main fs-kpi" id="kpiScoreValor">
-                        {% if score is not None %}
-                            {{ score|floatformat:1 }}%
-                        {% else %}
-                            --%
-                        {% endif %}
-                    </span>
-                    <span class="text-muted-custom fs-micro">probabilidad insolvencia</span>
-                </div>
-
-                <!-- Barra de umbral neutra y discreta (Bootstrap progress sin linters) -->
-                <div class="progress kpi-progress rounded-pill overflow-hidden mt-2">
-                    <div class="progress-bar {% if nivel == 'Rojo' %}bg-danger{% elif nivel == 'Amarillo' %}bg-warning{% elif nivel == 'Verde' %}bg-success{% else %}bg-secondary{% endif %}"
-                         id="kpiProgressBar"
-                         role="progressbar"
-                         style="width: {{ score|default:0|floatformat:0 }}%;"></div>
-                </div>
-            </div>
-
-            <div class="pt-2 mt-3 border-top border-subtle d-flex align-items-center justify-content-between text-muted-custom fs-micro">
-                <span>
-                    <i class="bi bi-clock me-1"></i>
-                    <span id="kpiFechaPrediccion">
-                    {% if fecha_prediccion %}
-                        {{ fecha_prediccion|date:"d/m/Y H:i" }}
-                    {% else %}
-                        Pendiente
-                    {% endif %}
-                    </span>
-                </span>
-                <span class="font-mono">v1.1</span>
-            </div>
-        </div>
-    </div>
-
+    
     <!-- ====================================================================== -->
     <!-- CARDS 2, 3 Y 4 (COMENTADAS A SOLICITUD DEL USUARIO)                   -->
     <!-- ====================================================================== -->
