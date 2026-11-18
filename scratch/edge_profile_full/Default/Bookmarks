@@ -1,0 +1,281 @@
+{
+   "checksum": "ffd9bcf52e8b60f1f5ac197c7e161805",
+   "roots": {
+      "bookmark_bar": {
+         "children": [  ],
+         "date_added": "13439412743234408",
+         "date_last_used": "0",
+         "date_modified": "0",
+         "guid": "0bc5d13f-2cba-5d74-951f-3f233fe6c908",
+         "id": "1",
+         "name": "Barra de favoritos",
+         "source": "unknown",
+         "type": "folder"
+      },
+      "other": {
+         "children": [ {
+            "date_added": "13346969931428837",
+            "date_last_used": "0",
+            "guid": "3f9d465b-a397-48eb-ab1f-ba56c88b77b9",
+            "id": "7",
+            "name": "Caja de Autoservicio.pptx",
+            "show_icon": false,
+            "source": "sync",
+            "type": "url",
+            "url": "https://inacapmailcl-my.sharepoint.com/:p:/g/personal/ignacio_mamani02_inacapmail_cl/EcFm94PRfDdOjoypus14eUcBZX1ipqCgNeJC_27pZRKAHw?rtime=_MNr7RL820g",
+            "visit_count": 0
+         }, {
+            "date_added": "13349925952368455",
+            "date_last_used": "0",
+            "guid": "66fc36b0-211c-4a6a-af46-e78a35245073",
+            "id": "8",
+            "name": "Conga!Ditto",
+            "show_icon": false,
+            "source": "sync",
+            "type": "url",
+            "url": "https://matias.me/nsfw/",
+            "visit_count": 0
+         }, {
+            "date_added": "13355511077323524",
+            "date_last_used": "0",
+            "guid": "47eed86f-d553-439f-9a2b-c5f0ff5d811b",
+            "id": "9",
+            "name": "Sistema de Trámites Curriculares",
+            "show_icon": false,
+            "source": "sync",
+            "type": "url",
+            "url": "https://tramitecurricular.ucn.cl/login",
+            "visit_count": 0
+         }, {
+            "date_added": "13358741518903897",
+            "date_last_used": "0",
+            "guid": "aaec2e8b-9a4e-4171-84f2-66882eaf6c1c",
+            "id": "10",
+            "name": "Document",
+            "show_icon": false,
+            "source": "sync",
+            "type": "url",
+            "url": "file:///C:/Users/artur/Desktop/FontEnd/Evaluaci%C3%B3n%202/index.html",
+            "visit_count": 0
+         }, {
+            "date_added": "13368162069168232",
+            "date_last_used": "0",
+            "guid": "4a3140b5-472c-4d5e-85ce-f7b262548e93",
+            "id": "11",
+            "name": "25th Anniversary: Legend of Blue Eyes White Dragon Booster Box - Netdecker Store - Tienda Online de Cartas Yugioh",
+            "show_icon": false,
+            "source": "sync",
+            "type": "url",
+            "url": "http://www.store.netdecker.cl/booster-box/31838-25th-anniversary-legend-of-blue-eyes-white-dragon-booster-box.html",
+            "visit_count": 0
+         }, {
+            "date_added": "13368240845496622",
+            "date_last_used": "0",
+            "guid": "b8cb6d21-5d5e-4e36-9ea8-06ac2c4ca9bd",
+            "id": "12",
+            "name": "MEMES R2D2 - Google Fotos",
+            "show_icon": false,
+            "source": "sync",
+            "type": "url",
+            "url": "https://photos.google.com/share/AF1QipMrPXATt-KmDtGNBd5se52Igtr-ftoyXsGIiZ7V6aeSHGQjIfbi665G73btaxNetw?key=emdldzdfQ3dnbXFscVowUnZyWFBiN3FpV0UydGZn",
+            "visit_count": 0
+         }, {
+            "date_added": "13368248762843313",
+            "date_last_used": "0",
+            "guid": "a04e1e95-49be-470b-a3d5-c079b12767b7",
+            "id": "13",
+            "name": "Yu-Gi-Oh! Sellado",
+            "show_icon": false,
+            "source": "sync",
+            "type": "url",
+            "url": "https://tcglifestore.com/collections/producto-sellado?page=1",
+            "visit_count": 0
+         }, {
+            "date_added": "13368250188561815",
+            "date_last_used": "0",
+            "guid": "dcdcffba-6850-4a22-a2c0-ead7a2169e42",
+            "id": "14",
+            "name": "Pokémon Obsidian Flames Build And Battle Box Inglés - Updown Juegos",
+            "show_icon": false,
+            "source": "sync",
+            "type": "url",
+            "url": "https://www.updown.cl/producto/pokemon-obsidian-flames-build-and-battle-box-ingles/",
+            "visit_count": 0
+         }, {
+            "date_added": "13368313874585210",
+            "date_last_used": "0",
+            "guid": "4af27886-1a89-4f96-8550-80ee5119338c",
+            "id": "15",
+            "name": "Top Deck 60 Fundas Small Rojo Para Cartas Yugioh | Cuotas sin interés",
+            "show_icon": false,
+            "source": "sync",
+            "type": "url",
+            "url": "https://articulo.mercadolibre.cl/MLC-571094021-top-deck-60-fundas-small-rojo-para-cartas-yugioh-_JM#position%3D8%26search_layout%3Dstack%26type%3Ditem%26tracking_id%3Db2ad3098-68e8-42a5-a661-585ce870fac1",
+            "visit_count": 0
+         }, {
+            "date_added": "13368313878958231",
+            "date_last_used": "0",
+            "guid": "52e11b0d-5032-4380-a37d-4cf15520a144",
+            "id": "16",
+            "name": "Yugioh Carpeta Modelo Dioses Egipcios Slifer, Obelisk & Ra | Cuotas sin interés",
+            "show_icon": false,
+            "source": "sync",
+            "type": "url",
+            "url": "https://articulo.mercadolibre.cl/MLC-906292717-yugioh-carpeta-modelo-dioses-egipcios-slifer-obelisk-ra-_JM#position%3D8%26search_layout%3Dstack%26type%3Ditem%26tracking_id%3Df039a6a0-a130-4c8a-a0b4-01c3ff7f15cc",
+            "visit_count": 0
+         }, {
+            "date_added": "13368561977898901",
+            "date_last_used": "0",
+            "guid": "2d176c90-240a-40c2-a9d4-e033b5e82474",
+            "id": "17",
+            "name": "Bateria Portatil Powerbank 20.000 Philips Usb-c Carga Rapida | Cuotas sin interés",
+            "show_icon": false,
+            "source": "sync",
+            "type": "url",
+            "url": "https://articulo.mercadolibre.cl/MLC-2132158522-bateria-portatil-powerbank-20000-philips-usb-c-carga-rapida-_JM",
+            "visit_count": 0
+         }, {
+            "date_added": "13368991964480766",
+            "date_last_used": "0",
+            "guid": "eff22e75-6fe8-46da-8d0f-b1bf023f3cb2",
+            "id": "18",
+            "name": "Google Developer Program  |  Google for Developers",
+            "show_icon": false,
+            "source": "sync",
+            "type": "url",
+            "url": "https://developers.google.com/profile/u/103348708146532493928?hl=es-419&utm_source=developer.android.com",
+            "visit_count": 0
+         }, {
+            "date_added": "13368992443140000",
+            "date_last_used": "0",
+            "guid": "97c71e72-c559-46fe-bc44-6863675da66d",
+            "id": "19",
+            "name": "The Umbrella Academy - Suite Apocalipsis (01) & Dallas (02) | Cuotas sin interés",
+            "show_icon": false,
+            "source": "sync",
+            "type": "url",
+            "url": "https://articulo.mercadolibre.cl/MLC-1503820409-the-umbrella-academy-suite-apocalipsis-01-dallas-02-_JM#position%3D38%26search_layout%3Dstack%26type%3Ditem%26tracking_id%3D2f84c9bb-b0c8-4eb9-914a-91d8f325c6e8",
+            "visit_count": 0
+         }, {
+            "date_added": "13369022988157619",
+            "date_last_used": "0",
+            "guid": "aa3a2021-3fde-4542-836b-521ffba6a263",
+            "id": "20",
+            "name": "TAPA SAMSUNG NOTE 10 LITE – Fixell Electrónica",
+            "show_icon": false,
+            "source": "sync",
+            "type": "url",
+            "url": "https://www.fixell.cl/product/note-10-lite-2/",
+            "visit_count": 0
+         }, {
+            "date_added": "13369022990871155",
+            "date_last_used": "0",
+            "guid": "03b4266a-2a07-4bce-aa2d-f42f772a08c0",
+            "id": "21",
+            "name": "BATERIA SAMSUNG NOTE 10 LITE – Fixell Electrónica",
+            "show_icon": false,
+            "source": "sync",
+            "type": "url",
+            "url": "https://www.fixell.cl/product/bateria-samsung-note-10-lite/",
+            "visit_count": 0
+         }, {
+            "date_added": "13369079358109244",
+            "date_last_used": "0",
+            "guid": "cda0def8-b9d0-47d3-aded-4ce17461cb4b",
+            "id": "22",
+            "name": "Carcasa Sumergible Buceo (15m) Para iPhone Samsung Huawei | Cuotas sin interés",
+            "show_icon": false,
+            "source": "sync",
+            "type": "url",
+            "url": "https://articulo.mercadolibre.cl/MLC-2131705532-carcasa-sumergible-buceo-15m-para-iphone-samsung-huawei-_JM#position%3D26%26search_layout%3Dgrid%26type%3Ditem%26tracking_id%3D3f6e2a05-04e6-4112-afe0-b195257d90b4",
+            "visit_count": 0
+         }, {
+            "date_added": "13369079508098692",
+            "date_last_used": "0",
+            "guid": "042cd5fc-deb3-4f8c-ade9-4cb8da648125",
+            "id": "23",
+            "name": "Bateria Para Samsung Note 10 Lite + Kit Herramientas | Cuotas sin interés",
+            "show_icon": false,
+            "source": "sync",
+            "type": "url",
+            "url": "https://articulo.mercadolibre.cl/MLC-1220082521-bateria-para-samsung-note-10-lite-kit-herramientas-_JM#position%3D2%26search_layout%3Dgrid%26type%3Ditem%26tracking_id%3D4571552f-fc5a-4a02-816e-e4821e1a7d8f",
+            "visit_count": 0
+         }, {
+            "date_added": "13369079643274238",
+            "date_last_used": "0",
+            "guid": "15a678cc-d03f-4482-952f-b77f944b674a",
+            "id": "24",
+            "name": "Pegamento E-8000 110ml Adhesivo Líquido - Mundo Tecnologico | Cuotas sin interés",
+            "show_icon": false,
+            "source": "sync",
+            "type": "url",
+            "url": "https://articulo.mercadolibre.cl/MLC-915711943-pegamento-e-8000-110ml-adhesivo-liquido-mundo-tecnologico-_JM#position%3D2%26search_layout%3Dgrid%26type%3Ditem%26tracking_id%3Dd44c019a-4e24-4568-b443-67a022128d84",
+            "visit_count": 0
+         }, {
+            "date_added": "13369180522233561",
+            "date_last_used": "0",
+            "guid": "6e21ae7c-c3b9-42b7-b158-b1996101d0ee",
+            "id": "25",
+            "name": "Carrito – Fixell Electrónica",
+            "show_icon": false,
+            "source": "sync",
+            "type": "url",
+            "url": "https://www.fixell.cl/carrito/",
+            "visit_count": 0
+         }, {
+            "children": [ {
+               "date_added": "13414258393898061",
+               "date_last_used": "13414464872143586",
+               "guid": "0d239fe0-a2e7-42b7-b4e6-9627134f0309",
+               "id": "27",
+               "name": "Home | App.Axie",
+               "show_icon": false,
+               "source": "sync",
+               "type": "url",
+               "url": "https://app.axieinfinity.com/",
+               "visit_count": 5
+            } ],
+            "date_added": "13414258404829301",
+            "date_last_used": "0",
+            "date_modified": "13414258404829301",
+            "guid": "b6a11f09-a947-497f-938b-a46f2507f612",
+            "id": "26",
+            "name": "Axie",
+            "source": "unknown",
+            "type": "folder"
+         } ],
+         "date_added": "13439412743234408",
+         "date_last_used": "0",
+         "date_modified": "13369180522233561",
+         "guid": "82b081ec-3dd3-529c-8475-ab6c344590dd",
+         "id": "2",
+         "name": "Otros favoritos",
+         "source": "unknown",
+         "type": "folder"
+      },
+      "synced": {
+         "children": [  ],
+         "date_added": "13439412743234408",
+         "date_last_used": "0",
+         "date_modified": "0",
+         "guid": "4cf2e351-0e85-532b-bb37-df045d8f8d0f",
+         "id": "3",
+         "name": "Favoritos móviles",
+         "source": "unknown",
+         "type": "folder"
+      },
+      "workspaces_v2": {
+         "children": [  ],
+         "date_added": "13439412743234408",
+         "date_last_used": "0",
+         "date_modified": "0",
+         "guid": "75aa6670-344f-549d-b742-660f029506ab",
+         "id": "5",
+         "name": "Áreas de trabajo",
+         "source": "unknown",
+         "type": "folder"
+      }
+   },
+   "sync_metadata": "CkEKHgiIgQISCHSLseqhAQAAKg4QABgBIAAoBTAAOABAABIAKhg4Q3FjR3BQQ1hnODFGUVdGTS9uVk5RPT1IA6AGDBKMAQgDEocBChxuamdEdTg4ZUNydlhwODZwRDdmSEdjcUZwODg9EiQyM2E0OWE4YS05ZjhlLTUyNmQtYjZiNi05MmM0NmQxOWYwNjgYACAAKAAwwp6/lbQwOP7lsoHwL0D+5bKB8C9KHHl6TkIwMWNuNTRBN2NSVTB1VCsvUGdtVHRVbz1lAAAAAMI+AmAAEowBCAEShwEKHHl4Si82ZnZrZWNyN2twNUVRekI0dFdMcGRiRT0SJGE0ZDNiOWIyLTdkODctNWEzYi1iNWVkLWQ4MjllMjM2NTU5NBgAIAAoADDCnr+VtDA4oOWygfAvQKDlsoHwL0ocYVJDV0xnaEY5YjVJbnFLSUR2dUovanZRa0ZjPWUAAAAAwj4CYAASrgEIFxKpAQoceHR5OHJEY0FJblRFWU9Rb2kyanZUejZqQk13PRIkMDQyY2Q1ZmMtZGViMy00ZjhjLWFkZTktNGNiOGRhNjQ4MTI1GAAgACgAMMSAr4mZMjjkhq+JmTJA5IaviZkyShwzQ3R3WExuZk9ETS9NbzZyY0dIY3lObDZTVkk9WiAiHv/9bXkwaVFPTUpkNjBORU43UU9EV1NORFVRcXljPWUht9kswj4CYAUSrgEIEhKpAQocUlpXNUQwTy9KT2JuSlRabWY4N2xDNmRCSmdzPRIkZWZmMjJlNzUtNmZlOC00NmRhLThkMGYtYjFiZjAyM2YzY2IyGAAgACgAMLWAr4mZMjingq+JmTJAp4KviZkyShxTcGFiTjhIb0VpejFqSGlwVFNGU2REVUFOOW89WiAiHv+mL1hSekF6dXFxdk5vU0ExZjA2UUFFcjFkS3dvPWVEiRUGwj4CYAUSrgEIFhKpAQocaUtBSVdHRUdmTkFJeVZDeXF0MzFjN2JzRlVVPRIkY2RhMGRlZjgtYjlkMC00N2QzLWFkZWQtNGNlMTc0NjFjYjRiGAAgACgAML+Ar4mZMjiyha+JmTJAsoWviZkyShw1ekM0YnYrbmxUZlJXUUlPaFpiQnUwYU9QVU09WiAiHv/6MnNPcXNCdkJZYUtjWHlLSkNyQXk4SU8rclBJPWUht9kswj4CYAUSrQEIERKoAQocUzc3TEtGVmNOeW9mUDNFOVhnWmZFbDFFQllZPRIkMmQxNzZjOTAtMjQwYS00MGMyLWE5ZDQtZTAzM2I1ZTgyNDc0GAAgACgAMMeAr4mZMji7h6+JmTJAu4eviZkyShxNZENyMGRsVzlibld6Vm96bE1YQzYxdTV0b2c9Wh8iHf9MdzhQWkh6SHRsOUlRTkRZaUF1dGEzTkwvNUk9ZSG32SzCPgJgBRKvAQgaEqoBChxuY2VmUTlWSCtvR2Q3RDlyMlF4RkZJUS9aa289EiRiNmExMWYwOS1hOTQ3LTQ5N2YtOTM4Yi1hNDZmMjUwN2Y2MTIYACAAKAAwrIeU+8AzOJmKlPvAM0CZipT7wDNKHHAxOUkwd29LZU1VeUlySHZFK0dtNkNLRXdCRT1aISIf///eUUlqR25uUXhDaGxJdkhERGpkc25Ybm9oNTRjPWUAAAAAwj4CYAASrQEIEBKoAQocanYzYkxMcUJoaVAwc1dPdlM0UjFJVFN1ZFdBPRIkNTJlMTFiMGQtNTAzMi00MzgwLWEzN2QtNGNmMTU1MjBhMTQ0GAAgACgAMMCAr4mZMjjjha+JmTJA44WviZkyShxVc3ZTQmNjYnRvamI2OUFHOEE4ajBOREtTMEE9Wh8iHf9Fb0g1aWowdU9pcC9jSHJyNU8vblJjTmcyMUE9ZSG32SzCPgJgBRKtAQgMEqgBChxXU2ZVUU9vQjNKcTNQUWJYWk8rZ3hoTEVMdE09EiRiOGNiNmQyMS01ZDVlLTRlMzYtOWVhOC0wNmFjMmM0Y2E5YmQYACAAKAAwxoCviZkyOJqHr4mZMkCah6+JmTJKHGJiWmRiTHVaVHhHNk9QdXphc3o3cjJ0eCsxUT1aHyId+1VBckM4NVBQY1lsZnUxQ0RZSVZWWHhqUDJYaz1lvE+3ecI+AmAFEq4BCBkSqQEKHHd6N3kxOGZGNTJGVjhqUlVnQzhIYjlwSXltND0SJDZlMjFhZTdjLWMzYjktNDJiNy1iMTU4LWIxOTk2MTAxZDBlZRgAIAAoADC7gK+JmTI4o4SviZkyQKOEr4mZMkocVmtoZ2tzRVgrZTdWVzcxWjVRTkQ5N25GaHc0PVogIh7//3hZaEgvQzk4Y3FzR2szdWJidldodGl4TGV2QT1lF0mI3MI+AmAFEq4BCBQSqQEKHGJKT3BlSFM2VFEzQWZVdVUzb1pJem1HVEE5QT0SJGFhM2EyMDIxLTNmZGUtNDU0Mi04MzZiLTUyMWZmYmE2YTI2MxgAIAAoADDDgK+JmTI4yYaviZkyQMmGr4mZMkocMTE0ZlBoWDd2YzBZbFptMWlEMXZsb2ZzZmpRPVogIh7/6XdCbXhsVjQ2Rk9waGpUdUxJNWNaSndHa3JZaz1lF0mI3MI+AmAFEq4BCBgSqQEKHGVqa0ZOSUg2UFJtUTRncmJKT3lJMmhUNmpBVT0SJDE1YTY3OGNjLWQwM2YtNDQ4Mi05NTJmLWI3N2Y5NDRiNjc0YRgAIAAoADDFgK+JmTI4/4aviZkyQP+Gr4mZMkocNWhRaUo4TXYwQXk0NU9BWFRjcHhUcmRscEVRPVogIh7//lBMOVRRN09LQzk4WWtIcjZFc2Z4NStkbTVtcz1lIbfZLMI+AmAFEq4BCBMSqQEKHFBkUHc4MHdRSFhLSlZZcGhGY1VBZ041end3RT0SJDk3YzcxZTcyLWM1NTktNDZmZS1iYzQ0LTY4NjM2NzVkYTY2ZBgAIAAoADDBgK+JmTI4kIaviZkyQJCGr4mZMkocemZ1NTN4S3NxSWFJRE9XRGk3Y3lhWWM2SkVRPVogIh7/0zYxa0dnVEFmWWlHSW1ESmxwN0xUaG5UU3BPQT1lIbfZLMI+AmAFEq0BCA4SqAEKHGlybzVNOVdmRHlvWW84YnNmb01KWWh2RkdNbz0SJGRjZGNmZmJhLTY4NTAtNGEyMi1hMmMwLWVhZDdhMjE2OWU0MhgAIAAoADC+gK+JmTI4lYWviZkyQJWFr4mZMkocS0g4NHFvOFdlaDdiZHNvcUt4bXVoWnZ4MzNNPVofIh3+cGY3V2Q5eThva2JBV1FaRVVVTE5HNDMwZ2VzPWVtBpKIwj4CYAUSrAEIBxKnAQocSldkZ1duaXREaXdBTFBqREhVb3dheXA5bXlVPRIkM2Y5ZDQ2NWItYTM5Ny00OGViLWFiMWYtYmE1NmM4OGI3N2I5GAAgACgAMLqAr4mZMjj3g6+JmTJA94OviZkyShxtU21UWGRaSEU2VUZrOEhROXI4NUlDUjcvaEU9Wh4iHHRWeWJrQlpYamQybVY3VmhOZW5COThrQkJtRT1l8ztCVMI+AmAFEq0BCAsSqAEKHFpZWXNDZklSbnM1T2M0TVdYczFyTFNwZnZvUT0SJDRhMzE0MGI1LTQ3MmMtNGQ1ZS04NWNlLWY3YjI2MjU0OGU5MxgAIAAoADC4gK+JmTI4sYOviZkyQLGDr4mZMkocV0Q2M0lVZnViKzN3NmpYYXhYTTY0dlo1S0R3PVofIh33SG8xb3VrQ3VTbU9CSXBPRGRoZjZsZmNLOWJzPWVnvDzuwj4CYAUSrQEICBKoAQoccGxBc0dEUnE2cW5zNlN3N1Q0a2ZxcHl4MGVVPRIkNjZmYzM2YjAtMjExYy00YTZhLWFmNDYtZTc4YTM1MjQ1MDczGAAgACgAMLeAr4mZMjjogq+JmTJA6IKviZkyShw5eHFLOHRLbitzTmhCaG1jaHlQMzhKU1hxeXM9Wh8iHbpkK1ZmUU9lYjZQcHc3eE02UXZHNE9rWkMwODg9ZWAWn2rCPgJgBRKtAQgKEqgBChwxYVJKbnNnMy9WeGtrM2lMNjU2SmswQy9kN2M9EiRhYWVjMmU4Yi05YTRlLTQxNzEtODRmMi02Njg4MmVhZjZjMWMYACAAKAAwuYCviZkyONSDr4mZMkDUg6+JmTJKHEFLbldLeEZ6SDdVS1pJaDVvWkJnK094NkF5VT1aHyId7lVCL2JRVVI0RnZhNmtkYzZ1dlhKUmxIckJaST1lAAAAAMI+AmAFEq4BCBUSqQEKHGpHWXVncWxOajJrcGFTcnFhQko3OWtCYWtSTT0SJDAzYjQyNjZhLTJhMDctNGJjZS1hYTJkLWY0MmY3NzJhMDhjMBgAIAAoADC9gK+JmTI4+ISviZkyQPiEr4mZMkocVG9aL245bW54aTJBQzg0RnFIbTg2aGNFY3dNPVogIh7/9DhRK2xrUGo3RW5wOWRxeWxqeWZSVFVhWnRCOD1lF0mI3MI+AmAFEq0BCAkSqAEKHE5tVkw3dDMwcTRMdzhiVDR2VHhiYnB0bWU2bz0SJDQ3ZWVkODZmLWQ1NTMtNDM5Zi05YTJiLWM1ZjBmZjVkODExYhgAIAAoADC2gK+JmTI4xoKviZkyQMaCr4mZMkocaU5xTy92VWVjU3VCMlVWQWJMVUJ6ZEdEL0VJPVofIh3dUFB5eGt5Q2N6VlgvZzUvTURiY08zbmVJR21nPWUAAAAAwj4CYAUSrAEIGxKnAQoccGdiV0Z1TmJXd0svQmxxa3NrbDZrNFRMcSswPRIkMGQyMzlmZTAtYTJlNy00MmI3LWI0ZTYtOTYyNzEzNGYwMzA5GAAgACgAMJP2zd3BMziutZP7wDNArrWT+8AzShxOUzlENW1rb2R0K3BFQ3pVYjFJUm1EQXFPOUk9Wh4iHFMvWjNkc1JXTUZkdDY1K213eVBIajNNeE56QT1lV92bjcI+AmAFEq0BCA0SqAEKHDM3ZVk1Y0ZadDFud0hnM3BBdHVhaXh2S01RRT0SJGEwNGUxZTk1LTQ5YmUtNDcwYi1hM2Q1LWMwNzliMTI3NjdiNxgAIAAoADC8gK+JmTI424SviZkyQNuEr4mZMkocSk5LaGxncFl0YndtdDJNZEhsZHhHK3FRcnV3PVofIh39dGZ5MW96dEIzMks5SFJQVGlueWp5c3EzaTRrPWUAAAAAwj4CYAUSrQEIDxKoAQocK0NvTnd5RGd4THU4eGhZTytMREN2Z29KbGtvPRIkNGFmMjc4ODYtMWE4OS00Zjk2LTg1NTAtODBlZTUxMTkzMzhjGAAgACgAMMKAr4mZMjiuhq+JmTJAroaviZkyShxoemFTZVJBYnpPMzVzSXNmcnI4WGx2NlNFZkE9Wh8iHf83STVUYjdKZzRFTE03OVBHTEVxbUV4aFJ4OWs9ZSG32SzCPgJgBRKMAQgCEocBChxZY1NUb252RVNQd3FDczRMMmNyVmh2NjhMOTg9EiQxNWFlYjU3NS04YmFhLTU0NGMtOTEzZS1hM2UzZTViMGRjMDkYACAAKAAwwp6/lbQwOMDlsoHwL0DA5bKB8C9KHG9QVmtod0JSYlY2NUtDV1IyK0lPTkhXb091OD1lAAAAAMI+AmAAEowBCAUShwEKHHdSQnJaTCs2UEE5YXZLZ2pOUDdKWERMY2Z2cz0SJDM0N2E0YjQwLWJmMWYtNTc1YS05NzFiLWI5NTJjYzgxYTQ1MhgAIAAoADDbjvqzoTM40ZD6s6EzQNGQ+rOhM0ocbm14NjVzUUR2eEk4VGdFZXYrQStudHRvU240PWUAAAAAwj4CYAAwADgA",
+   "version": 1
+}

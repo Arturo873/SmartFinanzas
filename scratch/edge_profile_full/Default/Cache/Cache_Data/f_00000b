@@ -1,0 +1,1042 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cierre y Arqueo Diario - SmartFinanzas</title>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        :root {
+            --sidebar-width: 250px;
+            --sidebar-bg: #ffffff;
+            --sidebar-border: #e5e7eb;
+            --sidebar-hover: #f9fafb;
+            --sidebar-text: #4b5563;
+            --sidebar-text-active: #111827;
+            --sidebar-active-bg: #f3f4f6;
+            --accent: #2563eb;
+            --topbar-height: 56px;
+            --topbar-bg: #ffffff;
+            --topbar-border: #e5e7eb;
+            --body-bg: #f9fafb;
+            --text-primary: #111827;
+            --text-secondary: #4b5563;
+            --text-muted: #6b7280;
+        }
+
+        body {
+            min-height: 100vh;
+            background-color: var(--body-bg);
+            color: var(--text-primary);
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Top Navbar */
+        .top-navbar {
+            height: var(--topbar-height);
+            z-index: 1030;
+            background-color: var(--topbar-bg) !important;
+            border-bottom: 1px solid var(--topbar-border);
+        }
+
+        /* Layout wrapper */
+        .app-layout {
+            display: flex;
+            min-height: calc(100vh - var(--topbar-height));
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--sidebar-border);
+            color: var(--sidebar-text);
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.25s ease;
+            position: sticky;
+            top: var(--topbar-height);
+            height: calc(100vh - var(--topbar-height));
+            overflow-y: auto;
+        }
+
+        .sidebar-heading {
+            font-size: 0.6875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #9ca3af;
+            padding: 1.1rem 1.15rem 0.35rem;
+            font-weight: 600;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar-menu .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.5rem 0.85rem;
+            margin: 2px 8px;
+            border-radius: 6px;
+            color: var(--sidebar-text);
+            font-size: 0.8125rem;
+            font-weight: 500;
+            transition: background-color 0.15s ease, color 0.15s ease;
+            text-decoration: none;
+        }
+
+        .sidebar-menu .nav-link:hover {
+            color: var(--sidebar-text-active);
+            background-color: var(--sidebar-hover);
+        }
+
+        .sidebar-menu .nav-link.active {
+            color: var(--sidebar-text-active);
+            background-color: var(--sidebar-active-bg);
+            font-weight: 600;
+        }
+
+        .sidebar-menu .nav-link.active i {
+            color: var(--accent);
+        }
+
+        .sidebar-menu .nav-link i {
+            font-size: 1rem;
+            width: 18px;
+            text-align: center;
+            color: #6b7280;
+        }
+
+        .sidebar-user {
+            background-color: #ffffff;
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid var(--sidebar-border);
+        }
+
+        /* Main content area */
+        .main-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            background-color: var(--body-bg);
+        }
+
+        .main-content {
+            flex-grow: 1;
+            padding: 1.75rem 2rem;
+            max-width: 1360px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .app-footer {
+            background-color: #ffffff;
+            border-top: 1px solid var(--topbar-border);
+            color: var(--text-muted);
+            font-size: 0.8125rem;
+            padding: 0.85rem 2rem;
+        }
+
+        /* Enterprise Components Styling */
+        .card {
+            border: 1px solid #e5e7eb !important;
+            border-radius: 8px !important;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04) !important;
+            background-color: #ffffff !important;
+        }
+
+        .card-header {
+            background-color: #ffffff !important;
+            border-bottom: 1px solid #e5e7eb !important;
+            padding: 1rem 1.25rem !important;
+        }
+
+        .btn {
+            font-size: 0.8125rem;
+            font-weight: 500;
+            border-radius: 6px;
+            padding: 0.45rem 0.85rem;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+        }
+
+        .btn-primary {
+            background-color: #2563eb !important;
+            border-color: #2563eb !important;
+            color: #ffffff !important;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-primary:hover {
+            background-color: #1d4ed8 !important;
+            border-color: #1d4ed8 !important;
+        }
+
+        .btn-outline-secondary {
+            background-color: #ffffff !important;
+            border-color: #d1d5db !important;
+            color: #374151 !important;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+        }
+
+        .btn-outline-secondary:hover {
+            background-color: #f9fafb !important;
+            border-color: #9ca3af !important;
+            color: #111827 !important;
+        }
+
+        .btn-outline-primary {
+            background-color: #ffffff !important;
+            border-color: #2563eb !important;
+            color: #2563eb !important;
+        }
+
+        .btn-outline-primary:hover {
+            background-color: #eff6ff !important;
+            color: #1d4ed8 !important;
+        }
+
+        /* Subtle Flat Alerts */
+        .alert {
+            border-radius: 6px;
+            font-size: 0.8125rem;
+            border-width: 1px;
+            padding: 0.75rem 1rem;
+        }
+        .alert-success {
+            background-color: #f0fdf4 !important;
+            border-color: #bbf7d0 !important;
+            color: #15803d !important;
+        }
+        .alert-danger {
+            background-color: #fef2f2 !important;
+            border-color: #fecaca !important;
+            color: #b91c1c !important;
+        }
+        .alert-warning {
+            background-color: #fefce8 !important;
+            border-color: #fef08a !important;
+            color: #854d0e !important;
+        }
+        .alert-info {
+            background-color: #f8fafc !important;
+            border-color: #e2e8f0 !important;
+            color: #334155 !important;
+        }
+
+        /* Responsive Mobile Sidebar */
+        @media (max-width: 991.98px) {
+            .sidebar {
+                position: fixed;
+                top: var(--topbar-height);
+                bottom: 0;
+                left: 0;
+                z-index: 1020;
+                transform: translateX(-100%);
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+                box-shadow: 4px 0 20px rgba(0, 0, 0, 0.08);
+            }
+
+            .sidebar-backdrop {
+                display: none;
+                position: fixed;
+                top: var(--topbar-height);
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(17, 24, 39, 0.4);
+                z-index: 1010;
+            }
+
+            .sidebar-backdrop.show {
+                display: block;
+            }
+        }
+    </style>
+
+    
+</head>
+<body>
+
+    <!-- ====================================================================== -->
+    <!-- BARRA SUPERIOR (Navbar Utilitaria)                                     -->
+    <!-- ====================================================================== -->
+    <header class="navbar navbar-expand top-navbar sticky-top px-3 px-md-4">
+        <!-- Botón para alternar sidebar en móviles -->
+        <button class="btn btn-link text-secondary d-lg-none me-2 p-0 text-decoration-none" id="sidebarToggle" type="button" aria-label="Menu">
+            <i class="bi bi-list fs-4"></i>
+        </button>
+
+        <!-- Marca / Logo Minimalista -->
+        <a class="navbar-brand text-dark fw-semibold d-flex align-items-center gap-2 m-0 fs-6 text-decoration-none" href="/dashboard/">
+            <div class="rounded d-flex align-items-center justify-content-center bg-dark text-white" style="width: 26px; height: 26px; font-size: 0.75rem;">
+                <i class="bi bi-bar-chart-fill"></i>
+            </div>
+            <span class="tracking-tight" style="color: #111827; font-weight: 600;">SmartFinanzas</span>
+        </a>
+
+        <!-- Controles a la derecha -->
+        <div class="ms-auto d-flex align-items-center gap-2 gap-md-3">
+            
+                <div class="d-none d-sm-flex align-items-center gap-2 text-secondary">
+                    <span class="text-dark fw-medium" style="font-size: 0.8125rem;">dueno_coagra</span>
+                    
+                        <span class="badge border font-monospace" style="font-size: 0.6875rem; background-color: #f3f4f6; color: #4b5563; border-color: #e5e7eb !important;">
+                            Dueño
+                        </span>
+                    
+                </div>
+
+                <form action="/logout/" method="POST" class="d-inline m-0">
+                    <input type="hidden" name="csrfmiddlewaretoken" value="aw9V74UZuWHZVmDUbiR3aJngtIdjyBcyLYDbzwytqKhTtt2545Yl3iVgPLnJpZ2A">
+                    <button type="submit" class="btn btn-outline-secondary btn-sm py-1 px-2 text-secondary">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span class="d-none d-sm-inline" style="font-size: 0.75rem;">Salir</span>
+                    </button>
+                </form>
+            
+        </div>
+    </header>
+
+    <!-- Backdrop para cerrar sidebar en móvil -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- ====================================================================== -->
+    <!-- CONTENEDOR PRINCIPAL: SIDEBAR + CONTENIDO DINÁMICO                     -->
+    <!-- ====================================================================== -->
+    <div class="app-layout">
+
+        <!-- ------------------------------------------------------------------ -->
+        <!-- MENÚ DE NAVEGACIÓN LATERAL (Sidebar)                               -->
+        <!-- ------------------------------------------------------------------ -->
+        <aside class="sidebar" id="sidebarNav">
+            
+            <div class="sidebar-user">
+                <div class="d-flex align-items-center gap-2 p-1 rounded border" style="border-color: #e5e7eb !important; background-color: #f9fafb;">
+                    <div class="rounded-circle bg-secondary bg-opacity-25 text-dark d-flex align-items-center justify-content-center fw-semibold" style="width: 30px; height: 30px; font-size: 0.75rem;">
+                        DU
+                    </div>
+                    <div class="overflow-hidden flex-grow-1">
+                        <div class="text-dark fw-medium text-truncate" style="font-size: 0.75rem;">dueno_coagra</div>
+                        <div class="text-muted text-truncate" style="font-size: 0.6875rem;">Dueño</div>
+                    </div>
+                </div>
+            </div>
+            
+
+            <div class="overflow-y-auto flex-grow-1 py-2">
+                <!-- 1. GENERAL / TABLERO -->
+                <div class="sidebar-heading">Analítica &amp; Control</div>
+                <ul class="sidebar-menu">
+                    <li>
+                        <a href="/dashboard/" class="nav-link ">
+                            <i class="bi bi-speedometer2"></i>
+                            <span>Información Actual</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/dashboard/predictivo/" class="nav-link ">
+                            <i class="bi bi-graph-up-arrow"></i>
+                            <span>Información Predictiva</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- 2. MÓDULO ETL (Ingesta de Balances) -->
+                <div class="sidebar-heading">Módulo ETL</div>
+                <ul class="sidebar-menu">
+                    <li>
+                        <a href="/etl/carga/" class="nav-link ">
+                            <i class="bi bi-cloud-arrow-up"></i>
+                            <span>Carga de Estados</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/etl/ratios/" class="nav-link ">
+                            <i class="bi bi-calculator"></i>
+                            <span>Ratios Financieros</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/etl/historial/" class="nav-link ">
+                            <i class="bi bi-clock-history"></i>
+                            <span>Historial de Cargas</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- 3. MÓDULO TRANSACCIONAL (Caja, Ventas, Cierres) -->
+                <div class="sidebar-heading">Transaccional</div>
+                <ul class="sidebar-menu">
+                    
+                    
+                    
+                    <li>
+                        <a href="/transaccional/ventas/nueva/" class="nav-link ">
+                            <i class="bi bi-cart-check"></i>
+                            <span>Registro de Ventas</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/transaccional/cierre/nuevo/" class="nav-link active">
+                            <i class="bi bi-safe"></i>
+                            <span>Cierre y Arqueo</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/transaccional/cierres/" class="nav-link ">
+                            <i class="bi bi-journal-check"></i>
+                            <span>Historial de Cierres</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- 4. CAPA ANALÍTICA -->
+                <!--
+                <div class="sidebar-heading">Capa Analítica</div>
+                <ul class="sidebar-menu">
+                    <li>
+                        <a href="/dashboard/" class="nav-link ">
+                            <i class="bi bi-cpu"></i>
+                            <span>Predicción de Riesgo</span>
+                        </a>
+                    </li>
+                </ul>
+                -->
+            </div>
+        </aside>
+
+        <!-- ------------------------------------------------------------------ -->
+        <!-- ÁREA DE CONTENIDO CENTRAL                                          -->
+        <!-- ------------------------------------------------------------------ -->
+        <div class="main-wrapper">
+            <main class="main-content">
+                <!-- Sistema de Notificaciones / Mensajes Django -->
+                
+
+                <!-- Encabezado de página opcional -->
+                
+<div class="d-flex flex-wrap align-items-center justify-content-between pb-3 mb-4 border-bottom">
+    <div>
+        <h1 class="h3 fw-bold text-dark mb-1">
+            <i class="bi bi-safe2 text-primary me-2"></i>Cierre y Arqueo Diario de Caja
+        </h1>
+        <p class="text-muted mb-0 small">
+            Consolidación transaccional de ventas netas, retiros de caja chica y cuadratura física (Rol Dueño).
+        </p>
+    </div>
+    <div class="mt-2 mt-md-0 d-flex gap-2">
+        <a href="/transaccional/cierres/" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-journal-text me-1"></i>Ver Historial
+        </a>
+        <span class="badge bg-primary py-2 px-3 fs-6">
+            <i class="bi bi-calendar-check me-1"></i>17/11/2026
+        </span>
+    </div>
+</div>
+
+
+                <!-- Contenido dinámico inyectado por las vistas hijas -->
+                
+<div class="row g-4">
+    <!-- PANEL DESTACADO: Resumen de Efectivo vs. Ventas Electrónicas (Opción A) -->
+    <div class="col-lg-5">
+        <!-- TARJETA 1: Efectivo Físico en Gaveta (Base de Cuadratura del Arqueo) -->
+        <div class="card shadow-sm border-0 mb-4 bg-white border-start border-success border-4">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-uppercase fw-bold text-success small" style="letter-spacing: 0.5px;">
+                        <i class="bi bi-cash-stack me-1"></i>Efectivo Esperado en Gaveta
+                    </span>
+                    <span class="badge bg-success bg-opacity-10 text-success fw-bold px-2.5 py-1">
+                        Base del Arqueo Físico
+                    </span>
+                </div>
+                <h2 class="display-5 fw-bold mb-3 text-dark font-monospace" id="displayEfectivoEsperado" data-valor="0.00">
+                    $0
+                </h2>
+                <div class="border-top pt-3">
+                    <div class="d-flex justify-content-between small text-muted mb-2">
+                        <span>(+) Ventas en Efectivo (0):</span>
+                        <strong class="text-dark font-monospace">$0</strong>
+                    </div>
+                    <div class="d-flex justify-content-between small text-muted mb-2">
+                        <span>(-) Retiros Caja Chica (0):</span>
+                        <strong class="text-danger font-monospace">-$0</strong>
+                    </div>
+                    <div class="d-flex justify-content-between small text-muted">
+                        <span>Saldo Neto a Rendir en Efectivo:</span>
+                        <span class="text-success fw-bold font-monospace">$0</span>
+                    </div>
+                </div>
+                <div class="alert alert-light border mt-3 mb-0 py-2 px-3 small text-muted">
+                    <i class="bi bi-info-circle text-success me-1"></i>
+                    <strong>Regla de Cuadratura:</strong> Este es el único saldo que debe coincidir con los billetes y monedas que cuentes en la caja física.
+                </div>
+            </div>
+        </div>
+
+        <!-- TARJETA 2: Conciliación Electrónica POS (Tarjetas Débito / Crédito / Transferencias) -->
+        <div class="card shadow-sm border-0 mb-4 bg-white border-start border-primary border-4">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-uppercase fw-bold text-primary small" style="letter-spacing: 0.5px;">
+                        <i class="bi bi-credit-card-2-front-fill me-1"></i>Ventas Electrónicas y POS
+                    </span>
+                    <span class="badge bg-primary bg-opacity-10 text-primary fw-bold px-2.5 py-1">
+                        Abono a Cuenta Bancaria
+                    </span>
+                </div>
+                <h2 class="display-6 fw-bold mb-3 text-dark font-monospace" id="displayTotalElectronico" data-valor="0.00">
+                    $0
+                </h2>
+                <div class="border-top pt-3">
+                    
+                        <p class="small text-muted mb-0">No se registraron cobros con tarjeta ni transferencias en este turno.</p>
+                    
+                </div>
+                <div class="alert alert-primary bg-opacity-10 border-0 mt-3 mb-0 py-2 px-3 small text-primary">
+                    <i class="bi bi-receipt me-1"></i>
+                    <strong>Conciliación POS:</strong> No queda dinero en gaveta. Verifica que este total coincida con el <em>Cierre de Lote</em> emitido por tu terminal POS.
+                </div>
+            </div>
+        </div>
+
+        <!-- TARJETA 3: Consolidado Total de Facturación del Turno -->
+        <div class="card shadow-sm border-0 mb-4 bg-white">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-clipboard-data text-secondary me-2"></i>Facturación Consolidada del Turno
+                </h6>
+                <span class="badge bg-light text-dark font-monospace fs-6 border" id="displayTotalSistema" data-valor="0.00">
+                    Total: $0
+                </span>
+            </div>
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between small text-muted mb-1">
+                    <span>Ventas Brutas Totales:</span>
+                    <strong class="text-secondary font-monospace">$0</strong>
+                </div>
+                <div class="d-flex justify-content-between small text-muted mb-1">
+                    <span>Ventas Netas Totales (Efectivo + Tarjetas):</span>
+                    <strong class="text-dark font-monospace">$0</strong>
+                </div>
+                <div class="d-flex justify-content-between small text-muted">
+                    <span>Retiros de Caja Chica:</span>
+                    <strong class="text-danger font-monospace">-$0</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORMULARIO DE ARQUEO FÍSICO Y JUSTIFICACIÓN -->
+    <div class="col-lg-7">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h5 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-cash-coin text-success me-2"></i>Validación y Cuadratura de Caja Física
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" id="formCierre" novalidate>
+                    <input type="hidden" name="csrfmiddlewaretoken" value="aw9V74UZuWHZVmDUbiR3aJngtIdjyBcyLYDbzwytqKhTtt2545Yl3iVgPLnJpZ2A">
+
+                    
+
+                    <!-- Total Arqueo Físico de Gaveta -->
+                    <div class="mb-4">
+                        <label for="id_counted_total" class="form-label fw-bold fs-6">
+                            Efectivo Físico en Gaveta ($) <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-light fw-bold">$</span>
+                            <input type="number" name="counted_total" class="form-control form-control-lg fw-bold" id="id_counted_total" step="0.01" placeholder="Ej: 145000">
+                        </div>
+                        
+                        <div class="form-text small">
+                            Ingrese únicamente el monto total en dinero físico (billetes y monedas) contado en gaveta. Las tarjetas se concilian por separado.
+                        </div>
+                    </div>
+
+                    <!-- Panel Dinámico de Cuadratura / Descuadre (Vanilla JS) -->
+                    <div id="panelDiferencia" class="alert alert-secondary py-3 px-3 shadow-sm d-flex align-items-center gap-3">
+                        <div id="iconoDiferencia" class="fs-2 text-secondary">
+                            <i class="bi bi-dash-circle"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="fw-bold" id="textoDiferencia">
+                                Ingrese el conteo de efectivo físico para calcular la cuadratura.
+                            </div>
+                            <small class="text-muted" id="subtextoDiferencia">
+                                Comparación automática contra el Efectivo en Gaveta ($0).
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- Campo Justificación (Se oculta/muestra reactivamente vía JS) -->
+                    <div id="contenedorJustificacion" class="mb-4 d-none">
+                        <label for="id_justification" class="form-label fw-bold text-danger">
+                            <i class="bi bi-shield-exclamation me-1"></i>Justificación de Descuadre en Gaveta <span class="text-danger">*</span>
+                        </label>
+                        <textarea name="justification" cols="40" rows="3" class="form-control" id="id_justification" placeholder="Describa el motivo del descuadre detectado en gaveta (requerido si hay diferencia)...">
+</textarea>
+                        
+                        <div class="form-text text-danger small">
+                            <i class="bi bi-info-circle me-1"></i>Existe una discrepancia con el efectivo esperado en gaveta. Es mandatario indicar el motivo (faltante, error de vuelto, boleta manual, etc.).
+                        </div>
+                    </div>
+
+                    <!-- Conciliación de Tarjetas y Terminal POS -->
+                    
+
+                    <div class="alert alert-warning small py-2 px-3 border-start border-warning border-4 mb-4">
+                        <i class="bi bi-lock-fill me-1"></i><strong>Garantía de Integridad:</strong>
+                        Al confirmar el cierre, todas las ventas (0) y retiros (0) de hoy quedarán vinculados formalmente a este cierre diario de manera irreversible.
+                    </div>
+
+                    <!-- Certificación y Términos de Rendición y Arqueo Físico -->
+                    <div class="card bg-light border-0 p-3 mb-4 rounded-3" id="cardCheckCierre">
+                        <div class="form-check m-0">
+                            <input class="form-check-input" type="checkbox" id="checkTerminosCierre" name="terminos_aceptados"  required>
+                            <label class="form-check-label small text-dark" for="checkTerminosCierre">
+                                Certifico bajo fe de arqueo la exactitud del conteo físico y acepto los 
+                                <a href="javascript:void(0)" class="text-primary fw-semibold text-decoration-underline" data-bs-toggle="modal" data-bs-target="#modalTerminosCierre">
+                                    Términos Legales de Rendición de Fondos, Arqueo Físico y Cierre Contable
+                                </a> <span class="text-danger">*</span>
+                            </label>
+                        </div>
+                        <div id="errorCheckCierre" class="text-danger small mt-2 fw-semibold d-none">
+                            <i class="bi bi-exclamation-circle-fill me-1"></i>Debes certificar el arqueo físico y aceptar los términos legales para confirmar el cierre.
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="/transaccional/cierres/" class="btn btn-outline-secondary px-4">
+                            Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-success btn-lg px-4 fw-semibold shadow-sm" id="btnConfirmarCierre" disabled>
+                            <i class="bi bi-check-circle-fill me-2"></i>Confirmar y Cerrar Caja
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ====================================================================== -->
+<!-- MODAL DE TÉRMINOS Y CONDICIONES: RENDICIÓN, ARQUEO Y CIERRE CONTABLE   -->
+<!-- ====================================================================== -->
+<div class="modal fade" id="modalTerminosCierre" tabindex="-1" aria-labelledby="modalTerminosCierreLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 980px; width: 92%;">
+        <div class="modal-content shadow-sm border">
+            <div class="modal-header bg-white border-bottom py-2.5 px-4">
+                <div>
+                    <h5 class="modal-title fw-bold text-dark fs-6 mb-0" id="modalTerminosCierreLabel">
+                        Términos Legales de Rendición de Fondos, Arqueo Físico y Cierre Contable
+                    </h5>
+                    <div class="text-secondary" style="font-size: 0.72rem;">
+                        Módulo Transaccional &middot; Código de Comercio (Art. 25-44) / Código del Trabajo (Art. 10 y 58) / NIA 240 / COSO
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <div class="modal-body p-4 text-dark" style="max-height: 50vh; overflow-y: auto; font-size: 0.78rem; line-height: 1.55; color: #111;">
+                <div class="p-2.5 px-3 mb-3 bg-light border rounded text-dark" style="font-size: 0.75rem;">
+                    <strong>Declaración de Certeza y Auditoría Operativa:</strong> Al someter este arqueo, usted certifica la existencia física del efectivo en caja bajo responsabilidad civil, laboral y reglamentaria de la empresa.
+                </div>
+
+                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">1. Fe de Arqueo y Exactitud Probatoria (Código de Comercio de Chile, Art. 25 al 44)</h6>
+                <p class="mb-3 text-dark">
+                    De acuerdo con el mandato de los artículos 25, 27, 33 y 41 del Código de Comercio chileno y las mejores prácticas contables, los libros y registros deben llevarse en orden cronológico, sin raspaduras, mutilaciones ni alteraciones, reflejando fidedignamente la realidad pecuniaria del negocio. El usuario declara bajo fe y juramento administrativo que el monto reportado en el campo <em>"Total Efectivo Físico Contado"</em> representa el inventario físico estricto de dinero efectivo al momento exacto del corte.
+                </p>
+
+                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">2. Deber de Custodia y Responsabilidad Laboral (Código del Trabajo de Chile, Art. 10 N° 7 y Art. 58)</h6>
+                <p class="mb-3 text-dark">
+                    Con arreglo al contrato individual o colectivo de trabajo y a las disposiciones de los artículos 10 y 58 del Código del Trabajo, el cajero o custodio de fondos asume la obligación de resguardo y administración debida de los dineros confiados. Toda retención, reposición o deducción asociada a pérdidas o descuadres se regirá por los convenios de asignación de pérdida de caja pactados y los límites máximos estipulados por el ordenamiento laboral.
+                </p>
+
+                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">3. Protocolo Mandatario ante Descuadres (NIA / ISA 240 y Marco COSO de Control Interno)</h6>
+                <p class="mb-2 text-dark">
+                    En aplicación de la Norma Internacional de Auditoría 240 (<em>Responsabilidades del auditor en la auditoría de estados financieros con respecto al fraude</em>) y los componentes de Control de Actividades del Marco COSO:
+                </p>
+                <ul class="mb-3 ps-3 text-dark">
+                    <li><strong>Justificación Obligatoria:</strong> Ante cualquier diferencia (faltante o sobrante) respecto al saldo calculado por el sistema, es imperativo ingresar una justificación detallada y demostrable (boletas anuladas, vales no procesados, errores de cambio o fallas en terminales POS).</li>
+                    <li><strong>Conciliación Cruzada:</strong> Los registros quedan sujetos a auditoría de conciliación cruzada con reportes diarios de pasarelas de pago (Transbank, Redelcom u otras) y comprobantes de boleta electrónica ante el SII.</li>
+                </ul>
+
+                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">4. Sellado Transaccional e Inmutabilidad de Registros (Código Tributario, Art. 33)</h6>
+                <p class="mb-3 text-dark">
+                    Al presionar <em>"Confirmar y Cerrar Caja"</em>, el sistema ejecutará un sellado atómico e irreversible sobre todas las ventas y retiros de efectivo de la jornada, asignándoles un ID de cierre unívoco y estampilla de tiempo (timestamp). Queda terminantemente bloqueada la alteración retroactiva, eliminación o desvinculación de las operaciones selladas, resguardando la trazabilidad exigida por el Servicio de Impuestos Internos (SII).
+                </p>
+
+                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">5. Prohibición de Ocultamiento y Sanciones Disciplinarias</h6>
+                <p class="mb-0 text-dark">
+                    Cualquier simulación, registro malicioso de montos o sustracción de evidencias durante el proceso de arqueo será considerada una infracción grave a las obligaciones laborales y deberes de confianza empresarial, habilitando la apertura de sumarios internos, término de contrato por causales del artículo 160 del Código del Trabajo y las denuncias penales que pudieran proceder por los delitos de apropiación indebida o estafa.
+                </p>
+            </div>
+
+            <div class="modal-footer bg-light py-2 px-4 border-top d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+                <div class="form-check m-0">
+                    <input class="form-check-input" type="checkbox" id="checkModalCierre">
+                    <label class="form-check-label fw-semibold text-dark" for="checkModalCierre" style="font-size: 0.78rem;">
+                        Certifico la veracidad del arqueo físico y acepto los términos de responsabilidad contable y custodia
+                    </label>
+                </div>
+                <button type="button" class="btn btn-dark btn-sm px-4 fw-semibold" id="btnAceptarModalCierre" disabled>
+                    Aceptar y Marcar Certificación
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+            </main>
+
+            <!-- Pie de página unificado -->
+            <footer class="app-footer">
+                <div class="container-fluid d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2">
+                    <div>
+                        &copy; 2026 <strong>SmartFinanzas</strong> — Sistema de Analítica Predictiva.
+                    </div>
+                    <div class="text-muted">
+                        Plataforma de Inteligencia Financiera Empresarial
+                    </div>
+                </div>
+            </footer>
+        </div>
+
+    </div>
+
+    <!-- Modal / Spinner y Barra de Carga para Ejecución del Análisis Predictivo (RF-11) -->
+    <div class="modal fade" id="modalCargaAnalisis" tabindex="-1" aria-labelledby="modalCargaAnalisisLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg text-center p-4">
+                <div class="modal-body p-2">
+                    <!-- Spinner de carga animado -->
+                    <div class="d-flex justify-content-center mb-3">
+                        <div class="spinner-border text-primary" style="width: 3.5rem; height: 3.5rem;" role="status">
+                            <span class="visually-hidden">Ejecutando análisis...</span>
+                        </div>
+                    </div>
+
+                    <h5 class="fw-bold text-dark mb-2" id="modalCargaAnalisisLabel">
+                        Ejecutando Modelo de Random Forest
+                    </h5>
+                    <p class="text-muted small mb-3">
+                        Procesando vector de ratios financieros (V1 &ndash; V7) y calculando explicabilidad con SHAP.<br>
+                        Por favor espere un momento mientras se completa la evaluación de riesgo...
+                    </p>
+
+                    <!-- Barra de carga animada (RF-11) -->
+                    <div class="progress mb-2" style="height: 10px;">
+                        <div id="barraProgresoAnalisis" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+
+                    <span class="text-secondary fs-micro font-monospace">
+                        <i class="bi bi-cpu me-1"></i>Inferencia analítica en curso &middot; Tiempo estimado: &lt; 2 segundos
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5.3 Bundle JS (incluye Popper) -->
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Script para alternar el Sidebar en dispositivos móviles e inicializar Tooltips -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Inicialización global de Tooltips Bootstrap
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            const sidebar = document.getElementById('sidebarNav');
+            const toggleBtn = document.getElementById('sidebarToggle');
+            const backdrop = document.getElementById('sidebarBackdrop');
+
+            if (toggleBtn && sidebar && backdrop) {
+                function toggleSidebar() {
+                    sidebar.classList.toggle('show');
+                    backdrop.classList.toggle('show');
+                }
+
+                toggleBtn.addEventListener('click', toggleSidebar);
+                backdrop.addEventListener('click', toggleSidebar);
+            }
+
+            // Manejador del botón y formulario "Ejecutar Análisis" (RF-11)
+            const formsEjecutar = document.querySelectorAll('.form-ejecutar-analisis');
+            const modalCargaEl = document.getElementById('modalCargaAnalisis');
+            let modalCargaInstance = null;
+
+            formsEjecutar.forEach(function (form) {
+                form.addEventListener('submit', function (e) {
+                    // Deshabilitar botón para prevenir doble clic y mostrar spinner en botón
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Ejecutando Análisis...';
+                    }
+
+                    // Cerrar cualquier modal abierto (ej. modal de advertencia de outliers)
+                    const modalesAbiertos = document.querySelectorAll('.modal.show');
+                    modalesAbiertos.forEach(function (m) {
+                        const inst = bootstrap.Modal.getInstance(m);
+                        if (inst) inst.hide();
+                    });
+
+                    // Mostrar barra / spinner de carga en modal persistente
+                    if (modalCargaEl && typeof bootstrap !== 'undefined') {
+                        if (!modalCargaInstance) {
+                            modalCargaInstance = new bootstrap.Modal(modalCargaEl, { backdrop: 'static', keyboard: false });
+                        }
+                        modalCargaInstance.show();
+                    }
+                });
+            });
+        });
+    </script>
+
+    
+<!-- Reactividad controlada en Vanilla JS: las alertas de descuadre y justificación solo se activan al confirmar el cierre -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const inputArqueo = document.getElementById('id_counted_total');
+    const displayEfectivoEsperado = document.getElementById('displayEfectivoEsperado');
+    const displayTotalSistema = document.getElementById('displayTotalSistema');
+    const panelDiferencia = document.getElementById('panelDiferencia');
+    const iconoDiferencia = document.getElementById('iconoDiferencia');
+    const textoDiferencia = document.getElementById('textoDiferencia');
+    const subtextoDiferencia = document.getElementById('subtextoDiferencia');
+    const contenedorJustificacion = document.getElementById('contenedorJustificacion');
+    const textareaJustificacion = document.getElementById('id_justification');
+    const formCierre = document.getElementById('formCierre');
+
+    // La cuadratura física (Opción A) se realiza estrictamente contra el Efectivo Físico en Gaveta
+    const efectivoEsperado = parseFloat(displayEfectivoEsperado ? displayEfectivoEsperado.getAttribute('data-valor') : 0) || 0;
+    const totalSistema = parseFloat(displayTotalSistema ? displayTotalSistema.getAttribute('data-valor') : 0) || 0;
+    const tieneErroresServidor = false;
+
+    function formatearMonto(valor) {
+        return '$' + Math.abs(Math.round(valor)).toLocaleString('es-CL');
+    }
+
+    // Bandera para saber si el usuario ya intentó confirmar y se le detectó descuadre
+    let intentoConfirmarConDescuadre = tieneErroresServidor;
+
+    function evaluarCuadratura(alConfirmar = false) {
+        const valorTexto = inputArqueo ? inputArqueo.value.trim() : '';
+
+        if (valorTexto === '') {
+            panelDiferencia.className = 'alert alert-secondary py-3 px-3 shadow-sm d-flex align-items-center gap-3';
+            iconoDiferencia.innerHTML = '<i class="bi bi-dash-circle"></i>';
+            textoDiferencia.textContent = 'Ingrese el conteo de efectivo físico para calcular la cuadratura.';
+            subtextoDiferencia.textContent = `Comparación automática contra el Efectivo en Gaveta (${formatearMonto(efectivoEsperado)}).`;
+            
+            // Ocultar justificación si no hay errores de servidor ni justificación previa
+            if (!tieneErroresServidor && (!textareaJustificacion || textareaJustificacion.value.trim() === '')) {
+                contenedorJustificacion.classList.add('d-none');
+                textareaJustificacion.removeAttribute('required');
+            }
+            return;
+        }
+
+        const arqueoFisico = parseFloat(valorTexto) || 0;
+        const diferencia = arqueoFisico - efectivoEsperado;
+
+        // Tolerancia contable (CLP sin centavos): diferencia menor a $1 peso se considera exactamente cuadrada
+        if (Math.abs(diferencia) < 1.0) {
+            // CAJA EXACTAMENTE CUADRADA
+            intentoConfirmarConDescuadre = false;
+            panelDiferencia.className = 'alert alert-success py-3 px-3 shadow-sm d-flex align-items-center gap-3';
+            iconoDiferencia.innerHTML = '<i class="bi bi-check-circle-fill text-success"></i>';
+            textoDiferencia.innerHTML = '<strong>Caja Cuadrada Perfecta</strong>';
+            subtextoDiferencia.textContent = 'El dinero físico coincide con el efectivo esperado en gaveta ($0 de descuadre).';
+            
+            // Ocultar campo de justificación y desmarcar requerimiento
+            contenedorJustificacion.classList.add('d-none');
+            textareaJustificacion.removeAttribute('required');
+        } else {
+            // Hay descuadre físico en gaveta
+            // Solo mostramos la alarma y el campo de justificación SI el usuario le dio a "Confirmar y Cerrar",
+            // o si el formulario ya vino con errores desde el servidor, o si el usuario ya tiene justificación escrita
+            const tieneJustificacionEscrita = textareaJustificacion && textareaJustificacion.value.trim() !== '';
+
+            if (alConfirmar || tieneErroresServidor || (intentoConfirmarConDescuadre && tieneJustificacionEscrita)) {
+                intentoConfirmarConDescuadre = true;
+                const esFaltante = diferencia < 0;
+                const tipo = esFaltante ? 'Faltante en Gaveta' : 'Sobrante en Gaveta';
+                const signo = esFaltante ? '-' : '+';
+                const colorClase = esFaltante ? 'alert-danger' : 'alert-warning';
+                const iconoColor = esFaltante ? 'text-danger' : 'text-warning';
+
+                panelDiferencia.className = `alert ${colorClase} py-3 px-3 shadow-sm d-flex align-items-center gap-3`;
+                iconoDiferencia.innerHTML = `<i class="bi bi-exclamation-triangle-fill ${iconoColor}"></i>`;
+                textoDiferencia.innerHTML = `<strong>${tipo}: ${signo}${formatearMonto(diferencia)}</strong>`;
+                subtextoDiferencia.textContent = `Existe una discrepancia con el efectivo esperado en gaveta (${formatearMonto(efectivoEsperado)}). Ingrese la justificación obligatoria o ajuste el conteo físico.`;
+
+                // Mostrar campo de justificación y volverlo required en el DOM
+                contenedorJustificacion.classList.remove('d-none');
+                textareaJustificacion.setAttribute('required', 'required');
+            } else {
+                // Mientras el usuario escribe antes de confirmar, mantener el estado neutral sin alarmas invasivas
+                panelDiferencia.className = 'alert alert-light border py-3 px-3 shadow-sm d-flex align-items-center gap-3';
+                iconoDiferencia.innerHTML = '<i class="bi bi-calculator text-primary"></i>';
+                textoDiferencia.textContent = `Efectivo contado: ${formatearMonto(arqueoFisico)}`;
+                subtextoDiferencia.textContent = `Efectivo esperado en gaveta: ${formatearMonto(efectivoEsperado)}. Presione «Confirmar y Cerrar Caja» para validar el cuadre.`;
+
+                // NO mostrar la justificación todavía si no hay texto ni errores
+                if (!tieneJustificacionEscrita && !tieneErroresServidor) {
+                    contenedorJustificacion.classList.add('d-none');
+                    textareaJustificacion.removeAttribute('required');
+                }
+            }
+        }
+    }
+
+    if (inputArqueo) {
+        inputArqueo.addEventListener('input', function () {
+            // Si el usuario edita el arqueo para cuadrarlo y no tiene texto de justificación,
+            // desactivamos la alarma roja hasta que vuelva a pulsar confirmar
+            if (textareaJustificacion && textareaJustificacion.value.trim() === '') {
+                intentoConfirmarConDescuadre = false;
+            }
+            evaluarCuadratura(false);
+        });
+        evaluarCuadratura(false);
+    }
+
+    if (textareaJustificacion) {
+        textareaJustificacion.addEventListener('input', function () {
+            if (this.value.trim() !== '') {
+                intentoConfirmarConDescuadre = true;
+            }
+        });
+    }
+
+    // Sincronización de Términos de Arqueo y Cierre (Formulario vs Modal)
+    const checkPrincipalCierre = document.getElementById('checkTerminosCierre');
+    const checkModalCierre = document.getElementById('checkModalCierre');
+    const btnAceptarModalCierre = document.getElementById('btnAceptarModalCierre');
+    const modalElCierre = document.getElementById('modalTerminosCierre');
+
+    // Al abrir el modal, la casilla SIEMPRE debe estar desmarcada y el botón desactivado
+    if (modalElCierre) {
+        modalElCierre.addEventListener('show.bs.modal', function () {
+            if (checkModalCierre) {
+                checkModalCierre.checked = false;
+            }
+            if (btnAceptarModalCierre) {
+                btnAceptarModalCierre.disabled = true;
+            }
+        });
+    }
+
+    if (checkModalCierre && btnAceptarModalCierre) {
+        checkModalCierre.addEventListener('change', function () {
+            btnAceptarModalCierre.disabled = !this.checked;
+        });
+
+        btnAceptarModalCierre.addEventListener('click', function () {
+            if (checkPrincipalCierre) {
+                checkPrincipalCierre.checked = true;
+                checkPrincipalCierre.dispatchEvent(new Event('change'));
+            }
+            if (modalElCierre && typeof bootstrap !== 'undefined') {
+                const modalInstance = bootstrap.Modal.getInstance(modalElCierre) || new bootstrap.Modal(modalElCierre);
+                modalInstance.hide();
+            }
+        });
+    }
+
+    // Bloqueo dinámico del botón de confirmación si el check no está marcado
+    const btnConfirmarCierre = document.getElementById('btnConfirmarCierre');
+    const cardCheckCierre = document.getElementById('cardCheckCierre');
+    const errorCheckCierre = document.getElementById('errorCheckCierre');
+
+    function actualizarEstadoBtnCierre() {
+        if (!btnConfirmarCierre) return;
+        const marcado = checkPrincipalCierre && checkPrincipalCierre.checked;
+        btnConfirmarCierre.disabled = !marcado;
+        if (marcado) {
+            if (checkPrincipalCierre) checkPrincipalCierre.classList.remove('is-invalid');
+            if (cardCheckCierre) cardCheckCierre.classList.remove('border', 'border-danger');
+            if (errorCheckCierre) errorCheckCierre.classList.add('d-none');
+        }
+    }
+
+    if (checkPrincipalCierre) {
+        checkPrincipalCierre.addEventListener('change', actualizarEstadoBtnCierre);
+        actualizarEstadoBtnCierre();
+    }
+
+    if (formCierre) {
+        formCierre.addEventListener('submit', function (e) {
+            // 1. Validar certificación y términos legales
+            if (checkPrincipalCierre && !checkPrincipalCierre.checked) {
+                e.preventDefault();
+                alert('Debe certificar la exactitud del arqueo físico y aceptar los Términos Legales de Rendición de Fondos y Cierre Contable para continuar.');
+                checkPrincipalCierre.focus();
+                return false;
+            }
+
+            // 2. Validar que se haya ingresado el monto de arqueo
+            const valorTexto = inputArqueo ? inputArqueo.value.trim() : '';
+            if (valorTexto === '') {
+                e.preventDefault();
+                alert('Debe ingresar el monto de efectivo físico contado en la gaveta.');
+                if (inputArqueo) inputArqueo.focus();
+                return false;
+            }
+
+            const arqueoFisico = parseFloat(valorTexto) || 0;
+            const diferencia = arqueoFisico - efectivoEsperado;
+
+            // 3. Si hay descuadre en gaveta y aún no hay justificación escrita, detener y mostrar alarma para cuadrarlo
+            if (Math.abs(diferencia) >= 1.0) {
+                const justificacionTexto = textareaJustificacion ? textareaJustificacion.value.trim() : '';
+                if (justificacionTexto === '') {
+                    e.preventDefault(); // Detener el envío y devolver al cierre para cuadrarlo
+                    evaluarCuadratura(true); // Activa la visualización del faltante/sobrante y muestra el campo de justificación
+                    panelDiferencia.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    if (textareaJustificacion) textareaJustificacion.focus();
+                    return false;
+                }
+            }
+        });
+    }
+});
+</script>
+
+</body>
+</html>
+

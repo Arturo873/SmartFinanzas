@@ -1,0 +1,501 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect
+1794967819405,673,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-5,text,true,,111012,250,12,12,http://127.0.0.1:8000/dashboard/,650,0,129
+1794967819441,637,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-6,text,true,,111012,250,12,12,http://127.0.0.1:8000/dashboard/,614,0,92
+1794967819406,683,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-3,text,true,,111012,250,12,12,http://127.0.0.1:8000/dashboard/,681,0,126
+1794967819412,697,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-2,text,true,,111012,250,12,12,http://127.0.0.1:8000/dashboard/,655,0,127
+1794967819403,818,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-4,text,true,,111012,250,13,13,http://127.0.0.1:8000/dashboard/,804,0,129
+1794967819660,643,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-8,text,true,,111012,250,14,14,http://127.0.0.1:8000/dashboard/,642,0,3
+1794967819727,913,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-9,text,true,,111012,250,15,15,http://127.0.0.1:8000/dashboard/,911,0,2
+1794967819405,1281,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-1,text,true,,111012,250,15,15,http://127.0.0.1:8000/dashboard/,1269,0,128
+1794967819562,1748,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-7,text,true,,111012,250,20,20,http://127.0.0.1:8000/dashboard/,1679,0,2
+1794967819823,1718,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-10,text,true,,111012,250,20,20,http://127.0.0.1:8000/dashboard/,1629,0,3
+1794967820023,1764,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-12,text,true,,111012,250,20,20,http://127.0.0.1:8000/dashboard/,1685,0,3
+1794967819917,1996,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-11,text,true,,111012,250,20,20,http://127.0.0.1:8000/dashboard/,1968,0,3
+1794967820096,2016,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-3,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2016,0,0
+1794967820173,1939,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-13,text,true,,111012,250,20,20,http://127.0.0.1:8000/dashboard/,1939,0,5
+1794967820113,2067,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-2,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1912,0,0
+1794967820104,2160,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-6,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2157,0,0
+1794967820107,2159,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-5,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2158,0,0
+1794967820306,2258,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-8,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2237,0,0
+1794967821150,1432,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-17,text,true,,111012,250,20,20,http://127.0.0.1:8000/dashboard/,1405,0,36
+1794967820240,2523,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-14,text,true,,111012,250,20,20,http://127.0.0.1:8000/dashboard/,2474,0,4
+1794967821239,1552,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-18,text,true,,111012,250,20,20,http://127.0.0.1:8000/dashboard/,1541,0,96
+1794967820704,2123,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-1,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2090,0,0
+1794967821256,1603,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-19,text,true,,111012,250,20,20,http://127.0.0.1:8000/dashboard/,1602,0,11
+1794967820225,2684,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-4,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2672,0,0
+1794967820650,2425,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-9,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2379,0,0
+1794967821075,2034,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-16,text,true,,111012,250,20,20,http://127.0.0.1:8000/dashboard/,2009,0,7
+1794967821268,1866,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-20,text,true,,111012,250,20,20,http://127.0.0.1:8000/dashboard/,1763,0,4
+1794967820354,2822,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-15,text,true,,111012,250,20,20,http://127.0.0.1:8000/dashboard/,2818,0,3
+1794967821316,1919,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-7,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1910,0,0
+1794967821549,2264,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-10,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2131,0,0
+1794967821789,2306,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-12,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2281,0,0
+1794967821914,2458,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-11,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2422,0,0
+1794967822794,1597,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-18,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1596,0,0
+1794967822566,1841,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-8,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,552,0,0
+1794967822566,552,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-8,text,true,,300,284,20,20,http://127.0.0.1:8000/,552,0,0
+1794967823123,1284,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-8,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1248,0,0
+1794967822267,2236,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-6,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,561,0,0
+1794967822267,561,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-6,text,true,,300,284,20,20,http://127.0.0.1:8000/,561,0,0
+1794967822831,1672,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-6,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1671,0,0
+1794967822861,1713,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-19,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1682,0,0
+1794967822268,2318,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-5,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,559,0,0
+1794967822268,559,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-5,text,true,,300,284,20,20,http://127.0.0.1:8000/,559,0,0
+1794967822831,1755,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-5,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1755,0,0
+1794967823113,1605,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-16,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1604,0,0
+1794967822114,2615,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-3,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,805,0,0
+1794967822114,805,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-3,text,true,,300,284,20,20,http://127.0.0.1:8000/,805,0,0
+1794967822919,1810,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-3,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1774,0,0
+1794967822114,2624,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-13,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2609,0,0
+1794967822183,2623,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-2,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,785,0,0
+1794967822183,785,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-2,text,true,,300,284,20,20,http://127.0.0.1:8000/,785,0,0
+1794967822968,1838,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-2,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1790,0,0
+1794967822584,2242,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-17,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2221,0,0
+1794967822765,2073,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-14,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2010,0,0
+1794967823178,2087,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-15,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2087,0,0
+1794967822911,2373,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-4,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,614,0,0
+1794967822911,614,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-4,text,true,,300,284,20,20,http://127.0.0.1:8000/,614,0,0
+1794967823526,1758,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-4,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1757,0,0
+1794967823139,2484,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-20,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2429,0,0
+1794967822830,2937,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-1,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,503,0,0
+1794967822830,503,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-1,text,true,,300,284,20,20,http://127.0.0.1:8000/,503,0,0
+1794967823334,2433,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-1,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2419,0,0
+1794967823077,2840,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-9,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,975,0,0
+1794967823077,975,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-9,text,true,,300,284,20,20,http://127.0.0.1:8000/,975,0,0
+1794967824053,1864,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-9,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1857,0,0
+1794967824737,1618,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-3,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1617,0,0
+1794967824097,2682,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-12,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,537,0,0
+1794967824097,537,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-12,text,true,,300,284,20,20,http://127.0.0.1:8000/,537,0,0
+1794967824636,2143,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-12,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1897,0,0
+1794967824506,2281,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-6,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2280,0,0
+1794967824590,2463,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-5,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2462,0,0
+1794967823243,3860,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-7,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,881,0,0
+1794967823243,881,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-7,text,true,,300,284,20,20,http://127.0.0.1:8000/,881,0,0
+1794967824125,2978,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-7,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2974,0,0
+1794967823815,3562,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-10,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,1383,0,0
+1794967823815,1383,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-10,text,true,,300,284,20,20,http://127.0.0.1:8000/,1383,0,0
+1794967825202,2175,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-10,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2144,0,0
+1794967824809,2585,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-2,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2572,0,0
+1794967825288,2179,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-4,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2136,0,0
+1794967824410,3311,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-8,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,3255,0,0
+1794967824576,3464,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-19,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,1325,0,0
+1794967824576,1325,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-19,text,true,,300,284,20,20,http://127.0.0.1:8000/,1325,0,0
+1794967825902,2138,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-19,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2118,0,0
+1794967825920,2300,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-9,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2225,0,0
+1794967825769,2454,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-1,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2443,0,0
+1794967824374,3900,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-11,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,1157,0,0
+1794967824374,1157,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-11,text,true,,300,284,20,20,http://127.0.0.1:8000/,1157,0,0
+1794967825532,2742,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-11,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2739,0,0
+1794967824720,3725,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-16,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,960,0,0
+1794967824720,960,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-16,text,true,,300,284,20,20,http://127.0.0.1:8000/,960,0,0
+1794967825682,2763,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-16,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2753,0,0
+1794967824828,3733,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-17,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,1037,0,0
+1794967824828,1037,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-17,text,true,,300,284,20,20,http://127.0.0.1:8000/,1037,0,0
+1794967825866,2695,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-17,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2589,0,0
+1794967824741,3914,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-13,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,1132,0,0
+1794967824741,1132,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-13,text,true,,300,284,20,20,http://127.0.0.1:8000/,1132,0,0
+1794967825874,2781,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-13,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2758,0,0
+1794967824393,4344,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-18,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,1909,0,0
+1794967824393,1909,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-18,text,true,,300,284,20,20,http://127.0.0.1:8000/,1909,0,0
+1794967826304,2433,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-18,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2433,0,0
+1794967825268,3717,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-15,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,1128,0,0
+1794967825268,1128,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-15,text,true,,300,284,20,20,http://127.0.0.1:8000/,1128,0,0
+1794967826397,2588,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-15,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2586,0,0
+1794967826362,2716,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-3,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2694,0,0
+1794967825634,3590,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-20,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,1385,0,0
+1794967825634,1385,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-20,text,true,,300,284,20,20,http://127.0.0.1:8000/,1385,0,0
+1794967827019,2205,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-20,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2204,0,0
+1794967824840,4470,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-14,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,1490,0,0
+1794967824840,1490,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-14,text,true,,300,284,20,20,http://127.0.0.1:8000/,1490,0,0
+1794967826331,2979,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-14,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2932,0,0
+1794967826782,2638,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-12,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2637,0,0
+1794967827396,2080,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-2,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2079,0,0
+1794967826794,2887,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-6,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2870,0,0
+1794967827059,2725,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-5,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2725,0,0
+1794967827380,2502,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-10,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2502,0,0
+1794967828043,1895,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-19,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1811,0,0
+1794967827112,2873,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-7,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2808,0,0
+1794967827472,2717,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-4,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2717,0,0
+1794967828449,1900,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-16,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1900,0,0
+1794967828277,2309,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-11,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2309,0,0
+1794967827723,2963,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-8,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2962,0,0
+1794967828567,2133,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-17,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2114,0,0
+1794967828989,1739,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-15,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1738,0,0
+1794967828658,2162,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-13,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2158,0,0
+1794967828225,2690,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-1,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2678,0,0
+1794967829425,1509,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-12,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1506,0,0
+1794967828222,2889,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-9,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2864,0,0
+1794967828740,2511,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-18,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2488,0,0
+1794967829227,2124,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-20,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2105,0,0
+1794967829321,2036,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-14,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2031,0,0
+1794967829082,2924,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-3,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,1204,0,0
+1794967829082,1204,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-3,text,true,,300,284,20,20,http://127.0.0.1:8000/,1204,0,0
+1794967830286,1720,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-3,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1705,0,0
+1794967829940,2084,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-19,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1981,0,0
+1794967829885,2146,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-10,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2139,0,0
+1794967829987,2219,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-7,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2198,0,0
+1794967830702,1518,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-17,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1517,0,0
+1794967829683,2576,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-6,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,1244,0,0
+1794967829683,1244,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-6,text,true,,300,284,20,20,http://127.0.0.1:8000/,1244,0,0
+1794967830928,1331,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-6,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1316,0,0
+1794967830351,1989,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-16,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1988,0,0
+1794967830588,1788,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-11,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1736,0,0
+1794967830824,1564,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-13,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1557,0,0
+1794967829484,3034,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-2,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,1148,0,0
+1794967829484,1148,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-2,text,true,,300,284,20,20,http://127.0.0.1:8000/,1148,0,0
+1794967830633,1885,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-2,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1822,0,0
+1794967830197,2350,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-4,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,652,0,0
+1794967830197,652,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-4,text,true,,300,284,20,20,http://127.0.0.1:8000/,652,0,0
+1794967830849,1698,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-4,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1671,0,0
+1794967830936,1613,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-12,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,546,0,0
+1794967830936,546,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-12,text,true,,300,284,20,20,http://127.0.0.1:8000/,546,0,0
+1794967831483,1066,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-12,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1020,0,0
+1794967829786,2776,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-5,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,1031,0,0
+1794967829786,1031,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-5,text,true,,300,284,20,20,http://127.0.0.1:8000/,1031,0,0
+1794967830818,1744,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-5,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1728,0,0
+1794967830730,1924,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-15,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1924,0,0
+1794967830687,2222,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-8,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,678,0,0
+1794967830687,678,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-8,text,true,,300,284,20,20,http://127.0.0.1:8000/,678,0,0
+1794967831365,1544,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-8,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1521,0,0
+1794967831356,1943,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-20,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1693,0,0
+1794967831114,3568,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-9,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,858,0,0
+1794967831114,858,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-9,text,true,,300,284,20,20,http://127.0.0.1:8000/,858,0,0
+1794967831972,2710,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-9,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2709,0,0
+1794967831359,3384,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-14,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,3383,0,0
+1794967831256,3558,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-18,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,3557,0,0
+1794967830917,3918,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-1,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,603,0,0
+1794967830917,603,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-1,text,true,,300,284,20,20,http://127.0.0.1:8000/,603,0,0
+1794967831522,3313,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-1,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,3312,0,0
+1794967832008,2855,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-3,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2853,0,0
+1794967832520,2369,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-2,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2369,0,0
+1794967832551,2343,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-4,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2340,0,0
+1794967832261,2682,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-6,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2681,0,0
+1794967832036,2927,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-10,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,722,0,0
+1794967832036,722,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-10,text,true,,300,284,20,20,http://127.0.0.1:8000/,722,0,0
+1794967832759,2204,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-10,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2203,0,0
+1794967832341,3052,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-16,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,555,0,0
+1794967832341,555,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-16,text,true,,300,284,20,20,http://127.0.0.1:8000/,555,0,0
+1794967832897,2496,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-16,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2496,0,0
+1794967832552,2861,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-12,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2860,0,0
+1794967832911,2646,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-8,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2563,0,0
+1794967832377,3207,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-11,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,1073,0,0
+1794967832377,1073,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-11,text,true,,300,284,20,20,http://127.0.0.1:8000/,1073,0,0
+1794967833450,2134,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-11,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2024,0,0
+1794967832222,3386,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-17,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,583,0,0
+1794967832222,583,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-17,text,true,,300,284,20,20,http://127.0.0.1:8000/,583,0,0
+1794967832806,2802,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-17,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2801,0,0
+1794967832026,3665,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-19,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,627,0,0
+1794967832026,627,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-19,text,true,,300,284,20,20,http://127.0.0.1:8000/,627,0,0
+1794967832654,3037,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-19,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,3036,0,0
+1794967832390,3400,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-13,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,467,0,0
+1794967832390,467,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-13,text,true,,300,284,20,20,http://127.0.0.1:8000/,467,0,0
+1794967832858,2932,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-13,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2856,0,0
+1794967835397,818,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-16,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,808,0,0
+1794967834892,1380,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-2,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1380,0,0
+1794967833301,2991,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-20,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,580,0,0
+1794967833301,580,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-20,text,true,,300,284,20,20,http://127.0.0.1:8000/,580,0,0
+1794967833886,2406,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-20,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2405,0,0
+1794967834865,1442,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-3,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1441,0,0
+1794967834841,1470,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-1,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1470,0,0
+1794967834684,1643,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-9,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1642,0,0
+1794967834896,1464,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-4,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1463,0,0
+1794967832564,3813,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-5,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,3677,0,0
+1794967832656,3725,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-15,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,882,0,0
+1794967832656,882,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-15,text,true,,300,284,20,20,http://127.0.0.1:8000/,882,0,0
+1794967833538,2843,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-15,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2810,0,0
+1794967832207,4190,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-7,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,512,0,0
+1794967832207,512,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-7,text,true,,300,284,20,20,http://127.0.0.1:8000/,512,0,0
+1794967832719,3678,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-7,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,3677,0,0
+1794967834944,1458,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-6,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1454,0,0
+1794967834965,1473,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-10,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1471,0,0
+1794967834816,1655,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-18,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,481,0,0
+1794967834816,481,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-18,text,true,,300,284,20,20,http://127.0.0.1:8000/,481,0,0
+1794967835299,1172,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-18,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1170,0,0
+1794967834745,1881,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-14,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,566,0,0
+1794967834745,566,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-14,text,true,,300,284,20,20,http://127.0.0.1:8000/,566,0,0
+1794967835313,1313,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-14,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1306,0,0
+1794967835590,1312,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-11,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1296,0,0
+1794967835695,1369,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-19,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1367,0,0
+1794967835560,1625,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-8,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1583,0,0
+1794967835611,1745,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-17,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1739,0,0
+1794967835416,2299,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-12,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2270,0,0
+1794967836330,1574,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-9,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1521,0,0
+1794967836386,1599,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-15,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1587,0,0
+1794967836380,1716,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-5,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1699,0,0
+1794967835793,2365,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-13,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2340,0,0
+1794967836314,1993,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-1,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1992,0,0
+1794967836295,2018,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-20,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2012,0,0
+1794967836217,2099,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-16,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2091,0,0
+1794967836403,1914,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-7,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1905,0,0
+1794967836276,2050,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-2,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,381,0,0
+1794967836276,381,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-2,text,true,,300,284,20,20,http://127.0.0.1:8000/,381,0,0
+1794967836657,1669,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-2,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1664,0,0
+1794967836405,2058,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-6,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,530,0,0
+1794967836405,530,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-6,text,true,,300,284,20,20,http://127.0.0.1:8000/,530,0,0
+1794967836935,1528,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-6,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1510,0,0
+1794967836363,2187,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-4,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,358,0,0
+1794967836363,358,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-4,text,true,,300,284,20,20,http://127.0.0.1:8000/,358,0,0
+1794967836723,1827,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-4,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1816,0,0
+1794967836474,2091,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-18,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2048,0,0
+1794967836629,2159,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-14,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2159,0,0
+1794967836442,2563,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-10,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2562,0,0
+1794967837358,1708,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-17,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1701,0,0
+1794967836310,2837,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-3,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,441,0,0
+1794967836310,441,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-3,text,true,,300,284,20,20,http://127.0.0.1:8000/,441,0,0
+1794967836752,2395,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-3,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2394,0,0
+1794967837067,2174,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-19,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2158,0,0
+1794967838330,918,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-2,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,894,0,0
+1794967836904,2364,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-11,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2355,0,0
+1794967837987,1663,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-15,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1623,0,0
+1794967838314,1684,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-20,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1684,0,0
+1794967837186,2990,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-8,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,731,0,0
+1794967837186,731,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-8,text,true,,300,284,20,20,http://127.0.0.1:8000/,731,0,0
+1794967837917,2259,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-8,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2219,0,0
+1794967838309,1873,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-1,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,397,0,0
+1794967838309,397,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-1,text,true,,300,284,20,20,http://127.0.0.1:8000/,397,0,0
+1794967838710,1472,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-1,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1458,0,0
+1794967838553,1827,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-4,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1812,0,0
+1794967838164,2221,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-13,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2220,0,0
+1794967838318,2088,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-16,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,586,0,0
+1794967838318,586,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-16,text,true,,300,284,20,20,http://127.0.0.1:8000/,586,0,0
+1794967838904,1502,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-16,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1490,0,0
+1794967837717,2710,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-12,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,746,0,0
+1794967837717,746,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-12,text,true,,300,284,20,20,http://127.0.0.1:8000/,746,0,0
+1794967838463,1964,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-12,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1941,0,0
+1794967838465,2105,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-6,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2056,0,0
+1794967837905,2677,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-9,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,633,0,0
+1794967837905,633,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-9,text,true,,300,284,20,20,http://127.0.0.1:8000/,633,0,0
+1794967838538,2044,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-9,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2032,0,0
+1794967838318,2282,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-7,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2262,0,0
+1794967838098,2509,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-5,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,608,0,0
+1794967838098,608,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-5,text,true,,300,284,20,20,http://127.0.0.1:8000/,608,0,0
+1794967838707,1900,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-5,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1864,0,0
+1794967838793,1829,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-14,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1823,0,0
+1794967838567,2192,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-18,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2156,0,0
+1794967839149,1670,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-3,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1648,0,0
+1794967839250,1797,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-2,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1683,0,0
+1794967839270,2107,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-11,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,541,0,0
+1794967839270,541,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-11,text,true,,300,284,20,20,http://127.0.0.1:8000/,541,0,0
+1794967839812,1565,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-11,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1565,0,0
+1794967840382,1253,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-4,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1225,0,0
+1794967839009,2667,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-10,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,593,0,0
+1794967839009,593,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-10,text,true,,300,284,20,20,http://127.0.0.1:8000/,593,0,0
+1794967839602,2074,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-10,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2072,0,0
+1794967840184,1506,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-1,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1480,0,0
+1794967839652,2164,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-15,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,524,0,0
+1794967839652,524,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-15,text,true,,300,284,20,20,http://127.0.0.1:8000/,524,0,0
+1794967840176,1640,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-15,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1640,0,0
+1794967839070,3014,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-17,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,443,0,0
+1794967839070,443,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-17,text,true,,300,284,20,20,http://127.0.0.1:8000/,443,0,0
+1794967839515,2569,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-17,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2564,0,0
+1794967840408,1720,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-16,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1711,0,0
+1794967840000,2201,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-20,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,415,0,0
+1794967840000,415,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-20,text,true,,300,284,20,20,http://127.0.0.1:8000/,415,0,0
+1794967840414,1787,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-20,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1781,0,0
+1794967840178,2101,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-8,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2101,0,0
+1794967840428,1897,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-12,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1887,0,0
+1794967839243,3094,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-19,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,937,0,0
+1794967839243,937,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-19,text,true,,300,284,20,20,http://127.0.0.1:8000/,937,0,0
+1794967840181,2156,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-19,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2076,0,0
+1794967840821,1862,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-3,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1843,0,0
+1794967840583,2236,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-9,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2236,0,0
+1794967840607,2220,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-5,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2212,0,0
+1794967840387,2482,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-13,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,497,0,0
+1794967840387,497,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-13,text,true,,300,284,20,20,http://127.0.0.1:8000/,497,0,0
+1794967840883,1986,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-13,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1985,0,0
+1794967840623,2846,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-14,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,1182,0,0
+1794967840623,1182,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-14,text,true,,300,284,20,20,http://127.0.0.1:8000/,1182,0,0
+1794967841805,1664,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-14,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1664,0,0
+1794967841379,2092,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-11,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2089,0,0
+1794967840763,2858,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-18,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,1008,0,0
+1794967840763,1008,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-18,text,true,,300,284,20,20,http://127.0.0.1:8000/,1008,0,0
+1794967841772,1849,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-18,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1848,0,0
+1794967840571,3236,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-6,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,3235,0,0
+1794967841817,2027,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-15,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2013,0,0
+1794967842085,1788,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-17,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1759,0,0
+1794967841049,3169,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-2,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,852,0,0
+1794967841049,852,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-2,text,true,,300,284,20,20,http://127.0.0.1:8000/,852,0,0
+1794967841902,2316,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-2,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2316,0,0
+1794967841679,2568,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-10,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2544,0,0
+1794967841692,2578,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-1,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2567,0,0
+1794967842203,2194,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-20,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2124,0,0
+1794967841636,3142,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-4,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,753,0,0
+1794967841636,753,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-4,text,true,,300,284,20,20,http://127.0.0.1:8000/,753,0,0
+1794967842389,2389,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-4,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2367,0,0
+1794967842280,2516,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-8,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2483,0,0
+1794967842338,2488,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-19,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2473,0,0
+1794967842327,2540,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-12,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2540,0,0
+1794967843624,1512,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-18,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1354,0,0
+1794967840601,4564,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-7,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,1721,0,0
+1794967840601,1721,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-7,text,true,,300,284,20,20,http://127.0.0.1:8000/,1721,0,0
+1794967842323,2842,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-7,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2842,0,0
+1794967842872,2299,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-13,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2294,0,0
+1794967842129,3132,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-16,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,3127,0,0
+1794967842821,2495,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-9,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2481,0,0
+1794967843473,1930,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-11,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1929,0,0
+1794967842829,2740,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-5,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2705,0,0
+1794967842685,2907,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-3,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,1323,0,0
+1794967842685,1323,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-3,text,true,,300,284,20,20,http://127.0.0.1:8000/,1323,0,0
+1794967844009,1583,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-3,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1568,0,0
+1794967843875,1766,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-17,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1756,0,0
+1794967843473,2221,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-14,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2213,0,0
+1794967844249,1633,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-10,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1614,0,0
+1794967843846,2241,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-15,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2211,0,0
+1794967843809,2325,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-6,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,948,0,0
+1794967843809,948,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-6,text,true,,300,284,20,20,http://127.0.0.1:8000/,948,0,0
+1794967844758,1376,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-6,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1340,0,0
+1794967844828,1415,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-19,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1415,0,0
+1794967844398,1879,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-20,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1879,0,0
+1794967844271,2062,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-1,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,853,0,0
+1794967844271,853,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-1,text,true,,300,284,20,20,http://127.0.0.1:8000/,853,0,0
+1794967845124,1209,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-1,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1208,0,0
+1794967844220,2371,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-2,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2322,0,0
+1794967844780,1934,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-4,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1896,0,0
+1794967845172,1552,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-13,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1550,0,0
+1794967845696,1425,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-14,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1415,0,0
+1794967845167,2020,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-7,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2012,0,0
+1794967845138,2049,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-18,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2048,0,0
+1794967845262,1948,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-16,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,439,0,0
+1794967845262,439,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-16,text,true,,300,284,20,20,http://127.0.0.1:8000/,439,0,0
+1794967845702,1508,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-16,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1484,0,0
+1794967844799,2413,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-8,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,831,0,0
+1794967844799,831,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-8,text,true,,300,284,20,20,http://127.0.0.1:8000/,831,0,0
+1794967845630,1582,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-8,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1580,0,0
+1794967844870,2416,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-12,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,764,0,0
+1794967844870,764,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-12,text,true,,300,284,20,20,http://127.0.0.1:8000/,764,0,0
+1794967845635,1651,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-12,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1650,0,0
+1794967845571,1989,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-5,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,527,0,0
+1794967845571,527,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-5,text,true,,300,284,20,20,http://127.0.0.1:8000/,527,0,0
+1794967846098,1462,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-5,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1441,0,0
+1794967845318,2287,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-9,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,506,0,0
+1794967845318,506,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-9,text,true,,300,284,20,20,http://127.0.0.1:8000/,506,0,0
+1794967845824,1781,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-9,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1756,0,0
+1794967846335,1292,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-1,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1246,0,0
+1794967845594,2078,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-3,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2046,0,0
+1794967845404,2292,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-11,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,731,0,0
+1794967845404,731,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-11,text,true,,300,284,20,20,http://127.0.0.1:8000/,731,0,0
+1794967846137,1559,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-11,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1555,0,0
+1794967846137,1825,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-6,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1810,0,0
+1794967846715,1255,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-4,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1254,0,0
+1794967845884,2105,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-10,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,669,0,0
+1794967845884,669,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-10,text,true,,300,284,20,20,http://127.0.0.1:8000/,669,0,0
+1794967846553,1436,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-10,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1409,0,0
+1794967847212,980,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-16,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,875,0,0
+1794967846247,2111,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-19,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,524,0,0
+1794967846247,524,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-19,text,true,,300,284,20,20,http://127.0.0.1:8000/,524,0,0
+1794967846771,1587,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-19,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1578,0,0
+1794967846281,2205,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-20,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,531,0,0
+1794967846281,531,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-20,text,true,,300,284,20,20,http://127.0.0.1:8000/,531,0,0
+1794967846812,1674,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-20,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1669,0,0
+1794967847188,1339,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-7,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1338,0,0
+1794967846593,2111,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-2,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2110,0,0
+1794967846089,2665,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-15,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,588,0,0
+1794967846089,588,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-15,text,true,,300,284,20,20,http://127.0.0.1:8000/,588,0,0
+1794967846678,2076,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-15,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2003,0,0
+1794967845645,3172,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-17,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,926,0,0
+1794967845645,926,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-17,text,true,,300,284,20,20,http://127.0.0.1:8000/,926,0,0
+1794967846571,2246,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-17,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2245,0,0
+1794967847214,1699,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-8,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1485,0,0
+1794967846725,2279,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-13,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,941,0,0
+1794967846725,941,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-13,text,true,,300,284,20,20,http://127.0.0.1:8000/,941,0,0
+1794967847666,1338,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-13,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1321,0,0
+1794967847607,1600,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-9,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1599,0,0
+1794967847189,2077,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-18,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,617,0,0
+1794967847189,617,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-18,text,true,,300,284,20,20,http://127.0.0.1:8000/,617,0,0
+1794967847806,1460,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-18,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1455,0,0
+1794967847698,1594,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-11,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1594,0,0
+1794967847674,1661,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-3,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1533,0,0
+1794967847991,1489,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-10,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1479,0,0
+1794967847629,1860,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-1,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1841,0,0
+1794967847562,1954,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-5,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1949,0,0
+1794967847964,1640,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-6,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,1636,0,0
+1794967847287,2337,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-12,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2317,0,0
+1794967848488,1187,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-20,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1167,0,0
+1794967847123,2579,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-14,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,561,0,0
+1794967847123,561,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-14,text,true,,300,284,20,20,http://127.0.0.1:8000/,561,0,0
+1794967847685,2017,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-14,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,2006,0,0
+1794967848360,1479,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-19,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1455,0,0
+1794967848819,1282,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-17,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1281,0,0
+1794967848755,1460,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-15,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1436,0,0
+1794967848194,2071,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-16,text,true,,88795,305,20,20,http://127.0.0.1:8000/dashboard/predictivo/,2070,0,0
+1794967847972,2434,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-4,text,true,,111312,578,20,20,http://127.0.0.1:8000/dashboard/,1032,0,0
+1794967847972,1032,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-4,text,true,,300,284,20,20,http://127.0.0.1:8000/,1032,0,0
+1794967849005,1401,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-4,text,true,,111012,294,20,20,http://127.0.0.1:8000/dashboard/,1390,0,0
+1794967848528,2178,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-7,text,true,,111312,578,19,19,http://127.0.0.1:8000/dashboard/,543,0,0
+1794967848528,543,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-7,text,true,,300,284,19,19,http://127.0.0.1:8000/,543,0,0
+1794967849071,1635,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-7,text,true,,111012,294,19,19,http://127.0.0.1:8000/dashboard/,1634,0,0
+1794967849005,1944,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-13,text,true,,111012,294,19,19,http://127.0.0.1:8000/dashboard/,1929,0,0
+1794967849518,1448,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-5,text,true,,88795,305,19,19,http://127.0.0.1:8000/dashboard/predictivo/,1429,0,0
+1794967848705,2261,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-2,text,true,,111312,578,19,19,http://127.0.0.1:8000/dashboard/,789,0,0
+1794967848705,789,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-2,text,true,,300,284,19,19,http://127.0.0.1:8000/,789,0,0
+1794967849495,1471,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-2,text,true,,111012,294,19,19,http://127.0.0.1:8000/dashboard/,1471,0,0
+1794967849209,1848,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-9,text,true,,88795,305,18,18,http://127.0.0.1:8000/dashboard/predictivo/,1805,0,0
+1794967849269,1790,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-18,text,true,,111012,294,18,18,http://127.0.0.1:8000/dashboard/,1726,0,0
+1794967848915,2251,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-8,text,true,,88795,305,18,18,http://127.0.0.1:8000/dashboard/predictivo/,2219,0,0
+1794967849482,1782,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-10,text,true,,88795,305,18,18,http://127.0.0.1:8000/dashboard/predictivo/,1737,0,0
+1794967849294,2097,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-11,text,true,,88795,305,18,18,http://127.0.0.1:8000/dashboard/predictivo/,2096,0,0
+1794967849704,1737,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-14,text,true,,111012,294,18,18,http://127.0.0.1:8000/dashboard/,1605,0,0
+1794967849625,1894,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-12,text,true,,88795,305,18,18,http://127.0.0.1:8000/dashboard/predictivo/,1873,0,0
+1794967850102,1460,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-17,text,true,,88795,305,18,18,http://127.0.0.1:8000/dashboard/predictivo/,1438,0,0
+1794967849492,2101,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-1,text,true,,111312,578,18,18,http://127.0.0.1:8000/dashboard/,467,0,0
+1794967849492,467,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-1,text,true,,300,284,18,18,http://127.0.0.1:8000/,467,0,0
+1794967849959,1634,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-1,text,true,,111012,294,18,18,http://127.0.0.1:8000/dashboard/,1605,0,0
+1794967849606,2067,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-6,text,true,,111312,578,17,17,http://127.0.0.1:8000/dashboard/,648,0,0
+1794967849606,648,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-6,text,true,,300,284,17,17,http://127.0.0.1:8000/,648,0,0
+1794967850255,1418,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-6,text,true,,111012,294,17,17,http://127.0.0.1:8000/dashboard/,1354,0,0
+1794967850217,1565,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-15,text,true,,88795,305,16,16,http://127.0.0.1:8000/dashboard/predictivo/,1555,0,0
+1794967850267,1568,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-16,text,true,,111312,578,16,16,http://127.0.0.1:8000/dashboard/,539,0,0
+1794967850267,539,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-16,text,true,,300,284,16,16,http://127.0.0.1:8000/,539,0,0
+1794967850806,1029,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-16,text,true,,111012,294,16,16,http://127.0.0.1:8000/dashboard/,1002,0,0
+1794967849841,2119,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-19,text,true,,88795,305,15,15,http://127.0.0.1:8000/dashboard/predictivo/,2074,0,0
+1794967849337,2719,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-3,text,true,,111312,578,15,15,http://127.0.0.1:8000/dashboard/,1024,0,0
+1794967849337,1024,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-3,text,true,,300,284,15,15,http://127.0.0.1:8000/,1024,0,0
+1794967850361,1695,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-3,text,true,,111012,294,15,15,http://127.0.0.1:8000/dashboard/,1690,0,0
+1794967849677,2495,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-20,text,true,,88795,305,14,14,http://127.0.0.1:8000/dashboard/predictivo/,2487,0,0
+1794967850708,2020,GET /dashboard/ (Dashboard Gerencial),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-7,text,true,,111012,294,14,14,http://127.0.0.1:8000/dashboard/,2004,0,0
+1794967851060,1747,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-18,text,true,,88795,305,14,14,http://127.0.0.1:8000/dashboard/predictivo/,1747,0,0
+1794967851059,1883,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-9,text,true,,111312,578,14,14,http://127.0.0.1:8000/dashboard/,544,0,0
+1794967851059,544,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-9,text,true,,300,284,14,14,http://127.0.0.1:8000/,544,0,0
+1794967851603,1339,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-9,text,true,,111012,294,14,14,http://127.0.0.1:8000/dashboard/,1327,0,0
+1794967850951,2029,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-13,text,true,,88795,305,13,13,http://127.0.0.1:8000/dashboard/predictivo/,1977,0,0
+1794967850967,2013,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-5,text,true,,111312,578,13,13,http://127.0.0.1:8000/dashboard/,775,0,0
+1794967850967,775,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-5,text,true,,300,284,13,13,http://127.0.0.1:8000/,775,0,0
+1794967851742,1238,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-5,text,true,,111012,294,13,13,http://127.0.0.1:8000/dashboard/,1232,0,0
+1794967851392,1614,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-11,text,true,,111312,578,12,12,http://127.0.0.1:8000/dashboard/,592,0,0
+1794967851392,592,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-11,text,true,,300,284,12,12,http://127.0.0.1:8000/,592,0,0
+1794967851988,1018,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-11,text,true,,111012,294,12,12,http://127.0.0.1:8000/dashboard/,1013,0,0
+1794967851167,1844,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-8,text,true,,111312,578,11,11,http://127.0.0.1:8000/dashboard/,657,0,0
+1794967851167,657,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-8,text,true,,300,284,11,11,http://127.0.0.1:8000/,657,0,0
+1794967851825,1186,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-8,text,true,,111012,294,11,11,http://127.0.0.1:8000/dashboard/,1178,0,0
+1794967851265,1795,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-10,text,true,,111312,578,10,10,http://127.0.0.1:8000/dashboard/,710,0,0
+1794967851443,1617,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-14,text,true,,88795,305,10,10,http://127.0.0.1:8000/dashboard/predictivo/,1615,0,0
+1794967851265,710,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-10,text,true,,300,284,10,10,http://127.0.0.1:8000/,710,0,0
+1794967851975,1085,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-10,text,true,,111012,294,10,10,http://127.0.0.1:8000/dashboard/,1084,0,0
+1794967851783,1359,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-15,text,true,,111312,578,9,9,http://127.0.0.1:8000/dashboard/,324,0,0
+1794967851783,324,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-15,text,true,,300,284,9,9,http://127.0.0.1:8000/,324,0,0
+1794967852108,1034,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-15,text,true,,111012,294,9,9,http://127.0.0.1:8000/dashboard/,1034,0,0
+1794967851521,1727,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-12,text,true,,111312,578,8,8,http://127.0.0.1:8000/dashboard/,549,0,0
+1794967851521,549,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-12,text,true,,300,284,8,8,http://127.0.0.1:8000/,549,0,0
+1794967852070,1178,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-12,text,true,,111012,294,8,8,http://127.0.0.1:8000/dashboard/,1158,0,0
+1794967851565,1730,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-17,text,true,,111312,578,7,7,http://127.0.0.1:8000/dashboard/,447,0,0
+1794967851565,447,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-17,text,true,,300,284,7,7,http://127.0.0.1:8000/,447,0,0
+1794967852013,1282,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-17,text,true,,111012,294,7,7,http://127.0.0.1:8000/dashboard/,1273,0,0
+1794967851961,1446,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-19,text,true,,111312,578,6,6,http://127.0.0.1:8000/dashboard/,255,0,0
+1794967851961,255,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-19,text,true,,300,284,6,6,http://127.0.0.1:8000/,255,0,0
+1794967852216,1191,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-19,text,true,,111012,294,6,6,http://127.0.0.1:8000/dashboard/,1190,0,0
+1794967852729,1159,GET /dashboard/predictivo/ (Inferencia ML & SHAP),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-7,text,true,,88795,305,5,5,http://127.0.0.1:8000/dashboard/predictivo/,1154,0,0
+1794967852174,1775,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-20,text,true,,111312,578,5,5,http://127.0.0.1:8000/dashboard/,1076,0,0
+1794967852174,1076,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-20,text,true,,300,284,5,5,http://127.0.0.1:8000/,1076,0,0
+1794967853251,698,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-20,text,true,,111012,294,5,5,http://127.0.0.1:8000/dashboard/,698,0,0
+1794967852982,1075,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-13,text,true,,111312,578,4,4,http://127.0.0.1:8000/dashboard/,304,0,0
+1794967852809,1248,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-18,text,true,,111312,578,4,4,http://127.0.0.1:8000/dashboard/,479,0,0
+1794967852982,304,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-13,text,true,,300,284,4,4,http://127.0.0.1:8000/,304,0,0
+1794967852809,479,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-18,text,true,,300,284,4,4,http://127.0.0.1:8000/,479,0,0
+1794967853286,771,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-13,text,true,,111012,294,4,4,http://127.0.0.1:8000/dashboard/,759,0,0
+1794967853288,769,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-18,text,true,,111012,294,4,4,http://127.0.0.1:8000/dashboard/,758,0,0
+1794967853062,1058,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-14,text,true,,111312,578,2,2,http://127.0.0.1:8000/dashboard/,265,0,0
+1794967853062,265,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-14,text,true,,300,284,2,2,http://127.0.0.1:8000/,265,0,0
+1794967853327,793,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-14,text,true,,111012,294,2,2,http://127.0.0.1:8000/dashboard/,792,0,0
+1794967853890,295,GET / (Landing Institucional),200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-7,text,true,,111312,578,1,1,http://127.0.0.1:8000/dashboard/,93,0,0
+1794967853890,93,GET / (Landing Institucional)-0,302,Found,20 Usuarios Concurrentes (Dueño / Analista) 1-7,text,true,,300,284,1,1,http://127.0.0.1:8000/,93,0,0
+1794967853984,201,GET / (Landing Institucional)-1,200,OK,20 Usuarios Concurrentes (Dueño / Analista) 1-7,text,true,,111012,294,1,1,http://127.0.0.1:8000/dashboard/,200,0,0

@@ -1,0 +1,1091 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carga de Estados (ETL) - SmartFinanzas</title>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        :root {
+            --sidebar-width: 250px;
+            --sidebar-bg: #ffffff;
+            --sidebar-border: #e5e7eb;
+            --sidebar-hover: #f9fafb;
+            --sidebar-text: #4b5563;
+            --sidebar-text-active: #111827;
+            --sidebar-active-bg: #f3f4f6;
+            --accent: #2563eb;
+            --topbar-height: 56px;
+            --topbar-bg: #ffffff;
+            --topbar-border: #e5e7eb;
+            --body-bg: #f9fafb;
+            --text-primary: #111827;
+            --text-secondary: #4b5563;
+            --text-muted: #6b7280;
+        }
+
+        body {
+            min-height: 100vh;
+            background-color: var(--body-bg);
+            color: var(--text-primary);
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Top Navbar */
+        .top-navbar {
+            height: var(--topbar-height);
+            z-index: 1030;
+            background-color: var(--topbar-bg) !important;
+            border-bottom: 1px solid var(--topbar-border);
+        }
+
+        /* Layout wrapper */
+        .app-layout {
+            display: flex;
+            min-height: calc(100vh - var(--topbar-height));
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--sidebar-border);
+            color: var(--sidebar-text);
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.25s ease;
+            position: sticky;
+            top: var(--topbar-height);
+            height: calc(100vh - var(--topbar-height));
+            overflow-y: auto;
+        }
+
+        .sidebar-heading {
+            font-size: 0.6875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #9ca3af;
+            padding: 1.1rem 1.15rem 0.35rem;
+            font-weight: 600;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar-menu .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.5rem 0.85rem;
+            margin: 2px 8px;
+            border-radius: 6px;
+            color: var(--sidebar-text);
+            font-size: 0.8125rem;
+            font-weight: 500;
+            transition: background-color 0.15s ease, color 0.15s ease;
+            text-decoration: none;
+        }
+
+        .sidebar-menu .nav-link:hover {
+            color: var(--sidebar-text-active);
+            background-color: var(--sidebar-hover);
+        }
+
+        .sidebar-menu .nav-link.active {
+            color: var(--sidebar-text-active);
+            background-color: var(--sidebar-active-bg);
+            font-weight: 600;
+        }
+
+        .sidebar-menu .nav-link.active i {
+            color: var(--accent);
+        }
+
+        .sidebar-menu .nav-link i {
+            font-size: 1rem;
+            width: 18px;
+            text-align: center;
+            color: #6b7280;
+        }
+
+        .sidebar-user {
+            background-color: #ffffff;
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid var(--sidebar-border);
+        }
+
+        /* Main content area */
+        .main-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            background-color: var(--body-bg);
+        }
+
+        .main-content {
+            flex-grow: 1;
+            padding: 1.75rem 2rem;
+            max-width: 1360px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .app-footer {
+            background-color: #ffffff;
+            border-top: 1px solid var(--topbar-border);
+            color: var(--text-muted);
+            font-size: 0.8125rem;
+            padding: 0.85rem 2rem;
+        }
+
+        /* Enterprise Components Styling */
+        .card {
+            border: 1px solid #e5e7eb !important;
+            border-radius: 8px !important;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04) !important;
+            background-color: #ffffff !important;
+        }
+
+        .card-header {
+            background-color: #ffffff !important;
+            border-bottom: 1px solid #e5e7eb !important;
+            padding: 1rem 1.25rem !important;
+        }
+
+        .btn {
+            font-size: 0.8125rem;
+            font-weight: 500;
+            border-radius: 6px;
+            padding: 0.45rem 0.85rem;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+        }
+
+        .btn-primary {
+            background-color: #2563eb !important;
+            border-color: #2563eb !important;
+            color: #ffffff !important;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-primary:hover {
+            background-color: #1d4ed8 !important;
+            border-color: #1d4ed8 !important;
+        }
+
+        .btn-outline-secondary {
+            background-color: #ffffff !important;
+            border-color: #d1d5db !important;
+            color: #374151 !important;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+        }
+
+        .btn-outline-secondary:hover {
+            background-color: #f9fafb !important;
+            border-color: #9ca3af !important;
+            color: #111827 !important;
+        }
+
+        .btn-outline-primary {
+            background-color: #ffffff !important;
+            border-color: #2563eb !important;
+            color: #2563eb !important;
+        }
+
+        .btn-outline-primary:hover {
+            background-color: #eff6ff !important;
+            color: #1d4ed8 !important;
+        }
+
+        /* Subtle Flat Alerts */
+        .alert {
+            border-radius: 6px;
+            font-size: 0.8125rem;
+            border-width: 1px;
+            padding: 0.75rem 1rem;
+        }
+        .alert-success {
+            background-color: #f0fdf4 !important;
+            border-color: #bbf7d0 !important;
+            color: #15803d !important;
+        }
+        .alert-danger {
+            background-color: #fef2f2 !important;
+            border-color: #fecaca !important;
+            color: #b91c1c !important;
+        }
+        .alert-warning {
+            background-color: #fefce8 !important;
+            border-color: #fef08a !important;
+            color: #854d0e !important;
+        }
+        .alert-info {
+            background-color: #f8fafc !important;
+            border-color: #e2e8f0 !important;
+            color: #334155 !important;
+        }
+
+        /* Responsive Mobile Sidebar */
+        @media (max-width: 991.98px) {
+            .sidebar {
+                position: fixed;
+                top: var(--topbar-height);
+                bottom: 0;
+                left: 0;
+                z-index: 1020;
+                transform: translateX(-100%);
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+                box-shadow: 4px 0 20px rgba(0, 0, 0, 0.08);
+            }
+
+            .sidebar-backdrop {
+                display: none;
+                position: fixed;
+                top: var(--topbar-height);
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(17, 24, 39, 0.4);
+                z-index: 1010;
+            }
+
+            .sidebar-backdrop.show {
+                display: block;
+            }
+        }
+    </style>
+
+    
+</head>
+<body>
+
+    <!-- ====================================================================== -->
+    <!-- BARRA SUPERIOR (Navbar Utilitaria)                                     -->
+    <!-- ====================================================================== -->
+    <header class="navbar navbar-expand top-navbar sticky-top px-3 px-md-4">
+        <!-- Botón para alternar sidebar en móviles -->
+        <button class="btn btn-link text-secondary d-lg-none me-2 p-0 text-decoration-none" id="sidebarToggle" type="button" aria-label="Menu">
+            <i class="bi bi-list fs-4"></i>
+        </button>
+
+        <!-- Marca / Logo Minimalista -->
+        <a class="navbar-brand text-dark fw-semibold d-flex align-items-center gap-2 m-0 fs-6 text-decoration-none" href="/dashboard/">
+            <div class="rounded d-flex align-items-center justify-content-center bg-dark text-white" style="width: 26px; height: 26px; font-size: 0.75rem;">
+                <i class="bi bi-bar-chart-fill"></i>
+            </div>
+            <span class="tracking-tight" style="color: #111827; font-weight: 600;">SmartFinanzas</span>
+        </a>
+
+        <!-- Controles a la derecha -->
+        <div class="ms-auto d-flex align-items-center gap-2 gap-md-3">
+            
+                <div class="d-none d-sm-flex align-items-center gap-2 text-secondary">
+                    <span class="text-dark fw-medium" style="font-size: 0.8125rem;">contador_coagra</span>
+                    
+                        <span class="badge border font-monospace" style="font-size: 0.6875rem; background-color: #f3f4f6; color: #4b5563; border-color: #e5e7eb !important;">
+                            Contador
+                        </span>
+                    
+                </div>
+
+                <form action="/logout/" method="POST" class="d-inline m-0">
+                    <input type="hidden" name="csrfmiddlewaretoken" value="pxTGtWOVYYk88jBkkV0jxBEcz41lHMsf8nVTyVHsKq1xkI3O9B1eOKTq61mhaqQv">
+                    <button type="submit" class="btn btn-outline-secondary btn-sm py-1 px-2 text-secondary">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span class="d-none d-sm-inline" style="font-size: 0.75rem;">Salir</span>
+                    </button>
+                </form>
+            
+        </div>
+    </header>
+
+    <!-- Backdrop para cerrar sidebar en móvil -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- ====================================================================== -->
+    <!-- CONTENEDOR PRINCIPAL: SIDEBAR + CONTENIDO DINÁMICO                     -->
+    <!-- ====================================================================== -->
+    <div class="app-layout">
+
+        <!-- ------------------------------------------------------------------ -->
+        <!-- MENÚ DE NAVEGACIÓN LATERAL (Sidebar)                               -->
+        <!-- ------------------------------------------------------------------ -->
+        <aside class="sidebar" id="sidebarNav">
+            
+            <div class="sidebar-user">
+                <div class="d-flex align-items-center gap-2 p-1 rounded border" style="border-color: #e5e7eb !important; background-color: #f9fafb;">
+                    <div class="rounded-circle bg-secondary bg-opacity-25 text-dark d-flex align-items-center justify-content-center fw-semibold" style="width: 30px; height: 30px; font-size: 0.75rem;">
+                        CO
+                    </div>
+                    <div class="overflow-hidden flex-grow-1">
+                        <div class="text-dark fw-medium text-truncate" style="font-size: 0.75rem;">contador_coagra</div>
+                        <div class="text-muted text-truncate" style="font-size: 0.6875rem;">Contador</div>
+                    </div>
+                </div>
+            </div>
+            
+
+            <div class="overflow-y-auto flex-grow-1 py-2">
+                <!-- 1. GENERAL / TABLERO -->
+                <div class="sidebar-heading">Analítica &amp; Control</div>
+                <ul class="sidebar-menu">
+                    <li>
+                        <a href="/dashboard/" class="nav-link ">
+                            <i class="bi bi-speedometer2"></i>
+                            <span>Información Actual</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/dashboard/predictivo/" class="nav-link ">
+                            <i class="bi bi-graph-up-arrow"></i>
+                            <span>Información Predictiva</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- 2. MÓDULO ETL (Ingesta de Balances) -->
+                <div class="sidebar-heading">Módulo ETL</div>
+                <ul class="sidebar-menu">
+                    <li>
+                        <a href="/etl/carga/" class="nav-link active">
+                            <i class="bi bi-cloud-arrow-up"></i>
+                            <span>Carga de Estados</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/etl/ratios/" class="nav-link ">
+                            <i class="bi bi-calculator"></i>
+                            <span>Ratios Financieros</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/etl/historial/" class="nav-link ">
+                            <i class="bi bi-clock-history"></i>
+                            <span>Historial de Cargas</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- 3. MÓDULO TRANSACCIONAL (Caja, Ventas, Cierres) -->
+                <div class="sidebar-heading">Transaccional</div>
+                <ul class="sidebar-menu">
+                    
+                    
+                    
+                    <li>
+                        <a href="/transaccional/ventas/nueva/" class="nav-link ">
+                            <i class="bi bi-cart-check"></i>
+                            <span>Registro de Ventas</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/transaccional/cierre/nuevo/" class="nav-link ">
+                            <i class="bi bi-safe"></i>
+                            <span>Cierre y Arqueo</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/transaccional/cierres/" class="nav-link ">
+                            <i class="bi bi-journal-check"></i>
+                            <span>Historial de Cierres</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- 4. CAPA ANALÍTICA -->
+                <!--
+                <div class="sidebar-heading">Capa Analítica</div>
+                <ul class="sidebar-menu">
+                    <li>
+                        <a href="/dashboard/" class="nav-link ">
+                            <i class="bi bi-cpu"></i>
+                            <span>Predicción de Riesgo</span>
+                        </a>
+                    </li>
+                </ul>
+                -->
+            </div>
+        </aside>
+
+        <!-- ------------------------------------------------------------------ -->
+        <!-- ÁREA DE CONTENIDO CENTRAL                                          -->
+        <!-- ------------------------------------------------------------------ -->
+        <div class="main-wrapper">
+            <main class="main-content">
+                <!-- Sistema de Notificaciones / Mensajes Django -->
+                
+
+                <!-- Encabezado de página opcional -->
+                
+<div class="d-flex flex-wrap align-items-center justify-content-between pb-3 mb-4 border-bottom">
+    <div>
+        <h1 class="h3 fw-bold text-dark mb-1">
+            <i class="bi bi-cpu text-primary me-2"></i>Módulo ETL: Carga de Estados
+        </h1>
+        <p class="text-muted mb-0 small">
+            Extracción en memoria de estados financieros (CMF / IFRS / Balances PYME) y generación del vector de 7 razones financieras para Machine Learning.
+        </p>
+    </div>
+    <div class="mt-2 mt-md-0 d-flex gap-2">
+        <a href="/etl/plantilla/descargar/" class="btn btn-outline-success btn-sm shadow-sm fw-semibold">
+            <i class="bi bi-file-earmark-excel me-1"></i>Descargar Plantilla IFRS (.xlsx)
+        </a>
+        <a href="/etl/ratios/" class="btn btn-outline-primary btn-sm shadow-sm">
+            <i class="bi bi-graph-up me-1"></i>Ver Ratios Guardados
+        </a>
+    </div>
+</div>
+
+
+                <!-- Contenido dinámico inyectado por las vistas hijas -->
+                
+
+
+<div class="row g-4">
+    <!-- FORMULARIO DE CARGA Y ESTADO ACTIVO -->
+    <div class="col-12">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-file-earmark-spreadsheet text-primary me-2"></i>Ingesta de Estados Financieros (.xlsx / .xls / .csv)
+                </h5>
+                <span class="badge bg-primary-subtle text-primary fw-normal">Inferencia ML</span>
+            </div>
+            <div class="card-body p-4">
+                <!-- Identificación de la Empresa -->
+                <div class="card bg-light border-0 mb-4">
+                    <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-2 text-center" style="width: 40px; height: 40px;">
+                                <i class="bi bi-building fs-5"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small">Empresa vinculada a tu cuenta:</div>
+                                <div class="fw-bold text-dark fs-6">
+                                    COAGRA S.A.
+                                    
+                                        <span class="badge bg-secondary-subtle text-secondary font-monospace ms-1">96686870-K</span>
+                                    
+                                </div>
+                            </div>
+                        </div>
+                        <span class="badge bg-light text-muted border">Modo Autónomo</span>
+                    </div>
+                </div>
+
+                <!-- Formulario de Subida -->
+                <form method="POST" action="/etl/carga/" enctype="multipart/form-data" novalidate id="formCargaETL">
+                    <input type="hidden" name="csrfmiddlewaretoken" value="pxTGtWOVYYk88jBkkV0jxBEcz41lHMsf8nVTyVHsKq1xkI3O9B1eOKTq61mhaqQv">
+
+                    
+
+                    <!-- Zona Drag & Drop -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold text-dark mb-2">
+                            Seleccionar Archivo Contable <span class="text-danger">*</span>
+                        </label>
+                        <div id="dropZone" class="border border-2 border-dashed rounded-3 p-4 text-center bg-light bg-opacity-50 position-relative transition" style="cursor: pointer;">
+                            <input type="file" name="archivo_datos" id="id_archivo_datos" class="position-absolute top-0 start-0 w-100 h-100 opacity-0" style="cursor: pointer;" accept=".xlsx,.xls,.csv" required>
+                            <div id="dropZoneContent">
+                                <i class="bi bi-cloud-arrow-up-fill text-primary display-4 mb-2 d-block"></i>
+                                <h6 class="fw-bold text-dark mb-1">Arrastra tu archivo aquí o haz clic para explorar</h6>
+                                <p class="text-muted small mb-2">
+                                    Soporta <strong>Excel (.xlsx, .xls)</strong> y <strong>CSV (.csv)</strong> con estados financieros oficiales CMF o balances clasificados.
+                                </p>
+                                <span class="badge bg-secondary-subtle text-secondary">Límite: hasta 25 MB (RNF-10)</span>
+                            </div>
+                            <div id="dropZoneSelected" class="d-none">
+                                <i class="bi bi-file-earmark-check-fill text-success display-4 mb-2 d-block"></i>
+                                <h6 class="fw-bold text-dark mb-1" id="selectedFileName">archivo.xlsx</h6>
+                                <p class="text-muted small mb-2" id="selectedFileSize">0.0 MB</p>
+                                <button type="button" class="btn btn-sm btn-outline-danger" id="btnRemoverArchivo">
+                                    <i class="bi bi-x-circle me-1"></i>Cambiar archivo
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Advertencia frontend RNF-10 -->
+                        <div id="alertaTamanoArchivo" class="alert alert-danger d-none mt-2 p-2.5 small align-items-center shadow-sm" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill fs-5 me-2 flex-shrink-0 text-danger"></i>
+                            <div>
+                                <strong>Archivo demasiado pesado (RNF-10):</strong>
+                                <span id="mensajeTamanoArchivo"></span>
+                            </div>
+                        </div>
+
+                        <!-- Indicador de archivo válido (RNF-10) -->
+                        <div id="infoArchivoValido" class="d-none mt-2 text-success small align-items-center">
+                            <i class="bi bi-check-circle-fill me-1"></i>
+                            <span id="mensajeArchivoValido"></span>
+                        </div>
+                    </div>
+
+                    <!-- Formato IFRS Requerido (Horizontal CMF) -->
+                    <input type="hidden" name="orientacion_modo" value="horizontal" id="orientacionModo">
+                    <div class="alert alert-light border shadow-sm rounded-3 py-2.5 px-3 mb-4 d-flex align-items-center gap-2.5 text-muted small">
+                        <i class="bi bi-file-earmark-spreadsheet text-primary fs-4 flex-shrink-0"></i>
+                        <div>
+                            <strong class="text-dark">Formato Estándar CMF / IFRS: Exclusivo Horizontal</strong>
+                            <div class="text-secondary" style="font-size: 0.78rem;">
+                                Columnas correspondientes a cuentas contables y filas a períodos trimestrales históricos.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Aceptación de Términos Contables IFRS -->
+                    <div class="card bg-light border-0 p-3 mb-4 rounded-3" id="cardCheckTerminos">
+                        <div class="form-check m-0">
+                            <input class="form-check-input" type="checkbox" id="checkTerminosETL" name="terminos_aceptados" required>
+                            <label class="form-check-label small text-dark" for="checkTerminosETL">
+                                Certifico la exactitud contable del balance y acepto los 
+                                <a href="javascript:void(0)" class="text-primary fw-semibold text-decoration-underline" data-bs-toggle="modal" data-bs-target="#modalTerminosETL">
+                                    Términos de Ingesta, Veracidad y Validación IFRS
+                                </a> <span class="text-danger">*</span>
+                            </label>
+                        </div>
+                        <div id="errorCheckTerminos" class="text-danger small mt-2 fw-semibold d-none">
+                            <i class="bi bi-exclamation-circle-fill me-1"></i>Debes certificar la exactitud contable marcando la casilla antes de procesar el archivo.
+                        </div>
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                        <a href="/etl/ratios/" class="btn btn-outline-secondary">
+                            Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary px-4 shadow-sm fw-semibold" id="btnSubmit" disabled>
+                            <i class="bi bi-lightning-charge-fill me-1"></i>Procesar y Extraer Ratios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tarjeta de Estado del Archivo Activo -->
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-3 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle p-2 text-center bg-secondary-subtle text-muted" style="width: 42px; height: 42px;">
+                        <i class="bi bi-file-earmark-x fs-5"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold text-dark small">
+                            
+                                No hay archivo de balance activo en sesión
+                            
+                        </div>
+                        <div class="text-muted small">
+                            
+                                Sube un archivo para habilitar las predicciones predictivas.
+                            
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ====================================================================== -->
+<!-- MODAL DE TÉRMINOS Y CONDICIONES: INGESTA CONTABLE IFRS (ETL)            -->
+<!-- ====================================================================== -->
+<div class="modal fade" id="modalTerminosETL" tabindex="-1" aria-labelledby="modalTerminosETLLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 920px; width: 92%;">
+        <div class="modal-content shadow-sm border">
+            <div class="modal-header bg-white border-bottom py-2.5 px-4">
+                <div>
+                    <h5 class="modal-title fw-bold text-dark fs-6 mb-0" id="modalTerminosETLLabel">
+                        Términos de Ingesta, Veracidad Contable y Validación IFRS / CMF
+                    </h5>
+                    <div class="text-secondary" style="font-size: 0.72rem;">
+                        Pipeline ETL &middot; Marco Normativo NIC 1 (IASB) / Normas de la CMF / Código Tributario
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <div class="modal-body p-4 text-dark" style="max-height: 50vh; overflow-y: auto; font-size: 0.78rem; line-height: 1.55;">
+                <div class="p-2.5 px-3 mb-3 bg-light border rounded text-dark" style="font-size: 0.75rem;">
+                    <strong>Declaración de Fidedignidad Contable:</strong> La carga de archivos financieros procesa información que sustentará modelos matemáticos predictivos y diagnósticos directivos oficiales.
+                </div>
+
+                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">1. Marco Normativo IFRS y Criterios Contables</h6>
+                <p class="mb-3">
+                    El procesamiento automatizado de estados financieros se fundamenta en los criterios de la <strong>Norma Internacional de Contabilidad N° 1 (NIC 1 / IAS 1: Presentación de Estados Financieros)</strong>, adoptada en Chile por la <strong>Comisión para el Mercado Financiero (CMF)</strong>, requiriendo representación fiel de las transacciones, devengo contable y clasificación nítida entre partidas corrientes y no corrientes.
+                </p>
+
+                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">2. Responsabilidad por la Veracidad del Archivo Origen</h6>
+                <p class="mb-3">
+                    Conforme al <strong>Artículo 17 y 97 N° 4 del Código Tributario de Chile</strong> y principios generales de contabilidad mercantil, el usuario y la empresa garantizan que el balance general (.xlsx / .csv) incorporado proviene de los libros oficiales y respaldos documentales fidedignos.
+                </p>
+
+                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">3. Ecuación Patrimonial y Consistencia Aritmética</h6>
+                <p class="mb-3">
+                    El pipeline ETL efectúa validaciones de integridad estricta (Activo Total = Pasivo Total + Patrimonio Neto con tolerancia máxima de 5%), verificación de subcomponentes y contención de divisiones por cero.
+                </p>
+
+                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.8125rem;">4. Deslinde de Responsabilidad del Motor ETL</h6>
+                <p class="mb-0">
+                    La validación algorítmica de la plataforma comprueba consistencia matemática de tipos y fórmulas adimensionales, pero <strong>no reemplaza una auditoría física de inventarios, arqueo pericial ni verificación sustantiva de cartera</strong> por parte de auditores externos independientes.
+                </p>
+            </div>
+
+            <div class="modal-footer bg-light py-2 px-4 border-top d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+                <div class="form-check m-0">
+                    <input class="form-check-input" type="checkbox" id="checkModalETL">
+                    <label class="form-check-label fw-semibold text-dark" for="checkModalETL" style="font-size: 0.78rem;">
+                        Certifico la veracidad contable de los datos y acepto los términos de validación IFRS
+                    </label>
+                </div>
+                <button type="button" class="btn btn-dark btn-sm px-4 fw-semibold" id="btnAceptarModalETL" disabled>
+                    Aceptar y Continuar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+            </main>
+
+            <!-- Pie de página unificado -->
+            <footer class="app-footer">
+                <div class="container-fluid d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2">
+                    <div>
+                        &copy; 2026 <strong>SmartFinanzas</strong> — Sistema de Analítica Predictiva.
+                    </div>
+                    <div class="text-muted">
+                        Plataforma de Inteligencia Financiera Empresarial
+                    </div>
+                </div>
+            </footer>
+        </div>
+
+    </div>
+
+    <!-- Modal / Spinner y Barra de Carga para Ejecución del Análisis Predictivo (RF-11) -->
+    <div class="modal fade" id="modalCargaAnalisis" tabindex="-1" aria-labelledby="modalCargaAnalisisLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg text-center p-4">
+                <div class="modal-body p-2">
+                    <!-- Spinner de carga animado -->
+                    <div class="d-flex justify-content-center mb-3">
+                        <div class="spinner-border text-primary" style="width: 3.5rem; height: 3.5rem;" role="status">
+                            <span class="visually-hidden">Ejecutando análisis...</span>
+                        </div>
+                    </div>
+
+                    <h5 class="fw-bold text-dark mb-2" id="modalCargaAnalisisLabel">
+                        Ejecutando Modelo de Random Forest
+                    </h5>
+                    <p class="text-muted small mb-3">
+                        Procesando vector de ratios financieros (V1 &ndash; V7) y calculando explicabilidad con SHAP.<br>
+                        Por favor espere un momento mientras se completa la evaluación de riesgo...
+                    </p>
+
+                    <!-- Barra de carga animada (RF-11) -->
+                    <div class="progress mb-2" style="height: 10px;">
+                        <div id="barraProgresoAnalisis" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+
+                    <span class="text-secondary fs-micro font-monospace">
+                        <i class="bi bi-cpu me-1"></i>Inferencia analítica en curso &middot; Tiempo estimado: &lt; 2 segundos
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5.3 Bundle JS (incluye Popper) -->
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Script para alternar el Sidebar en dispositivos móviles e inicializar Tooltips -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Inicialización global de Tooltips Bootstrap
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            const sidebar = document.getElementById('sidebarNav');
+            const toggleBtn = document.getElementById('sidebarToggle');
+            const backdrop = document.getElementById('sidebarBackdrop');
+
+            if (toggleBtn && sidebar && backdrop) {
+                function toggleSidebar() {
+                    sidebar.classList.toggle('show');
+                    backdrop.classList.toggle('show');
+                }
+
+                toggleBtn.addEventListener('click', toggleSidebar);
+                backdrop.addEventListener('click', toggleSidebar);
+            }
+
+            // Manejador del botón y formulario "Ejecutar Análisis" (RF-11)
+            const formsEjecutar = document.querySelectorAll('.form-ejecutar-analisis');
+            const modalCargaEl = document.getElementById('modalCargaAnalisis');
+            let modalCargaInstance = null;
+
+            formsEjecutar.forEach(function (form) {
+                form.addEventListener('submit', function (e) {
+                    // Deshabilitar botón para prevenir doble clic y mostrar spinner en botón
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Ejecutando Análisis...';
+                    }
+
+                    // Cerrar cualquier modal abierto (ej. modal de advertencia de outliers)
+                    const modalesAbiertos = document.querySelectorAll('.modal.show');
+                    modalesAbiertos.forEach(function (m) {
+                        const inst = bootstrap.Modal.getInstance(m);
+                        if (inst) inst.hide();
+                    });
+
+                    // Mostrar barra / spinner de carga en modal persistente
+                    if (modalCargaEl && typeof bootstrap !== 'undefined') {
+                        if (!modalCargaInstance) {
+                            modalCargaInstance = new bootstrap.Modal(modalCargaEl, { backdrop: 'static', keyboard: false });
+                        }
+                        modalCargaInstance.show();
+                    }
+                });
+            });
+        });
+    </script>
+
+    
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const LIMITE_MAX_BYTES = 25 * 1024 * 1024; // 25 MB (RNF-10)
+    const LIMITE_MAX_MB = 25;
+
+    const inputArchivo = document.getElementById('id_archivo_datos');
+    const formCarga = document.getElementById('formCargaETL');
+    const btnSubmit = document.getElementById('btnSubmit');
+    const alertaTamano = document.getElementById('alertaTamanoArchivo');
+    const mensajeTamano = document.getElementById('mensajeTamanoArchivo');
+    const infoValido = document.getElementById('infoArchivoValido');
+    const mensajeValido = document.getElementById('mensajeArchivoValido');
+    const dropZone = document.getElementById('dropZone');
+    const dropZoneContent = document.getElementById('dropZoneContent');
+    const dropZoneSelected = document.getElementById('dropZoneSelected');
+    const selectedFileName = document.getElementById('selectedFileName');
+    const selectedFileSize = document.getElementById('selectedFileSize');
+    const btnRemoverArchivo = document.getElementById('btnRemoverArchivo');
+
+    function actualizarEstadoBtnSubmit() {
+        if (!btnSubmit) return;
+        const tieneArchivo = inputArchivo && inputArchivo.files && inputArchivo.files.length > 0;
+        const checkMarcado = checkPrincipalETL && checkPrincipalETL.checked;
+        const archivoValido = tieneArchivo && (inputArchivo.files[0].size <= LIMITE_MAX_BYTES);
+        btnSubmit.disabled = !(tieneArchivo && checkMarcado && archivoValido);
+    }
+
+    function actualizarVistaArchivo(archivo) {
+        if (!archivo) {
+            dropZoneContent.classList.remove('d-none');
+            dropZoneSelected.classList.add('d-none');
+            dropZone.classList.remove('border-success', 'bg-success', 'bg-opacity-10');
+            if (alertaTamano) alertaTamano.classList.add('d-none');
+            if (infoValido) infoValido.classList.add('d-none');
+            actualizarEstadoBtnSubmit();
+            return;
+        }
+
+        const tamanoMB = (archivo.size / (1024 * 1024)).toFixed(2);
+
+        if (archivo.size > LIMITE_MAX_BYTES) {
+            if (mensajeTamano) {
+                mensajeTamano.textContent = `El archivo seleccionado ("${archivo.name}") pesa ${tamanoMB} MB, superando el límite de ${LIMITE_MAX_MB} MB permitido.`;
+            }
+            if (alertaTamano) {
+                alertaTamano.classList.remove('d-none');
+                alertaTamano.classList.add('d-flex');
+            }
+            if (infoValido) infoValido.classList.add('d-none');
+            inputArchivo.value = '';
+            dropZoneContent.classList.remove('d-none');
+            dropZoneSelected.classList.add('d-none');
+            dropZone.classList.remove('border-success', 'bg-success', 'bg-opacity-10');
+            actualizarEstadoBtnSubmit();
+            return;
+        }
+
+        if (alertaTamano) alertaTamano.classList.add('d-none');
+        if (infoValido && mensajeValido) {
+            mensajeValido.textContent = `Archivo seleccionado correctamente: "${archivo.name}" (${tamanoMB} MB / ${LIMITE_MAX_MB} MB máx).`;
+            infoValido.classList.remove('d-none');
+            infoValido.classList.add('d-flex');
+        }
+        selectedFileName.textContent = archivo.name;
+        selectedFileSize.textContent = `${tamanoMB} MB`;
+        dropZoneContent.classList.add('d-none');
+        dropZoneSelected.classList.remove('d-none');
+        dropZone.classList.add('border-success', 'bg-success', 'bg-opacity-10');
+        actualizarEstadoBtnSubmit();
+    }
+
+    if (inputArchivo) {
+        inputArchivo.addEventListener('change', function() {
+            if (this.files && this.files.length > 0) {
+                actualizarVistaArchivo(this.files[0]);
+            } else {
+                actualizarVistaArchivo(null);
+            }
+        });
+    }
+
+    if (btnRemoverArchivo) {
+        btnRemoverArchivo.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (inputArchivo) inputArchivo.value = '';
+            actualizarVistaArchivo(null);
+        });
+    }
+
+    // Drag and drop visual cues
+    if (dropZone) {
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.add('border-primary', 'bg-primary', 'bg-opacity-10');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('border-primary', 'bg-primary', 'bg-opacity-10');
+            }, false);
+        });
+    }
+
+    // Sincronización Modal Términos IFRS
+    const checkPrincipalETL = document.getElementById('checkTerminosETL');
+    const checkModalETL = document.getElementById('checkModalETL');
+    const btnAceptarModalETL = document.getElementById('btnAceptarModalETL');
+    const modalElETL = document.getElementById('modalTerminosETL');
+
+    if (modalElETL) {
+        modalElETL.addEventListener('show.bs.modal', function () {
+            if (checkModalETL) checkModalETL.checked = false;
+            if (btnAceptarModalETL) btnAceptarModalETL.disabled = true;
+        });
+    }
+
+    if (checkModalETL && btnAceptarModalETL) {
+        checkModalETL.addEventListener('change', function () {
+            btnAceptarModalETL.disabled = !this.checked;
+        });
+
+        btnAceptarModalETL.addEventListener('click', function () {
+            if (checkPrincipalETL) {
+                checkPrincipalETL.checked = true;
+                checkPrincipalETL.dispatchEvent(new Event('change'));
+            }
+            if (modalElETL && typeof bootstrap !== 'undefined') {
+                const modalInstance = bootstrap.Modal.getInstance(modalElETL) || new bootstrap.Modal(modalElETL);
+                modalInstance.hide();
+            }
+        });
+    }
+
+    const errorCheckTerminos = document.getElementById('errorCheckTerminos');
+    const cardCheckTerminos = document.getElementById('cardCheckTerminos');
+
+    if (checkPrincipalETL) {
+        checkPrincipalETL.addEventListener('change', function() {
+            if (this.checked) {
+                this.classList.remove('is-invalid');
+                if (errorCheckTerminos) errorCheckTerminos.classList.add('d-none');
+                if (cardCheckTerminos) cardCheckTerminos.classList.remove('border', 'border-danger');
+            }
+            actualizarEstadoBtnSubmit();
+        });
+        actualizarEstadoBtnSubmit();
+    }
+
+    // Spinner y validación en submit de carga de balance
+    if (formCarga) {
+        formCarga.addEventListener('submit', function(e) {
+            // 1. Validar que se haya seleccionado un archivo
+            if (!inputArchivo || !inputArchivo.files || inputArchivo.files.length === 0) {
+                e.preventDefault();
+                e.stopPropagation();
+                alert('Debe seleccionar un archivo Excel (.xlsx, .xls) o CSV (.csv) para procesar.');
+                if (inputArchivo) inputArchivo.focus();
+                return false;
+            }
+
+            // 2. Validar tamaño de archivo (25 MB)
+            const archivo = inputArchivo.files[0];
+            if (archivo.size > LIMITE_MAX_BYTES) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+
+            // 3. Validar obligatoriedad del check de Términos IFRS
+            if (checkPrincipalETL && !checkPrincipalETL.checked) {
+                e.preventDefault();
+                e.stopPropagation();
+                checkPrincipalETL.focus();
+                checkPrincipalETL.classList.add('is-invalid');
+                if (cardCheckTerminos) cardCheckTerminos.classList.add('border', 'border-danger');
+                if (errorCheckTerminos) errorCheckTerminos.classList.remove('d-none');
+                return false;
+            }
+
+            // 4. Si es válido, activar spinner
+            if (btnSubmit) {
+                btnSubmit.disabled = true;
+                btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Extrayendo y procesando ratios en memoria...';
+            }
+        });
+    }
+
+    // ======================================================================
+    // LÓGICA DE SELECCIÓN DE PERÍODOS PARA PREDICCIÓN ML
+    // ======================================================================
+    const formPeriodosML = document.getElementById('formSeleccionPeriodosML');
+    const btnEjecutarModal = document.getElementById('btnEjecutarPrediccionModal');
+    const chkPeriodos = document.querySelectorAll('.check-periodo-item');
+    const modoJuntos = document.getElementById('modoJuntos');
+    const modoSeparados = document.getElementById('modoSeparados');
+    const btnMarcarTodos = document.getElementById('btnMarcarTodos');
+    const btnDesmarcarTodos = document.getElementById('btnDesmarcarTodos');
+    const contadorSeleccionados = document.getElementById('contadorSeleccionados');
+    const alertaVacio = document.getElementById('alertaPeriodosVacio');
+    const formPrediccionUnica = document.getElementById('formPrediccionUnica');
+    const btnPrediccionUnica = document.getElementById('btnEjecutarPrediccionUnica');
+
+    function actualizarContadorPeriodos() {
+        if (!chkPeriodos || chkPeriodos.length === 0) return;
+        let seleccionados = 0;
+        chkPeriodos.forEach(chk => {
+            if (chk.checked) seleccionados++;
+        });
+
+        if (contadorSeleccionados) {
+            contadorSeleccionados.textContent = `${seleccionados} de ${chkPeriodos.length} seleccionados`;
+        }
+
+        if (seleccionados === 0) {
+            if (alertaVacio) alertaVacio.classList.remove('d-none');
+            if (btnEjecutarModal) btnEjecutarModal.disabled = true;
+        } else {
+            if (alertaVacio) alertaVacio.classList.add('d-none');
+            if (btnEjecutarModal) btnEjecutarModal.disabled = false;
+        }
+
+        if (modoJuntos && modoSeparados) {
+            if (seleccionados === chkPeriodos.length) {
+                modoJuntos.checked = true;
+            } else {
+                modoSeparados.checked = true;
+            }
+        }
+    }
+
+    if (modoJuntos) {
+        modoJuntos.addEventListener('change', function() {
+            if (this.checked) {
+                chkPeriodos.forEach(chk => chk.checked = true);
+                actualizarContadorPeriodos();
+            }
+        });
+    }
+
+    if (modoSeparados) {
+        modoSeparados.addEventListener('change', function() {
+            actualizarContadorPeriodos();
+        });
+    }
+
+    if (btnMarcarTodos) {
+        btnMarcarTodos.addEventListener('click', function(e) {
+            e.preventDefault();
+            chkPeriodos.forEach(chk => chk.checked = true);
+            actualizarContadorPeriodos();
+        });
+    }
+
+    if (btnDesmarcarTodos) {
+        btnDesmarcarTodos.addEventListener('click', function(e) {
+            e.preventDefault();
+            chkPeriodos.forEach(chk => chk.checked = false);
+            actualizarContadorPeriodos();
+        });
+    }
+
+    chkPeriodos.forEach(chk => {
+        chk.addEventListener('change', actualizarContadorPeriodos);
+    });
+    actualizarContadorPeriodos();
+
+    if (formPeriodosML) {
+        formPeriodosML.addEventListener('submit', function(e) {
+            let seleccionados = 0;
+            chkPeriodos.forEach(chk => {
+                if (chk.checked) seleccionados++;
+            });
+
+            if (seleccionados === 0) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (alertaVacio) alertaVacio.classList.remove('d-none');
+                return false;
+            }
+
+            if (btnEjecutarModal) {
+                btnEjecutarModal.disabled = true;
+                btnEjecutarModal.innerHTML = '<span class="spinner-border spinner-border-sm me-2 text-dark" role="status" aria-hidden="true"></span>Evaluando ' + seleccionados + ' predicción(es) ML...';
+            }
+        });
+    }
+
+    if (formPrediccionUnica) {
+        formPrediccionUnica.addEventListener('submit', function() {
+            if (btnPrediccionUnica) {
+                btnPrediccionUnica.disabled = true;
+                btnPrediccionUnica.innerHTML = '<span class="spinner-border spinner-border-sm me-2 text-dark" role="status" aria-hidden="true"></span>Evaluando predicción ML...';
+            }
+        });
+    }
+});
+</script>
+
+</body>
+</html>
+

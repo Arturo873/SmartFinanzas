@@ -1,0 +1,6 @@
+2026/11/17-15:17:28.542 3860 Reusing MANIFEST C:\Users\artur\Documents\Repositorios\SmartFinanzas\scratch\edge_profile_contador\Default\EdgeCoupons/coupons_data.db/MANIFEST-000001
+2026/11/17-15:17:28.544 3860 Recovering log #4
+2026/11/17-15:17:28.545 3860 Reusing old log C:\Users\artur\Documents\Repositorios\SmartFinanzas\scratch\edge_profile_contador\Default\EdgeCoupons/coupons_data.db/000004.log 
+2026/11/17-15:17:28.856 2284 Level-0 table #8: started
+2026/11/17-15:17:28.916 2284 Level-0 table #8: 683444 bytes OK
+2026/11/17-15:17:28.950 2284 Delete type=0 #4

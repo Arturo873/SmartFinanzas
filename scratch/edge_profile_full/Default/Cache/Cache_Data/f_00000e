@@ -1,0 +1,766 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Venta - SmartFinanzas</title>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        :root {
+            --sidebar-width: 250px;
+            --sidebar-bg: #ffffff;
+            --sidebar-border: #e5e7eb;
+            --sidebar-hover: #f9fafb;
+            --sidebar-text: #4b5563;
+            --sidebar-text-active: #111827;
+            --sidebar-active-bg: #f3f4f6;
+            --accent: #2563eb;
+            --topbar-height: 56px;
+            --topbar-bg: #ffffff;
+            --topbar-border: #e5e7eb;
+            --body-bg: #f9fafb;
+            --text-primary: #111827;
+            --text-secondary: #4b5563;
+            --text-muted: #6b7280;
+        }
+
+        body {
+            min-height: 100vh;
+            background-color: var(--body-bg);
+            color: var(--text-primary);
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Top Navbar */
+        .top-navbar {
+            height: var(--topbar-height);
+            z-index: 1030;
+            background-color: var(--topbar-bg) !important;
+            border-bottom: 1px solid var(--topbar-border);
+        }
+
+        /* Layout wrapper */
+        .app-layout {
+            display: flex;
+            min-height: calc(100vh - var(--topbar-height));
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--sidebar-border);
+            color: var(--sidebar-text);
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.25s ease;
+            position: sticky;
+            top: var(--topbar-height);
+            height: calc(100vh - var(--topbar-height));
+            overflow-y: auto;
+        }
+
+        .sidebar-heading {
+            font-size: 0.6875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #9ca3af;
+            padding: 1.1rem 1.15rem 0.35rem;
+            font-weight: 600;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar-menu .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.5rem 0.85rem;
+            margin: 2px 8px;
+            border-radius: 6px;
+            color: var(--sidebar-text);
+            font-size: 0.8125rem;
+            font-weight: 500;
+            transition: background-color 0.15s ease, color 0.15s ease;
+            text-decoration: none;
+        }
+
+        .sidebar-menu .nav-link:hover {
+            color: var(--sidebar-text-active);
+            background-color: var(--sidebar-hover);
+        }
+
+        .sidebar-menu .nav-link.active {
+            color: var(--sidebar-text-active);
+            background-color: var(--sidebar-active-bg);
+            font-weight: 600;
+        }
+
+        .sidebar-menu .nav-link.active i {
+            color: var(--accent);
+        }
+
+        .sidebar-menu .nav-link i {
+            font-size: 1rem;
+            width: 18px;
+            text-align: center;
+            color: #6b7280;
+        }
+
+        .sidebar-user {
+            background-color: #ffffff;
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid var(--sidebar-border);
+        }
+
+        /* Main content area */
+        .main-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            background-color: var(--body-bg);
+        }
+
+        .main-content {
+            flex-grow: 1;
+            padding: 1.75rem 2rem;
+            max-width: 1360px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .app-footer {
+            background-color: #ffffff;
+            border-top: 1px solid var(--topbar-border);
+            color: var(--text-muted);
+            font-size: 0.8125rem;
+            padding: 0.85rem 2rem;
+        }
+
+        /* Enterprise Components Styling */
+        .card {
+            border: 1px solid #e5e7eb !important;
+            border-radius: 8px !important;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04) !important;
+            background-color: #ffffff !important;
+        }
+
+        .card-header {
+            background-color: #ffffff !important;
+            border-bottom: 1px solid #e5e7eb !important;
+            padding: 1rem 1.25rem !important;
+        }
+
+        .btn {
+            font-size: 0.8125rem;
+            font-weight: 500;
+            border-radius: 6px;
+            padding: 0.45rem 0.85rem;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+        }
+
+        .btn-primary {
+            background-color: #2563eb !important;
+            border-color: #2563eb !important;
+            color: #ffffff !important;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-primary:hover {
+            background-color: #1d4ed8 !important;
+            border-color: #1d4ed8 !important;
+        }
+
+        .btn-outline-secondary {
+            background-color: #ffffff !important;
+            border-color: #d1d5db !important;
+            color: #374151 !important;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+        }
+
+        .btn-outline-secondary:hover {
+            background-color: #f9fafb !important;
+            border-color: #9ca3af !important;
+            color: #111827 !important;
+        }
+
+        .btn-outline-primary {
+            background-color: #ffffff !important;
+            border-color: #2563eb !important;
+            color: #2563eb !important;
+        }
+
+        .btn-outline-primary:hover {
+            background-color: #eff6ff !important;
+            color: #1d4ed8 !important;
+        }
+
+        /* Subtle Flat Alerts */
+        .alert {
+            border-radius: 6px;
+            font-size: 0.8125rem;
+            border-width: 1px;
+            padding: 0.75rem 1rem;
+        }
+        .alert-success {
+            background-color: #f0fdf4 !important;
+            border-color: #bbf7d0 !important;
+            color: #15803d !important;
+        }
+        .alert-danger {
+            background-color: #fef2f2 !important;
+            border-color: #fecaca !important;
+            color: #b91c1c !important;
+        }
+        .alert-warning {
+            background-color: #fefce8 !important;
+            border-color: #fef08a !important;
+            color: #854d0e !important;
+        }
+        .alert-info {
+            background-color: #f8fafc !important;
+            border-color: #e2e8f0 !important;
+            color: #334155 !important;
+        }
+
+        /* Responsive Mobile Sidebar */
+        @media (max-width: 991.98px) {
+            .sidebar {
+                position: fixed;
+                top: var(--topbar-height);
+                bottom: 0;
+                left: 0;
+                z-index: 1020;
+                transform: translateX(-100%);
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+                box-shadow: 4px 0 20px rgba(0, 0, 0, 0.08);
+            }
+
+            .sidebar-backdrop {
+                display: none;
+                position: fixed;
+                top: var(--topbar-height);
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(17, 24, 39, 0.4);
+                z-index: 1010;
+            }
+
+            .sidebar-backdrop.show {
+                display: block;
+            }
+        }
+    </style>
+
+    
+</head>
+<body>
+
+    <!-- ====================================================================== -->
+    <!-- BARRA SUPERIOR (Navbar Utilitaria)                                     -->
+    <!-- ====================================================================== -->
+    <header class="navbar navbar-expand top-navbar sticky-top px-3 px-md-4">
+        <!-- Botón para alternar sidebar en móviles -->
+        <button class="btn btn-link text-secondary d-lg-none me-2 p-0 text-decoration-none" id="sidebarToggle" type="button" aria-label="Menu">
+            <i class="bi bi-list fs-4"></i>
+        </button>
+
+        <!-- Marca / Logo Minimalista -->
+        <a class="navbar-brand text-dark fw-semibold d-flex align-items-center gap-2 m-0 fs-6 text-decoration-none" href="/dashboard/">
+            <div class="rounded d-flex align-items-center justify-content-center bg-dark text-white" style="width: 26px; height: 26px; font-size: 0.75rem;">
+                <i class="bi bi-bar-chart-fill"></i>
+            </div>
+            <span class="tracking-tight" style="color: #111827; font-weight: 600;">SmartFinanzas</span>
+        </a>
+
+        <!-- Controles a la derecha -->
+        <div class="ms-auto d-flex align-items-center gap-2 gap-md-3">
+            
+                <div class="d-none d-sm-flex align-items-center gap-2 text-secondary">
+                    <span class="text-dark fw-medium" style="font-size: 0.8125rem;">trabajador_coagra</span>
+                    
+                        <span class="badge border font-monospace" style="font-size: 0.6875rem; background-color: #f3f4f6; color: #4b5563; border-color: #e5e7eb !important;">
+                            Trabajador
+                        </span>
+                    
+                </div>
+
+                <form action="/logout/" method="POST" class="d-inline m-0">
+                    <input type="hidden" name="csrfmiddlewaretoken" value="E6DTcnnEBYiSZQ9rp7RkrAUzov5Z6wtLJW9ijYmhYZiqWmaZ6dYcqzIxyvIgZp30">
+                    <button type="submit" class="btn btn-outline-secondary btn-sm py-1 px-2 text-secondary">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span class="d-none d-sm-inline" style="font-size: 0.75rem;">Salir</span>
+                    </button>
+                </form>
+            
+        </div>
+    </header>
+
+    <!-- Backdrop para cerrar sidebar en móvil -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- ====================================================================== -->
+    <!-- CONTENEDOR PRINCIPAL: SIDEBAR + CONTENIDO DINÁMICO                     -->
+    <!-- ====================================================================== -->
+    <div class="app-layout">
+
+        <!-- ------------------------------------------------------------------ -->
+        <!-- MENÚ DE NAVEGACIÓN LATERAL (Sidebar)                               -->
+        <!-- ------------------------------------------------------------------ -->
+        <aside class="sidebar" id="sidebarNav">
+            
+            <div class="sidebar-user">
+                <div class="d-flex align-items-center gap-2 p-1 rounded border" style="border-color: #e5e7eb !important; background-color: #f9fafb;">
+                    <div class="rounded-circle bg-secondary bg-opacity-25 text-dark d-flex align-items-center justify-content-center fw-semibold" style="width: 30px; height: 30px; font-size: 0.75rem;">
+                        TR
+                    </div>
+                    <div class="overflow-hidden flex-grow-1">
+                        <div class="text-dark fw-medium text-truncate" style="font-size: 0.75rem;">trabajador_coagra</div>
+                        <div class="text-muted text-truncate" style="font-size: 0.6875rem;">Trabajador</div>
+                    </div>
+                </div>
+            </div>
+            
+
+            <div class="overflow-y-auto flex-grow-1 py-2">
+                <!-- 1. GENERAL / TABLERO -->
+                <div class="sidebar-heading">Analítica &amp; Control</div>
+                <ul class="sidebar-menu">
+                    <li>
+                        <a href="/dashboard/" class="nav-link ">
+                            <i class="bi bi-speedometer2"></i>
+                            <span>Información Actual</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/dashboard/predictivo/" class="nav-link ">
+                            <i class="bi bi-graph-up-arrow"></i>
+                            <span>Información Predictiva</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- 2. MÓDULO ETL (Ingesta de Balances) -->
+                <div class="sidebar-heading">Módulo ETL</div>
+                <ul class="sidebar-menu">
+                    <li>
+                        <a href="/etl/carga/" class="nav-link ">
+                            <i class="bi bi-cloud-arrow-up"></i>
+                            <span>Carga de Estados</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/etl/ratios/" class="nav-link ">
+                            <i class="bi bi-calculator"></i>
+                            <span>Ratios Financieros</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/etl/historial/" class="nav-link ">
+                            <i class="bi bi-clock-history"></i>
+                            <span>Historial de Cargas</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- 3. MÓDULO TRANSACCIONAL (Caja, Ventas, Cierres) -->
+                <div class="sidebar-heading">Transaccional</div>
+                <ul class="sidebar-menu">
+                    
+                    
+                    
+                    <li>
+                        <a href="/transaccional/ventas/nueva/" class="nav-link active">
+                            <i class="bi bi-cart-check"></i>
+                            <span>Registro de Ventas</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/transaccional/cierre/nuevo/" class="nav-link ">
+                            <i class="bi bi-safe"></i>
+                            <span>Cierre y Arqueo</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/transaccional/cierres/" class="nav-link ">
+                            <i class="bi bi-journal-check"></i>
+                            <span>Historial de Cierres</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- 4. CAPA ANALÍTICA -->
+                <!--
+                <div class="sidebar-heading">Capa Analítica</div>
+                <ul class="sidebar-menu">
+                    <li>
+                        <a href="/dashboard/" class="nav-link ">
+                            <i class="bi bi-cpu"></i>
+                            <span>Predicción de Riesgo</span>
+                        </a>
+                    </li>
+                </ul>
+                -->
+            </div>
+        </aside>
+
+        <!-- ------------------------------------------------------------------ -->
+        <!-- ÁREA DE CONTENIDO CENTRAL                                          -->
+        <!-- ------------------------------------------------------------------ -->
+        <div class="main-wrapper">
+            <main class="main-content">
+                <!-- Sistema de Notificaciones / Mensajes Django -->
+                
+
+                <!-- Encabezado de página opcional -->
+                
+<div class="d-flex flex-wrap align-items-center justify-content-between pb-3 mb-4 border-bottom">
+    <div>
+        <h1 class="h3 fw-bold text-dark mb-1">
+            <i class="bi bi-cart-plus text-primary me-2"></i>Punto de Venta Operativo
+        </h1>
+        <p class="text-muted mb-0 small">
+            Registro diario con deducción automática de comisiones adquirentes y control de liquidez real.
+        </p>
+    </div>
+    <div class="mt-2 mt-md-0">
+        <span class="badge bg-secondary py-2 px-3 fs-6">
+            <i class="bi bi-calendar-event me-1"></i>17/11/2026
+        </span>
+    </div>
+</div>
+
+
+                <!-- Contenido dinámico inyectado por las vistas hijas -->
+                
+<div class="row g-4">
+    <!-- Formulario de Venta -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h5 class="card-title fw-bold mb-0 text-dark">
+                    <i class="bi bi-receipt me-2 text-primary"></i>Nueva Transacción
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" id="formVenta" novalidate>
+                    <input type="hidden" name="csrfmiddlewaretoken" value="E6DTcnnEBYiSZQ9rp7RkrAUzov5Z6wtLJW9ijYmhYZiqWmaZ6dYcqzIxyvIgZp30">
+
+                    
+
+                    <!-- Método de Pago -->
+                    <div class="mb-3">
+                        <label for="id_payment_method" class="form-label fw-semibold">
+                            Método de Pago <span class="text-danger">*</span>
+                        </label>
+                        <select name="payment_method" class="form-select" id="id_payment_method">
+  <option value="" selected>-- Seleccione Método de Pago --</option>
+
+  <option value="1" data-comision="0">Efectivo</option>
+
+  <option value="2" data-comision="1.75">Débito</option>
+
+  <option value="3" data-comision="2.35">Crédito</option>
+
+  <option value="4" data-comision="0">Transferencia</option>
+
+</select>
+                        
+                        <div class="form-text small">
+                            Selecciona el canal de pago para descontar la tasa de adquirencia correspondiente.
+                        </div>
+                    </div>
+
+                    <!-- Total Bruto -->
+                    <div class="mb-3">
+                        <label for="id_gross_total" class="form-label fw-semibold">
+                            Total Bruto ($) <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" name="gross_total" class="form-control" id="id_gross_total" min="1" step="0.01" placeholder="Ej: 25000">
+                        </div>
+                        
+                    </div>
+
+                    <!-- Descuento Monto -->
+                    <div class="mb-3">
+                        <label for="id_discount_amount" class="form-label fw-semibold">
+                            Monto de Descuento ($)
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" name="discount_amount" value="0.00" class="form-control" id="id_discount_amount" step="0.01" placeholder="0.00" min="0.00">
+                        </div>
+                        
+                        <div class="form-text small">
+                            Descuento puntual aplicado al cliente (debe ser menor al total bruto).
+                        </div>
+                    </div>
+
+                    <!-- Panel Reactivo de Liquidez Real Estimada (Vanilla JS) -->
+                    <div id="panelLiquidez" class="alert alert-info shadow-sm d-flex align-items-center gap-3 py-3 px-3 my-4">
+                        <div class="fs-2 text-info">
+                            <i class="bi bi-wallet2"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="fw-bold fs-6" id="textoIngresoReal">
+                                Ingreso Real Estimado: $0
+                            </div>
+                            <small class="text-muted" id="textoComision">
+                                (Comisión deducida: $0)
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg fw-semibold shadow-sm">
+                            <i class="bi bi-check2-circle me-1"></i>Registrar Venta
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historial de Ventas Recientes de la Jornada -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="card-title fw-bold mb-0 text-dark">
+                    <i class="bi bi-clock-history me-2 text-secondary"></i>Últimas Ventas de Hoy
+                </h5>
+                <span class="badge bg-light text-dark border">
+                    0 registradas
+                </span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light small text-uppercase">
+                            <tr>
+                                <th>Hora</th>
+                                <th>Método</th>
+                                <th class="text-end">Bruto</th>
+                                <th class="text-end">Comisión</th>
+                                <th class="text-end fw-bold">Ingreso Real</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">
+                                    <i class="bi bi-inbox fs-3 d-block mb-1"></i>
+                                    Aún no hay ventas registradas en la jornada de hoy.
+                                </td>
+                            </tr>
+                            
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+            </main>
+
+            <!-- Pie de página unificado -->
+            <footer class="app-footer">
+                <div class="container-fluid d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2">
+                    <div>
+                        &copy; 2026 <strong>SmartFinanzas</strong> — Sistema de Analítica Predictiva.
+                    </div>
+                    <div class="text-muted">
+                        Plataforma de Inteligencia Financiera Empresarial
+                    </div>
+                </div>
+            </footer>
+        </div>
+
+    </div>
+
+    <!-- Modal / Spinner y Barra de Carga para Ejecución del Análisis Predictivo (RF-11) -->
+    <div class="modal fade" id="modalCargaAnalisis" tabindex="-1" aria-labelledby="modalCargaAnalisisLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg text-center p-4">
+                <div class="modal-body p-2">
+                    <!-- Spinner de carga animado -->
+                    <div class="d-flex justify-content-center mb-3">
+                        <div class="spinner-border text-primary" style="width: 3.5rem; height: 3.5rem;" role="status">
+                            <span class="visually-hidden">Ejecutando análisis...</span>
+                        </div>
+                    </div>
+
+                    <h5 class="fw-bold text-dark mb-2" id="modalCargaAnalisisLabel">
+                        Ejecutando Modelo de Random Forest
+                    </h5>
+                    <p class="text-muted small mb-3">
+                        Procesando vector de ratios financieros (V1 &ndash; V7) y calculando explicabilidad con SHAP.<br>
+                        Por favor espere un momento mientras se completa la evaluación de riesgo...
+                    </p>
+
+                    <!-- Barra de carga animada (RF-11) -->
+                    <div class="progress mb-2" style="height: 10px;">
+                        <div id="barraProgresoAnalisis" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+
+                    <span class="text-secondary fs-micro font-monospace">
+                        <i class="bi bi-cpu me-1"></i>Inferencia analítica en curso &middot; Tiempo estimado: &lt; 2 segundos
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5.3 Bundle JS (incluye Popper) -->
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Script para alternar el Sidebar en dispositivos móviles e inicializar Tooltips -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Inicialización global de Tooltips Bootstrap
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            const sidebar = document.getElementById('sidebarNav');
+            const toggleBtn = document.getElementById('sidebarToggle');
+            const backdrop = document.getElementById('sidebarBackdrop');
+
+            if (toggleBtn && sidebar && backdrop) {
+                function toggleSidebar() {
+                    sidebar.classList.toggle('show');
+                    backdrop.classList.toggle('show');
+                }
+
+                toggleBtn.addEventListener('click', toggleSidebar);
+                backdrop.addEventListener('click', toggleSidebar);
+            }
+
+            // Manejador del botón y formulario "Ejecutar Análisis" (RF-11)
+            const formsEjecutar = document.querySelectorAll('.form-ejecutar-analisis');
+            const modalCargaEl = document.getElementById('modalCargaAnalisis');
+            let modalCargaInstance = null;
+
+            formsEjecutar.forEach(function (form) {
+                form.addEventListener('submit', function (e) {
+                    // Deshabilitar botón para prevenir doble clic y mostrar spinner en botón
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Ejecutando Análisis...';
+                    }
+
+                    // Cerrar cualquier modal abierto (ej. modal de advertencia de outliers)
+                    const modalesAbiertos = document.querySelectorAll('.modal.show');
+                    modalesAbiertos.forEach(function (m) {
+                        const inst = bootstrap.Modal.getInstance(m);
+                        if (inst) inst.hide();
+                    });
+
+                    // Mostrar barra / spinner de carga en modal persistente
+                    if (modalCargaEl && typeof bootstrap !== 'undefined') {
+                        if (!modalCargaInstance) {
+                            modalCargaInstance = new bootstrap.Modal(modalCargaEl, { backdrop: 'static', keyboard: false });
+                        }
+                        modalCargaInstance.show();
+                    }
+                });
+            });
+        });
+    </script>
+
+    
+<!-- Reactividad pura en Vanilla JS para mitigar la ceguera de liquidez -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const inputBruto = document.getElementById('id_gross_total');
+    const inputDescuento = document.getElementById('id_discount_amount');
+    const selectMetodo = document.getElementById('id_payment_method');
+    const textoIngresoReal = document.getElementById('textoIngresoReal');
+    const textoComision = document.getElementById('textoComision');
+    const panelLiquidez = document.getElementById('panelLiquidez');
+
+    function formatearDinero(valor) {
+        return new Intl.NumberFormat('es-CL', {
+            style: 'currency',
+            currency: 'CLP',
+            maximumFractionDigits: 0
+        }).format(valor);
+    }
+
+    function recalcularLiquidez() {
+        const bruto = parseFloat(inputBruto.value) || 0;
+        const descuento = parseFloat(inputDescuento.value) || 0;
+
+        // Leer la opción seleccionada y su atributo data-comision
+        const opcionSeleccionada = selectMetodo.options[selectMetodo.selectedIndex];
+        const porcentajeComision = opcionSeleccionada ? parseFloat(opcionSeleccionada.getAttribute('data-comision')) || 0 : 0;
+
+        // Validaciones en caliente
+        if (bruto <= 0) {
+            textoIngresoReal.textContent = 'Ingreso Real Estimado: $0';
+            textoComision.textContent = '(Comisión deducida: $0)';
+            panelLiquidez.className = 'alert alert-info shadow-sm d-flex align-items-center gap-3 py-3 px-3 my-4';
+            return;
+        }
+
+        if (descuento >= bruto) {
+            textoIngresoReal.innerHTML = '<span class="text-danger fw-bold">El descuento no puede superar o igualar el total bruto.</span>';
+            textoComision.textContent = '(Operación Inválida)';
+            panelLiquidez.className = 'alert alert-warning shadow-sm d-flex align-items-center gap-3 py-3 px-3 my-4';
+            return;
+        }
+
+        const totalCobrado = bruto - descuento;
+        const comisionDeducida = totalCobrado * (porcentajeComision / 100);
+        const ingresoReal = totalCobrado - comisionDeducida;
+
+        textoIngresoReal.textContent = `Ingreso Real Estimado: ${formatearDinero(ingresoReal)}`;
+        textoComision.textContent = `(Comisión deducida: ${formatearDinero(comisionDeducida)} [${porcentajeComision}% adquirencia])`;
+
+        panelLiquidez.className = 'alert alert-success shadow-sm d-flex align-items-center gap-3 py-3 px-3 my-4';
+    }
+
+    // Escuchar eventos
+    if (inputBruto) inputBruto.addEventListener('input', recalcularLiquidez);
+    if (inputDescuento) inputDescuento.addEventListener('input', recalcularLiquidez);
+    if (selectMetodo) selectMetodo.addEventListener('change', recalcularLiquidez);
+
+    // Ejecutar al cargar la página
+    recalcularLiquidez();
+});
+</script>
+
+</body>
+</html>
+

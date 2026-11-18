@@ -1,0 +1,5 @@
+2026/11/17-15:14:50.609 1028 Creating DB C:\Users\artur\Documents\Repositorios\SmartFinanzas\scratch\edge_profile_contador\Default\EdgeCoupons/coupons_data.db since it was missing.
+2026/11/17-15:14:51.304 1028 Reusing MANIFEST C:\Users\artur\Documents\Repositorios\SmartFinanzas\scratch\edge_profile_contador\Default\EdgeCoupons/coupons_data.db/MANIFEST-000001
+2026/11/17-15:14:55.327 31f4 Level-0 table #5: started
+2026/11/17-15:14:55.375 31f4 Level-0 table #5: 683284 bytes OK
+2026/11/17-15:14:55.452 31f4 Delete type=0 #3
