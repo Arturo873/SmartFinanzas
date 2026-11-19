@@ -13,16 +13,23 @@ Asegúrate de contar con las siguientes herramientas instaladas:
 
 ---
 
-## 🔑 2. Credenciales de Prueba (Cuenta de Test)
+## 🔑 2. Credenciales de Prueba (Cuentas de Test por Rol)
 
-Para iniciar sesión en la plataforma una vez levantada, utiliza las siguientes credenciales preconfiguradas:
+Para ingresar a la plataforma y validar el **Control de Acceso Basado en Roles (RBAC)** y el renderizado condicional de funciones en el menú, se dispone de las siguientes cuentas preconfiguradas:
 
-| Campo | Valor |
-| :--- | :--- |
-| **Correo Electrónico** | `tes1@test.cl` *(o también `test1@test.cl`)* |
-| **Contraseña** | `test123` |
-| **Rol Asignado** | Administrador / Usuario |
-| **Empresa Vinculada** | TestEmpresa1 |
+> **Contraseña universal para todas las cuentas de prueba:** `test123`
+
+| Rol | Usuario | Correo Electrónico (Login) | Contraseña | Vistas y Funciones Habilitadas |
+| :--- | :--- | :--- | :---: | :--- |
+| **Dueño** *(Gerencia)* | `TestDueño` | `propietario@test.cl` | `test123` | **Analítica & Control** (Dashboard actual y predictivo), **Módulo ETL** (balances y ratios), **Cierre y Arqueo** de gaveta e Historial de cierres. |
+| **Contador** *(Auditor)* | `TestContador` | `contador@test.cl` | `test123` | **Analítica & Control** (Dashboard actual y predictivo), **Módulo ETL** (carga de estados, ratios e historial) e Historial de cierres en modo auditoría. |
+| **Trabajador** *(Cajero)* | `TestTrabajador` | `trabajador@test.cl` | `test123` | **Transaccional:** Registro de Ventas (Punto de Venta / POS), Cierre y Arqueo de caja diaria e Historial de cierres. *(Aislado de balances y tableros gerenciales)*. |
+| **Administrador** *(TI / Superuser)* | `TestAdministrador` | `admin@test.cl` | `test123` | Acceso total e irrestricto a todos los módulos, reportes y configuraciones del sistema. |
+
+> [!NOTE]
+> * **Inicio de Sesión:** El formulario de login valida las credenciales utilizando el **Correo Electrónico** y la **Contraseña**.
+> * *(Cuenta de prueba administrativa previa: `tes1@test.cl` / `test1@test.cl` con clave `test123`).*
+> * **Balances de prueba:** En la carpeta [`Balances_de_prueba/`](SmartFinanzas/Balances_de_prueba) dispones de estados financieros reales en formato `.xlsx` listos para probar la plataforma (empresas: *COAGRA S.A*, *COMERCIAL K SPA*, *FRUTICOLA VICONTO S.A* y *UNION EL GOLF S.A*).
 
 ---
 
@@ -142,6 +149,12 @@ El servidor quedará disponible en:
      * Permite subir balances contables en `.csv` o `.xlsx`.
      * Los datos se vinculan automáticamente a la empresa de tu usuario.
      * Puedes descargar la plantilla oficial directamente desde el botón **"Descargar Plantilla CSV"** (`/etl/descargar-plantilla/`).
+     * **Archivos de prueba disponibles:** En la carpeta [`Balances_de_prueba/` dispones de balances financieros reales en formato Excel (`.xlsx`) correspondientes a ejercicios de los años 2022 a 2026 para diferentes empresas:
+       * `COAGRA S.A/`
+       * `COMERCIAL K SPA/`
+       * `FRUTICOLA VICONTO S.A/`
+       * `UNION EL GOLF S.A/`
+       *(Puedes seleccionar cualquiera de estos archivos para ensayar el pipeline de carga, normalización CMF e inferencia ML).*
    * **Matriz de Ratios:** Menú lateral → *Ratios Financieros* (`/etl/ratios/`).
      * Muestra las 7 variables predictivas (V1 a V7), Altman $Z''_{EM}$, liquidez y solvencia filtradas estrictamente para tu empresa.
    * **Historial de Cargas:** Menú lateral → *Historial de Cargas* (`/etl/historial/`).
