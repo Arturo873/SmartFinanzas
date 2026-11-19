@@ -9,11 +9,11 @@
             <i class="bi bi-journal-check text-primary me-2"></i>Historial de Cierres y Arqueos
         </h1>
         <p class="text-muted mb-0 small">
-            Registro cronológico auditable de cuadratura de caja diaria (Roles Dueño y Contador).
+            Registro cronológico auditable de cuadratura de caja diaria (Roles Trabajador, Dueño y Contador).
         </p>
     </div>
     <div class="mt-2 mt-md-0 d-flex gap-2">
-        {% if user.profile.role == 'Dueño' or user.is_superuser %}
+        {% if permisos.cerrar_caja %}
             {% if not cierre_hoy_existe %}
                 <a href="{% url 'moduloTransaccional:cierre_caja' %}" class="btn btn-primary btn-sm shadow-sm">
                     <i class="bi bi-plus-circle me-1"></i>Efectuar Cierre de Hoy

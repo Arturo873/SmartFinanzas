@@ -35,6 +35,18 @@ def sincronizar_sesion(request, usuario_db):
             defaults={'role': usuario_db.role.name}
         )
 
+    # 4. Inicializar diccionario de capacidades/permisos en sesión
+    rol_str = (usuario_db.role.name if usuario_db.role else '').strip().lower()
+    is_super = getattr(auth_user, 'is_superuser', False)
+    request.session['permisos'] = {
+        'ver_analitica': bool(rol_str in ['dueño', 'dueno', 'contador', 'administrador', 'admin'] or is_super),
+        'ver_etl': bool(rol_str in ['contador', 'dueño', 'dueno', 'administrador', 'admin'] or is_super),
+        'operar_ventas': bool(rol_str in ['trabajador', 'administrador', 'admin'] or is_super),
+        'cerrar_caja': bool(rol_str in ['trabajador', 'dueño', 'dueno', 'administrador', 'admin'] or is_super),
+        'ver_historial_cierres': bool(rol_str in ['trabajador', 'dueño', 'dueno', 'contador', 'administrador', 'admin'] or is_super),
+        'es_operativo_caja': bool(rol_str == 'trabajador' and not is_super),
+    }
+
     # Iniciar sesión oficial en Django
     auth_login(request, auth_user)
 

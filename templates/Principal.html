@@ -293,7 +293,7 @@
         </button>
 
         <!-- Marca / Logo Minimalista -->
-        <a class="navbar-brand text-dark fw-semibold d-flex align-items-center gap-2 m-0 fs-6 text-decoration-none" href="{% url 'dashboard:dashboard' %}">
+        <a class="navbar-brand text-dark fw-semibold d-flex align-items-center gap-2 m-0 fs-6 text-decoration-none" href="{% if permisos.es_operativo_caja %}{% url 'moduloTransaccional:venta_crear' %}{% else %}{% url 'dashboard:dashboard' %}{% endif %}">
             <div class="rounded d-flex align-items-center justify-content-center bg-dark text-white" style="width: 26px; height: 26px; font-size: 0.75rem;">
                 <i class="bi bi-bar-chart-fill"></i>
             </div>
@@ -305,11 +305,9 @@
             {% if user.is_authenticated %}
                 <div class="d-none d-sm-flex align-items-center gap-2 text-secondary">
                     <span class="text-dark fw-medium" style="font-size: 0.8125rem;">{{ user.username }}</span>
-                    {% if user.profile.role %}
-                        <span class="badge border font-monospace" style="font-size: 0.6875rem; background-color: #f3f4f6; color: #4b5563; border-color: #e5e7eb !important;">
-                            {{ user.profile.role }}
-                        </span>
-                    {% endif %}
+                    <span class="badge border font-monospace" style="font-size: 0.6875rem; background-color: #f3f4f6; color: #4b5563; border-color: #e5e7eb !important;">
+                        <i class="bi bi-shield-check me-1 text-primary"></i>Conectado
+                    </span>
                 </div>
 
                 <form action="{% url 'usuarios:logout' %}" method="POST" class="d-inline m-0">
@@ -348,7 +346,7 @@
                     </div>
                     <div class="overflow-hidden flex-grow-1">
                         <div class="text-dark fw-medium text-truncate" style="font-size: 0.75rem;">{{ user.username }}</div>
-                        <div class="text-muted text-truncate" style="font-size: 0.6875rem;">{{ user.profile.role|default:"Colaborador" }}</div>
+                        <div class="text-muted text-truncate" style="font-size: 0.6875rem;">Sesión Activa</div>
                     </div>
                 </div>
             </div>
@@ -356,6 +354,7 @@
 
             <div class="overflow-y-auto flex-grow-1 py-2">
                 <!-- 1. GENERAL / TABLERO -->
+                {% if permisos.ver_analitica %}
                 <div class="sidebar-heading">Analítica &amp; Control</div>
                 <ul class="sidebar-menu">
                     <li>
@@ -371,8 +370,10 @@
                         </a>
                     </li>
                 </ul>
+                {% endif %}
 
                 <!-- 2. MÓDULO ETL (Ingesta de Balances) -->
+                {% if permisos.ver_etl %}
                 <div class="sidebar-heading">Módulo ETL</div>
                 <ul class="sidebar-menu">
                     <li>
@@ -394,45 +395,47 @@
                         </a>
                     </li>
                 </ul>
+                {% endif %}
 
                 <!-- 3. MÓDULO TRANSACCIONAL (Caja, Ventas, Cierres) -->
+                {% if permisos.operar_ventas or permisos.cerrar_caja or permisos.ver_historial_cierres %}
                 <div class="sidebar-heading">Transaccional</div>
                 <ul class="sidebar-menu">
                     {% url 'moduloTransaccional:venta_crear' as url_ventas %}
                     {% url 'moduloTransaccional:cierre_caja' as url_cierre %}
                     {% url 'moduloTransaccional:historial_cierres' as url_historial %}
+
+                    <!-- Registro de Ventas -->
+                    {% if permisos.operar_ventas %}
                     <li>
                         <a href="{% if url_ventas %}{{ url_ventas }}{% else %}#{% endif %}" class="nav-link {% if request.resolver_match.url_name == 'venta_crear' %}active{% endif %}">
                             <i class="bi bi-cart-check"></i>
                             <span>Registro de Ventas</span>
                         </a>
                     </li>
+                    {% endif %}
+
+                    <!-- Cierre y Arqueo -->
+                    {% if permisos.cerrar_caja %}
                     <li>
                         <a href="{% if url_cierre %}{{ url_cierre }}{% else %}#{% endif %}" class="nav-link {% if request.resolver_match.url_name == 'cierre_caja' %}active{% endif %}">
                             <i class="bi bi-safe"></i>
                             <span>Cierre y Arqueo</span>
                         </a>
                     </li>
+                    {% endif %}
+
+                    <!-- Historial de Cierres -->
+                    {% if permisos.ver_historial_cierres %}
                     <li>
                         <a href="{% if url_historial %}{{ url_historial }}{% else %}#{% endif %}" class="nav-link {% if request.resolver_match.url_name == 'historial_cierres' %}active{% endif %}">
                             <i class="bi bi-journal-check"></i>
                             <span>Historial de Cierres</span>
                         </a>
                     </li>
+                    {% endif %}
                 </ul>
-
-                <!-- 4. CAPA ANALÍTICA -->
-                <!--
-                <div class="sidebar-heading">Capa Analítica</div>
-                <ul class="sidebar-menu">
-                    <li>
-                        <a href="{% url 'dashboard:dashboard' %}" class="nav-link {% if request.resolver_match.app_name == 'dashboard' and request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
-                            <i class="bi bi-cpu"></i>
-                            <span>Predicción de Riesgo</span>
-                        </a>
-                    </li>
-                </ul>
-                -->
+                {% endif %}
             </div>
         </aside>
 

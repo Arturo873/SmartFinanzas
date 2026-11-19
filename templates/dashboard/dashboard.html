@@ -303,12 +303,21 @@
             </div>
 
             <div class="pt-2 mt-3 border-top border-subtle d-flex align-items-center justify-content-between fs-caption">
-                <a href="{% url 'moduloTransaccional:venta_crear' %}" class="text-decoration-none text-primary fw-medium">
-                    <i class="bi bi-plus-circle me-1"></i>Nueva Venta
-                </a>
-                <a href="{% url 'moduloTransaccional:cierre_caja' %}" class="text-decoration-none text-secondary">
-                    <i class="bi bi-safe me-1"></i>Arqueo
-                </a>
+                {% if user.is_superuser %}
+                    <a href="{% url 'moduloTransaccional:venta_crear' %}" class="text-decoration-none text-primary fw-medium">
+                        <i class="bi bi-plus-circle me-1"></i>Nueva Venta
+                    </a>
+                {% endif %}
+                {% if permisos.cerrar_caja %}
+                    <a href="{% url 'moduloTransaccional:cierre_caja' %}" class="text-decoration-none text-secondary">
+                        <i class="bi bi-safe me-1"></i>Arqueo
+                    </a>
+                {% endif %}
+                {% if permisos.ver_historial_cierres %}
+                    <a href="{% url 'moduloTransaccional:historial_cierres' %}" class="text-decoration-none text-primary fw-medium">
+                        <i class="bi bi-journal-check me-1"></i>Historial Cierres
+                    </a>
+                {% endif %}
             </div>
         </div>
     </div>

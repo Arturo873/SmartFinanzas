@@ -377,14 +377,14 @@ class VentaCreateView(RolRequeridoMixin, CreateView):
 class CierreCajaCreateView(RolRequeridoMixin, CreateView):
     """
     Vista de Cierre y Arqueo Diario de Caja.
-    Exclusiva para el rol 'Dueño' (y Administrador).
+    Permitida para los roles 'Trabajador', 'Dueño' y 'Administrador'.
     Garantiza consistencia ACID y previene el doble cierre en la misma fecha.
     """
     model = CashRegisterClosure
     form_class = CierreCajaForm
     template_name = 'moduloTransaccional/cierre_caja_form.html'
     success_url = reverse_lazy('moduloTransaccional:historial_cierres')
-    roles_permitidos = ['Dueño', 'Administrador']
+    roles_permitidos = ['Trabajador', 'Dueño', 'Administrador']
 
     def dispatch(self, request, *args, **kwargs):
         # Bloqueo de Doble Cierre: Si ya existe un cierre de la empresa con la fecha de hoy, bloquear
@@ -657,7 +657,7 @@ class CierreCajaCreateView(RolRequeridoMixin, CreateView):
 class HistorialCierresListView(RolRequeridoMixin, ListView):
     """
     Vista de consulta y auditoría de Cierres de Caja.
-    Permitida para los roles 'Dueño' y 'Contador' (y Administrador).
+    Permitida para los roles 'Trabajador', 'Dueño', 'Contador' y 'Administrador'.
     Permite búsqueda automática por texto o selección por calendario (día),
     además de ordenamiento ascendente/descendente por fecha.
     """
@@ -665,7 +665,7 @@ class HistorialCierresListView(RolRequeridoMixin, ListView):
     template_name = 'moduloTransaccional/cierrecaja_list.html'
     context_object_name = 'cierres'
     paginate_by = 15
-    roles_permitidos = ['Dueño', 'Contador', 'Administrador']
+    roles_permitidos = ['Trabajador', 'Dueño', 'Contador', 'Administrador']
 
     def get_queryset(self):
         usuario_db = resolver_usuario_bd(self.request.user)
